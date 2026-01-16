@@ -108,6 +108,3 @@ launchpd logout
 ## License
 
 MIT
-
-# Launchpd
-public urls for localhost
