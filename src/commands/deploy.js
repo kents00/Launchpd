@@ -2,10 +2,10 @@ import { existsSync, statSync } from 'node:fs';
 import { readdir } from 'node:fs/promises';
 import { resolve, basename, join } from 'node:path';
 import { generateSubdomain } from '../utils/id.js';
-import { uploadFolder } from '../utils/upload.js';
-import { recordDeployment as recordMetadata, getNextVersion, setActiveVersion } from '../utils/metadata.js';
+import { uploadFolder, finalizeUpload } from '../utils/upload.js';
+import { getNextVersion } from '../utils/metadata.js';
 import { saveLocalDeployment } from '../utils/localConfig.js';
-import { recordDeployment as recordToAPI, getNextVersionFromAPI } from '../utils/api.js';
+import { getNextVersionFromAPI } from '../utils/api.js';
 import { success, error, info, warning } from '../utils/logger.js';
 import { calculateExpiresAt, formatTimeRemaining } from '../utils/expiration.js';
 import { checkQuota, displayQuotaWarnings } from '../utils/quota.js';
@@ -135,42 +135,29 @@ export async function deploy(folder, options) {
 
     // Perform actual upload
     try {
-        // Get next version number for this subdomain (try API first, fallback to R2)
+        // Get next version number for this subdomain (try API first, fallback to local)
         let version = await getNextVersionFromAPI(subdomain);
         if (version === null) {
             version = await getNextVersion(subdomain);
         }
         info(`Deploying as version ${version}...`);
 
+        // Upload all files via API proxy
+        const folderName = basename(folderPath);
         const { totalBytes } = await uploadFolder(folderPath, subdomain, version);
 
-        // Set this version as active
-        await setActiveVersion(subdomain, version);
-
-        // Record deployment metadata
-        info('Recording deployment metadata...');
-
-        // Try API first for centralized storage
-        const folderName = basename(folderPath);
-        const apiResult = await recordToAPI({
+        // Finalize upload: set active version and record metadata
+        info('Finalizing deployment...');
+        await finalizeUpload(
             subdomain,
-            folderName,
+            version,
             fileCount,
             totalBytes,
-            version,
-            expiresAt: expiresAt?.toISOString() || null,
-        });
+            folderName,
+            expiresAt?.toISOString() || null
+        );
 
-        if (apiResult) {
-            // API succeeded - deployment is centrally tracked
-            info('Deployment recorded to central API');
-        } else {
-            // API unavailable - fallback to R2 metadata
-            warning('Central API unavailable, using local fallback');
-            await recordMetadata(subdomain, folderPath, fileCount, totalBytes, version, expiresAt);
-        }
-
-        // Always save locally for quick access
+        // Save locally for quick access
         await saveLocalDeployment({
             subdomain,
             folderName,

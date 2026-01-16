@@ -1,114 +1,85 @@
-import { S3Client, GetObjectCommand, PutObjectCommand, ListObjectsV2Command, CopyObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+/**
+ * Metadata utilities for Launchpd CLI
+ * All operations now go through the API proxy
+ */
+
 import { config } from '../config.js';
 
-const METADATA_KEY = '_meta/deployments.json';
+const API_BASE_URL = config.apiUrl;
 
 /**
- * Create S3-compatible client for Cloudflare R2
+ * Get API key for requests
  */
-function createR2Client() {
-    return new S3Client({
-        region: 'auto',
-        endpoint: `https://${config.r2.accountId}.r2.cloudflarestorage.com`,
-        credentials: {
-            accessKeyId: config.r2.accessKeyId,
-            secretAccessKey: config.r2.secretAccessKey,
-        },
-    });
+function getApiKey() {
+    return process.env.STATICLAUNCH_API_KEY || 'public-beta-key';
 }
 
 /**
- * Get existing deployments metadata from R2
- * @returns {Promise<{version: number, deployments: Array}>}
+ * Make an authenticated API request
  */
-async function getDeploymentsData(client) {
+async function apiRequest(endpoint, options = {}) {
+    const url = `${API_BASE_URL}${endpoint}`;
+
+    const headers = {
+        'Content-Type': 'application/json',
+        'X-API-Key': getApiKey(),
+        ...options.headers,
+    };
+
     try {
-        const response = await client.send(new GetObjectCommand({
-            Bucket: config.r2.bucketName,
-            Key: METADATA_KEY,
-        }));
-        const text = await response.Body.transformToString();
-        return JSON.parse(text);
-    } catch {
-        // File doesn't exist yet, return empty structure
-        return { version: 1, deployments: [] };
+        const response = await fetch(url, {
+            ...options,
+            headers,
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || `API error: ${response.status}`);
+        }
+
+        return data;
+    } catch (err) {
+        if (err.message.includes('fetch failed') || err.message.includes('ENOTFOUND')) {
+            return null;
+        }
+        throw err;
     }
 }
 
 /**
- * Create a timestamped backup of the metadata before overwriting
- * @param {S3Client} client
- * @param {object} data - Current metadata to backup
- */
-async function backupMetadata(client, data) {
-    if (data.deployments.length === 0) return; // Nothing to backup
-
-    const timestamp = new Date().toISOString().replaceAll(/[:.]/g, '-');
-    const backupKey = `_meta/backups/deployments-${timestamp}.json`;
-
-    await client.send(new PutObjectCommand({
-        Bucket: config.r2.bucketName,
-        Key: backupKey,
-        Body: JSON.stringify(data, null, 2),
-        ContentType: 'application/json',
-    }));
-}
-
-/**
- * Record a deployment to R2 metadata
+ * Record a deployment to the API
  * @param {string} subdomain - Deployed subdomain
  * @param {string} folderPath - Original folder path
  * @param {number} fileCount - Number of files deployed
  * @param {number} totalBytes - Total bytes uploaded
  * @param {number} version - Version number for this deployment
- * @param {string|null} expiresAt - ISO timestamp for expiration, or null for no expiration
+ * @param {Date|null} expiresAt - Expiration date, or null for no expiration
  */
 export async function recordDeployment(subdomain, folderPath, fileCount, totalBytes = 0, version = 1, expiresAt = null) {
-    const client = createR2Client();
-
-    // Get existing data
-    const data = await getDeploymentsData(client);
-
-    // Backup before modifying (prevents accidental data loss)
-    await backupMetadata(client, data);
-
-    // Extract folder name from path
     const folderName = folderPath.split(/[\\/]/).pop() || 'unknown';
 
-    // Append new deployment
-    const deployment = {
-        subdomain,
-        timestamp: new Date().toISOString(),
-        folderName,
-        fileCount,
-        totalBytes,
-        cliVersion: '0.1.0',
-        version,
-        isActive: true,
-        expiresAt,
-    };
-
-    data.deployments.push(deployment);
-
-    // Write back to R2
-    await client.send(new PutObjectCommand({
-        Bucket: config.r2.bucketName,
-        Key: METADATA_KEY,
-        Body: JSON.stringify(data, null, 2),
-        ContentType: 'application/json',
-    }));
-
-    return deployment;
+    return apiRequest('/api/deployments', {
+        method: 'POST',
+        body: JSON.stringify({
+            subdomain,
+            folderName,
+            fileCount,
+            totalBytes,
+            version,
+            cliVersion: config.version,
+            expiresAt: expiresAt?.toISOString() || null,
+        }),
+    });
 }
 
 /**
- * List all deployments from R2 metadata
+ * List all deployments for the current user
  * @returns {Promise<Array>} Array of deployment records
  */
 export async function listDeploymentsFromR2() {
-    const client = createR2Client();
-    const data = await getDeploymentsData(client);
-    return data.deployments;
+    const result = await apiRequest('/api/deployments');
+    return result?.deployments || [];
 }
 
 /**
@@ -117,15 +88,13 @@ export async function listDeploymentsFromR2() {
  * @returns {Promise<number>} Next version number
  */
 export async function getNextVersion(subdomain) {
-    const client = createR2Client();
-    const data = await getDeploymentsData(client);
+    const result = await apiRequest(`/api/versions/${subdomain}`);
 
-    const existingDeployments = data.deployments.filter(d => d.subdomain === subdomain);
-    if (existingDeployments.length === 0) {
+    if (!result || !result.versions || result.versions.length === 0) {
         return 1;
     }
 
-    const maxVersion = Math.max(...existingDeployments.map(d => d.version || 1));
+    const maxVersion = Math.max(...result.versions.map(v => v.version));
     return maxVersion + 1;
 }
 
@@ -135,74 +104,20 @@ export async function getNextVersion(subdomain) {
  * @returns {Promise<Array>} Array of deployment versions
  */
 export async function getVersionsForSubdomain(subdomain) {
-    const client = createR2Client();
-    const data = await getDeploymentsData(client);
-
-    return data.deployments
-        .filter(d => d.subdomain === subdomain)
-        .sort((a, b) => (b.version || 1) - (a.version || 1));
+    const result = await apiRequest(`/api/versions/${subdomain}`);
+    return result?.versions || [];
 }
 
 /**
- * Copy files from one version to another (for rollback)
- * @param {string} subdomain - The subdomain
- * @param {number} fromVersion - Source version
- * @param {number} toVersion - Target version (new active version)
- */
-export async function copyVersionFiles(subdomain, fromVersion, toVersion) {
-    const client = createR2Client();
-
-    // List all files in the source version
-    const sourcePrefix = `${subdomain}/v${fromVersion}/`;
-    const targetPrefix = `${subdomain}/v${toVersion}/`;
-
-    const listResponse = await client.send(new ListObjectsV2Command({
-        Bucket: config.r2.bucketName,
-        Prefix: sourcePrefix,
-    }));
-
-    if (!listResponse.Contents || listResponse.Contents.length === 0) {
-        throw new Error(`No files found for version ${fromVersion}`);
-    }
-
-    let copiedCount = 0;
-
-    for (const object of listResponse.Contents) {
-        const sourceKey = object.Key;
-        const targetKey = sourceKey.replace(sourcePrefix, targetPrefix);
-
-        // Copy file to new version
-        await client.send(new CopyObjectCommand({
-            Bucket: config.r2.bucketName,
-            CopySource: `${config.r2.bucketName}/${sourceKey}`,
-            Key: targetKey,
-        }));
-
-        copiedCount++;
-    }
-
-    return { copiedCount, fromVersion, toVersion };
-}
-
-/**
- * Update the active pointer for a subdomain (for rollback)
+ * Set the active version for a subdomain (rollback)
  * @param {string} subdomain - The subdomain
  * @param {number} version - Version to make active
  */
 export async function setActiveVersion(subdomain, version) {
-    const client = createR2Client();
-
-    // Create/update an active pointer file
-    const pointerKey = `${subdomain}/_active`;
-
-    await client.send(new PutObjectCommand({
-        Bucket: config.r2.bucketName,
-        Key: pointerKey,
-        Body: JSON.stringify({ activeVersion: version, updatedAt: new Date().toISOString() }),
-        ContentType: 'application/json',
-    }));
-
-    return { subdomain, activeVersion: version };
+    return apiRequest(`/api/versions/${subdomain}/rollback`, {
+        method: 'PUT',
+        body: JSON.stringify({ version }),
+    });
 }
 
 /**
@@ -211,144 +126,76 @@ export async function setActiveVersion(subdomain, version) {
  * @returns {Promise<number>} Active version number
  */
 export async function getActiveVersion(subdomain) {
-    const client = createR2Client();
+    const result = await apiRequest(`/api/versions/${subdomain}`);
+    return result?.activeVersion || 1;
+}
 
-    try {
-        const response = await client.send(new GetObjectCommand({
-            Bucket: config.r2.bucketName,
-            Key: `${subdomain}/_active`,
-        }));
-        const text = await response.Body.transformToString();
-        const data = JSON.parse(text);
-        return data.activeVersion || 1;
-    } catch {
-        // No active pointer, default to version 1
-        return 1;
-    }
+/**
+ * Copy files from one version to another (for rollback)
+ * Note: This is now handled server-side by the API
+ * @param {string} subdomain - The subdomain
+ * @param {number} fromVersion - Source version
+ * @param {number} toVersion - Target version
+ */
+export async function copyVersionFiles(subdomain, fromVersion, toVersion) {
+    // Rollback is now handled by setActiveVersion - no need to copy files
+    // The worker serves files from the specified version directly
+    return { fromVersion, toVersion, note: 'Handled by API' };
 }
 
 /**
  * List all files for a specific version
  * @param {string} subdomain - The subdomain
  * @param {number} version - Version number
- * @returns {Promise<Array>} Array of file keys
+ * @returns {Promise<Array>} Array of file info
  */
 export async function listVersionFiles(subdomain, version) {
-    const client = createR2Client();
+    const result = await apiRequest(`/api/deployments/${subdomain}`);
 
-    const prefix = `${subdomain}/v${version}/`;
-
-    const response = await client.send(new ListObjectsV2Command({
-        Bucket: config.r2.bucketName,
-        Prefix: prefix,
-    }));
-
-    if (!response.Contents) {
+    if (!result || !result.versions) {
         return [];
     }
 
-    return response.Contents.map(obj => ({
-        key: obj.Key,
-        size: obj.Size,
-        lastModified: obj.LastModified,
-    }));
+    const versionInfo = result.versions.find(v => v.version === version);
+    return versionInfo ? [{ version, fileCount: versionInfo.file_count, totalBytes: versionInfo.total_bytes }] : [];
 }
 
 /**
  * Delete all files for a subdomain (all versions)
- * @param {string} subdomain - The subdomain to delete
- * @returns {Promise<{deletedCount: number}>}
+ * Note: This should be an admin operation, not available to CLI users
+ * @param {string} _subdomain - The subdomain to delete
  */
-export async function deleteSubdomain(subdomain) {
-    const client = createR2Client();
-
-    // List all files for this subdomain
-    const prefix = `${subdomain}/`;
-
-    let deletedCount = 0;
-    let continuationToken;
-
-    do {
-        const response = await client.send(new ListObjectsV2Command({
-            Bucket: config.r2.bucketName,
-            Prefix: prefix,
-            ContinuationToken: continuationToken,
-        }));
-
-        if (response.Contents && response.Contents.length > 0) {
-            for (const object of response.Contents) {
-                await client.send(new DeleteObjectCommand({
-                    Bucket: config.r2.bucketName,
-                    Key: object.Key,
-                }));
-                deletedCount++;
-            }
-        }
-
-        continuationToken = response.NextContinuationToken;
-    } while (continuationToken);
-
-    return { deletedCount };
+export async function deleteSubdomain(_subdomain) {
+    // This operation is not available in the consumer CLI
+    // It should be handled through the admin dashboard or worker
+    throw new Error('Subdomain deletion is not available in the CLI. Contact support.');
 }
 
 /**
  * Get all expired deployments
+ * Note: Cleanup is handled server-side automatically
  * @returns {Promise<Array>} Array of expired deployment records
  */
 export async function getExpiredDeployments() {
-    const client = createR2Client();
-    const data = await getDeploymentsData(client);
-    const now = Date.now();
-
-    return data.deployments.filter(d =>
-        d.expiresAt && new Date(d.expiresAt).getTime() < now
-    );
+    // Expiration cleanup is handled server-side
+    return [];
 }
 
 /**
  * Remove deployment records for a subdomain from metadata
- * @param {string} subdomain - The subdomain to remove
+ * Note: This should be an admin operation
+ * @param {string} _subdomain - The subdomain to remove
  */
-export async function removeDeploymentRecords(subdomain) {
-    const client = createR2Client();
-    const data = await getDeploymentsData(client);
-
-    // Backup before modifying
-    await backupMetadata(client, data);
-
-    // Filter out the subdomain's deployments
-    data.deployments = data.deployments.filter(d => d.subdomain !== subdomain);
-
-    // Write back
-    await client.send(new PutObjectCommand({
-        Bucket: config.r2.bucketName,
-        Key: METADATA_KEY,
-        Body: JSON.stringify(data, null, 2),
-        ContentType: 'application/json',
-    }));
+export async function removeDeploymentRecords(_subdomain) {
+    throw new Error('Deployment record removal is not available in the CLI. Contact support.');
 }
 
 /**
  * Clean up all expired deployments
+ * Note: This is now handled automatically by the worker
  * @returns {Promise<{cleaned: string[], errors: string[]}>}
  */
 export async function cleanupExpiredDeployments() {
-    const expired = await getExpiredDeployments();
-    const cleaned = [];
-    const errors = [];
-
-    // Get unique subdomains
-    const subdomains = [...new Set(expired.map(d => d.subdomain))];
-
-    for (const subdomain of subdomains) {
-        try {
-            await deleteSubdomain(subdomain);
-            await removeDeploymentRecords(subdomain);
-            cleaned.push(subdomain);
-        } catch (err) {
-            errors.push(`${subdomain}: ${err.message}`);
-        }
-    }
-
-    return { cleaned, errors };
+    // Cleanup is handled server-side automatically
+    return { cleaned: [], errors: [], note: 'Handled automatically by server' };
 }
