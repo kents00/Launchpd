@@ -6,7 +6,7 @@ import { uploadFolder, finalizeUpload } from '../utils/upload.js';
 import { getNextVersion } from '../utils/metadata.js';
 import { saveLocalDeployment } from '../utils/localConfig.js';
 import { getNextVersionFromAPI } from '../utils/api.js';
-import { success, error, info, warning } from '../utils/logger.js';
+import { success, errorWithSuggestions, info, warning, spinner, formatSize } from '../utils/logger.js';
 import { calculateExpiresAt, formatTimeRemaining } from '../utils/expiration.js';
 import { checkQuota, displayQuotaWarnings } from '../utils/quota.js';
 import { getCredentials } from '../utils/credentials.js';
@@ -42,9 +42,11 @@ async function calculateFolderSize(folderPath) {
  * @param {boolean} options.dryRun - Skip actual upload
  * @param {string} options.name - Custom subdomain
  * @param {string} options.expires - Expiration time (e.g., "30m", "2h", "1d")
+ * @param {boolean} options.verbose - Show verbose error details
  */
 export async function deploy(folder, options) {
     const folderPath = resolve(folder);
+    const verbose = options.verbose || false;
 
     // Parse expiration if provided
     let expiresAt = null;
@@ -52,41 +54,58 @@ export async function deploy(folder, options) {
         try {
             expiresAt = calculateExpiresAt(options.expires);
         } catch (err) {
-            error(err.message);
+            errorWithSuggestions(err.message, [
+                'Use format like: 30m, 2h, 1d, 7d',
+                'Minimum expiration is 30 minutes',
+                'Examples: --expires 1h, --expires 2d',
+            ], { verbose, cause: err });
             process.exit(1);
         }
     }
 
     // Validate folder exists
     if (!existsSync(folderPath)) {
-        error(`Folder not found: ${folderPath}`);
+        errorWithSuggestions(`Folder not found: ${folderPath}`, [
+            'Check the path is correct',
+            'Use an absolute path or path relative to current directory',
+            `Current directory: ${process.cwd()}`,
+        ], { verbose });
         process.exit(1);
     }
 
     // Check folder is not empty
+    const scanSpinner = spinner('Scanning folder...');
     const files = await readdir(folderPath, { recursive: true, withFileTypes: true });
     const fileCount = files.filter(f => f.isFile()).length;
 
     if (fileCount === 0) {
-        error('Folder is empty. Nothing to deploy.');
+        scanSpinner.fail('Folder is empty');
+        errorWithSuggestions('Nothing to deploy.', [
+            'Add some files to your folder',
+            'Make sure index.html exists for static sites',
+        ], { verbose });
         process.exit(1);
     }
+    scanSpinner.succeed(`Found ${fileCount} file(s)`);
 
     // Generate or use provided subdomain
     const subdomain = options.name || generateSubdomain();
     const url = `https://${subdomain}.launchpd.cloud`;
 
     // Calculate estimated upload size
+    const sizeSpinner = spinner('Calculating folder size...');
     const estimatedBytes = await calculateFolderSize(folderPath);
+    sizeSpinner.succeed(`Size: ${formatSize(estimatedBytes)}`);
 
     // Check quota before deploying
-    info('Checking quota...');
+    const quotaSpinner = spinner('Checking quota...');
     const quotaCheck = await checkQuota(subdomain, estimatedBytes);
 
     if (!quotaCheck.allowed) {
-        error('Deployment blocked due to quota limits');
+        quotaSpinner.fail('Deployment blocked due to quota limits');
         process.exit(1);
     }
+    quotaSpinner.succeed('Quota check passed');
 
     // Display any warnings
     displayQuotaWarnings(quotaCheck.warnings);
@@ -101,7 +120,6 @@ export async function deploy(folder, options) {
 
     info(`Deploying ${fileCount} file(s) from ${folderPath}`);
     info(`Target: ${url}`);
-    info(`Size: ${(estimatedBytes / 1024 / 1024).toFixed(2)}MB`);
 
     if (options.dryRun) {
         warning('Dry run mode - skipping upload');
@@ -127,7 +145,7 @@ export async function deploy(folder, options) {
                 ? (quotaCheck.quota.usage?.siteCount || 0) + 1
                 : quotaCheck.quota.usage?.siteCount || 0;
             console.log(`  Sites: ${sitesAfter}/${quotaCheck.quota.limits.maxSites}`);
-            console.log(`  Storage: ${(storageAfter / 1024 / 1024).toFixed(1)}MB/${quotaCheck.quota.limits.maxStorageMB}MB`);
+            console.log(`  Storage: ${formatSize(storageAfter)}/${quotaCheck.quota.limits.maxStorageMB}MB`);
             console.log('');
         }
         return;
@@ -136,18 +154,25 @@ export async function deploy(folder, options) {
     // Perform actual upload
     try {
         // Get next version number for this subdomain (try API first, fallback to local)
+        const versionSpinner = spinner('Fetching version info...');
         let version = await getNextVersionFromAPI(subdomain);
         if (version === null) {
             version = await getNextVersion(subdomain);
         }
-        info(`Deploying as version ${version}...`);
+        versionSpinner.succeed(`Deploying as version ${version}`);
 
         // Upload all files via API proxy
         const folderName = basename(folderPath);
-        const { totalBytes } = await uploadFolder(folderPath, subdomain, version);
+        const uploadSpinner = spinner(`Uploading files... 0/${fileCount}`);
+
+        const { totalBytes } = await uploadFolder(folderPath, subdomain, version, (uploaded, total, fileName) => {
+            uploadSpinner.update(`Uploading files... ${uploaded}/${total} (${fileName})`);
+        });
+
+        uploadSpinner.succeed(`Uploaded ${fileCount} files (${formatSize(totalBytes)})`);
 
         // Finalize upload: set active version and record metadata
-        info('Finalizing deployment...');
+        const finalizeSpinner = spinner('Finalizing deployment...');
         await finalizeUpload(
             subdomain,
             version,
@@ -156,6 +181,7 @@ export async function deploy(folder, options) {
             folderName,
             expiresAt?.toISOString() || null
         );
+        finalizeSpinner.succeed('Deployment finalized');
 
         // Save locally for quick access
         await saveLocalDeployment({
@@ -169,13 +195,33 @@ export async function deploy(folder, options) {
         });
 
         success(`Deployed successfully! (v${version})`);
-        console.log(`\n  🚀 ${url}`);
+        console.log(`\n${url}`);
         if (expiresAt) {
-            warning(`  ⏰ Expires: ${formatTimeRemaining(expiresAt)}`);
+            warning(`Expires: ${formatTimeRemaining(expiresAt)}`);
         }
         console.log('');
     } catch (err) {
-        error(`Upload failed: ${err.message}`);
+        const suggestions = [];
+
+        // Provide context-specific suggestions
+        if (err.message.includes('fetch failed') || err.message.includes('ENOTFOUND')) {
+            suggestions.push('Check your internet connection');
+            suggestions.push('The API server may be temporarily unavailable');
+        } else if (err.message.includes('401') || err.message.includes('Unauthorized')) {
+            suggestions.push('Run "launchpd login" to authenticate');
+            suggestions.push('Your API key may have expired');
+        } else if (err.message.includes('413') || err.message.includes('too large')) {
+            suggestions.push('Try deploying fewer or smaller files');
+            suggestions.push('Check your storage quota with "launchpd quota"');
+        } else if (err.message.includes('429') || err.message.includes('rate limit')) {
+            suggestions.push('Wait a few minutes and try again');
+            suggestions.push('You may be deploying too frequently');
+        } else {
+            suggestions.push('Try running with --verbose for more details');
+            suggestions.push('Check https://status.launchpd.cloud for service status');
+        }
+
+        errorWithSuggestions(`Upload failed: ${err.message}`, suggestions, { verbose, cause: err });
         process.exit(1);
     }
 }

@@ -1,16 +1,20 @@
 import { getVersionsForSubdomain, setActiveVersion, getActiveVersion } from '../utils/metadata.js';
 import { getVersions as getVersionsFromAPI, rollbackVersion as rollbackViaAPI } from '../utils/api.js';
-import { success, error, info, warning } from '../utils/logger.js';
+import { error, errorWithSuggestions, info, warning, spinner } from '../utils/logger.js';
+import chalk from 'chalk';
 
 /**
  * Rollback a subdomain to a previous version
  * @param {string} subdomain - Subdomain to rollback
  * @param {object} options - Command options
  * @param {number} options.to - Specific version to rollback to (optional)
+ * @param {boolean} options.verbose - Show verbose error details
  */
 export async function rollback(subdomain, options) {
+    const verbose = options.verbose || false;
+
     try {
-        info(`Checking versions for ${subdomain}...`);
+        const fetchSpinner = spinner(`Checking versions for ${subdomain}...`);
 
         // Get all versions for this subdomain (try API first)
         let versions = [];
@@ -33,16 +37,22 @@ export async function rollback(subdomain, options) {
         }
 
         if (versions.length === 0) {
-            error(`No deployments found for subdomain: ${subdomain}`);
+            fetchSpinner.fail('No deployments found');
+            errorWithSuggestions(`No deployments found for subdomain: ${subdomain}`, [
+                'Check the subdomain name is correct',
+                'Run "launchpd list" to see your deployments',
+            ], { verbose });
             process.exit(1);
         }
 
         if (versions.length === 1) {
-            warning('Only one version exists. Nothing to rollback to.');
+            fetchSpinner.warn('Only one version exists');
+            warning('Nothing to rollback to.');
             process.exit(1);
         }
 
-        info(`Current active version: v${currentActive}`);
+        fetchSpinner.succeed(`Found ${versions.length} versions`);
+        info(`Current active version: ${chalk.cyan(`v${currentActive}`)}`);
 
         // Determine target version
         let targetVersion;
@@ -51,9 +61,12 @@ export async function rollback(subdomain, options) {
             const versionExists = versions.some(v => v.version === targetVersion);
             if (!versionExists) {
                 error(`Version ${targetVersion} does not exist.`);
+                console.log('');
                 info('Available versions:');
                 versions.forEach(v => {
-                    info(`  v${v.version} - ${v.timestamp}`);
+                    const isActive = v.version === currentActive;
+                    const marker = isActive ? chalk.green(' (active)') : '';
+                    console.log(`  ${chalk.cyan(`v${v.version}`)} - ${chalk.gray(v.timestamp)}${marker}`);
                 });
                 process.exit(1);
             }
@@ -69,18 +82,18 @@ export async function rollback(subdomain, options) {
         }
 
         if (targetVersion === currentActive) {
-            warning(`Version ${targetVersion} is already active.`);
+            warning(`Version ${chalk.cyan(`v${targetVersion}`)} is already active.`);
             process.exit(0);
         }
 
-        info(`Rolling back from v${currentActive} to v${targetVersion}...`);
+        const rollbackSpinner = spinner(`Rolling back from v${currentActive} to v${targetVersion}...`);
 
         // Set the target version as active
         if (useAPI) {
             // Use API for centralized rollback (updates both D1 and R2)
             const result = await rollbackViaAPI(subdomain, targetVersion);
             if (!result) {
-                warning('API unavailable, falling back to local rollback');
+                rollbackSpinner.warn('API unavailable, using local rollback');
                 await setActiveVersion(subdomain, targetVersion);
             }
         } else {
@@ -90,12 +103,16 @@ export async function rollback(subdomain, options) {
         // Find the target version's deployment record for file count
         const targetDeployment = versions.find(v => v.version === targetVersion);
 
-        success(`Rolled back to v${targetVersion} successfully!`);
+        rollbackSpinner.succeed(`Rolled back to ${chalk.cyan(`v${targetVersion}`)}`);
         console.log(`\n  🔄 https://${subdomain}.launchpd.cloud\n`);
-        info(`Restored deployment from: ${targetDeployment?.timestamp || 'unknown'}`);
+        info(`Restored deployment from: ${chalk.gray(targetDeployment?.timestamp || 'unknown')}`);
 
     } catch (err) {
-        error(`Rollback failed: ${err.message}`);
+        errorWithSuggestions(`Rollback failed: ${err.message}`, [
+            'Check your internet connection',
+            'Verify the subdomain and version exist',
+            'Run "launchpd versions <subdomain>" to see available versions',
+        ], { verbose, cause: err });
         process.exit(1);
     }
 }

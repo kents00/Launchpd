@@ -2,7 +2,6 @@ import { readdir, readFile } from 'node:fs/promises';
 import { join, relative, posix, sep } from 'node:path';
 import mime from 'mime-types';
 import { config } from '../config.js';
-import { info } from './logger.js';
 
 const API_BASE_URL = `https://api.${config.domain}`;
 
@@ -91,8 +90,9 @@ async function completeUpload(subdomain, version, fileCount, totalBytes, folderN
  * @param {string} localPath - Local folder path
  * @param {string} subdomain - Subdomain to use as bucket prefix
  * @param {number} version - Version number for this deployment
+ * @param {function} onProgress - Progress callback (uploaded, total, fileName)
  */
-export async function uploadFolder(localPath, subdomain, version = 1) {
+export async function uploadFolder(localPath, subdomain, version = 1, onProgress = null) {
     const files = await readdir(localPath, { recursive: true, withFileTypes: true });
 
     let uploaded = 0;
@@ -119,7 +119,11 @@ export async function uploadFolder(localPath, subdomain, version = 1) {
         await uploadFile(body, subdomain, version, posixPath, contentType);
 
         uploaded++;
-        info(`  Uploaded (${uploaded}/${total}): ${posixPath}`);
+
+        // Call progress callback if provided
+        if (onProgress) {
+            onProgress(uploaded, total, posixPath);
+        }
     }
 
     return { uploaded, subdomain, totalBytes };
