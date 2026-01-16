@@ -1,0 +1,229 @@
+/**
+ * Quota checking for StaticLaunch CLI
+ * Validates user can deploy before uploading
+ */
+
+import { config } from '../config.js';
+import { getCredentials, getClientToken } from './credentials.js';
+import { warning, error, info } from './logger.js';
+
+const API_BASE_URL = `https://api.${config.domain}`;
+
+/**
+ * Check quota before deployment
+ * Returns quota info and whether deployment is allowed
+ *
+ * @param {string} subdomain - Target subdomain (null for new site)
+ * @param {number} estimatedBytes - Estimated upload size in bytes
+ * @returns {Promise<{allowed: boolean, isNewSite: boolean, quota: object, warnings: string[]}>}
+ */
+export async function checkQuota(subdomain, estimatedBytes = 0) {
+    const creds = await getCredentials();
+
+    let quotaData;
+
+    if (creds?.apiKey) {
+        // Authenticated user
+        quotaData = await checkAuthenticatedQuota(creds.apiKey);
+    } else {
+        // Anonymous user
+        quotaData = await checkAnonymousQuota();
+    }
+
+    if (!quotaData) {
+        // API unavailable, allow deployment (fail-open for MVP)
+        return {
+            allowed: true,
+            isNewSite: true,
+            quota: null,
+            warnings: ['⚠️ Could not verify quota (API unavailable)'],
+        };
+    }
+
+    // Check if this is an existing site the user owns
+    const isNewSite = subdomain ? !await userOwnsSite(creds?.apiKey, subdomain) : true;
+
+    const warnings = [...(quotaData.warnings || [])];
+    const allowed = true;
+
+    // Check if blocked (anonymous limit reached)
+    if (quotaData.blocked) {
+        console.log(quotaData.upgradeMessage);
+        return {
+            allowed: false,
+            isNewSite,
+            quota: quotaData,
+            warnings: [],
+        };
+    }
+
+    // Check site limit for new sites
+    if (isNewSite && !quotaData.canCreateNewSite) {
+        error(`Site limit reached (${quotaData.limits.maxSites} sites)`);
+        if (!creds?.apiKey) {
+            showUpgradePrompt();
+        } else {
+            info('Upgrade to Pro for more sites, or delete an existing site');
+        }
+        return {
+            allowed: false,
+            isNewSite,
+            quota: quotaData,
+            warnings,
+        };
+    }
+
+    // Check storage limit
+    const storageAfter = (quotaData.usage?.storageUsed || 0) + estimatedBytes;
+    if (storageAfter > quotaData.limits.maxStorageBytes) {
+        const overBy = storageAfter - quotaData.limits.maxStorageBytes;
+        error(`Storage limit exceeded by ${formatBytes(overBy)}`);
+        error(`Current: ${formatBytes(quotaData.usage.storageUsed)} / ${formatBytes(quotaData.limits.maxStorageBytes)}`);
+        if (!creds?.apiKey) {
+            showUpgradePrompt();
+        } else {
+            info('Upgrade to Pro for more storage, or delete old deployments');
+        }
+        return {
+            allowed: false,
+            isNewSite,
+            quota: quotaData,
+            warnings,
+        };
+    }
+
+    // Add storage warning if close to limit
+    const storagePercentage = storageAfter / quotaData.limits.maxStorageBytes;
+    if (storagePercentage > 0.8) {
+        warnings.push(`⚠️ Storage ${Math.round(storagePercentage * 100)}% used after this deploy`);
+    }
+
+    // Add site count warning if close to limit
+    if (isNewSite) {
+        const sitesAfter = (quotaData.usage?.siteCount || 0) + 1;
+        const sitePercentage = sitesAfter / quotaData.limits.maxSites;
+        if (sitePercentage > 0.8) {
+            warnings.push(`⚠️ ${quotaData.limits.maxSites - sitesAfter} site(s) remaining after this deploy`);
+        }
+    }
+
+    return {
+        allowed,
+        isNewSite,
+        quota: quotaData,
+        warnings,
+    };
+}
+
+/**
+ * Check quota for authenticated user
+ */
+async function checkAuthenticatedQuota(apiKey) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/quota`, {
+            headers: {
+                'X-API-Key': apiKey,
+            },
+        });
+
+        if (!response.ok) {
+            return null;
+        }
+
+        return await response.json();
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Check quota for anonymous user
+ */
+async function checkAnonymousQuota() {
+    try {
+        const clientToken = await getClientToken();
+
+        const response = await fetch(`${API_BASE_URL}/api/quota/anonymous`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                clientToken,
+            }),
+        });
+
+        if (!response.ok) {
+            return null;
+        }
+
+        return await response.json();
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Check if user owns a subdomain
+ */
+async function userOwnsSite(apiKey, subdomain) {
+    if (!apiKey) {
+        // For anonymous, we track by client token in deployments
+        return false;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/subdomains`, {
+            headers: {
+                'X-API-Key': apiKey,
+            },
+        });
+
+        if (!response.ok) {
+            return false;
+        }
+
+        const data = await response.json();
+        return data.subdomains?.some(s => s.subdomain === subdomain) || false;
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * Show upgrade prompt for anonymous users
+ */
+function showUpgradePrompt() {
+    console.log('');
+    console.log('╔══════════════════════════════════════════════════════════════╗');
+    console.log('║  🚀 Upgrade to Launchpd Free Tier                            ║');
+    console.log('╠══════════════════════════════════════════════════════════════╣');
+    console.log('║  Register for FREE to unlock:                                ║');
+    console.log('║    → 10 sites (instead of 3)                                 ║');
+    console.log('║    → 100MB storage (instead of 50MB)                         ║');
+    console.log('║    → 30-day retention (instead of 7 days)                    ║');
+    console.log('║    → 10 version history per site                             ║');
+    console.log('╠══════════════════════════════════════════════════════════════╣');
+    console.log('║  Run: launchpd register                                      ║');
+    console.log('╚══════════════════════════════════════════════════════════════╝');
+    console.log('');
+}
+
+/**
+ * Display quota warnings
+ */
+export function displayQuotaWarnings(warnings) {
+    if (warnings && warnings.length > 0) {
+        console.log('');
+        warnings.forEach(w => warning(w));
+    }
+}
+
+/**
+ * Format bytes to human readable
+ */
+function formatBytes(bytes) {
+    if (bytes < 1024) return `${bytes}B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
+    return `${(bytes / 1024 / 1024).toFixed(1)}MB`;
+}

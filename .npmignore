@@ -1,0 +1,28 @@
+# Test files
+tests/
+*.test.js
+vitest.config.js
+coverage/
+
+# Development files
+.env
+.env.*
+*.log
+
+# IDE
+.vscode/
+.idea/
+
+# Git
+.git/
+.gitignore
+
+# Documentation (keep README.md)
+docs/
+
+# Node
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db
