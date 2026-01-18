@@ -2,15 +2,9 @@ import { readdir, readFile } from 'node:fs/promises';
 import { join, relative, posix, sep } from 'node:path';
 import mime from 'mime-types';
 import { config } from '../config.js';
+import { getApiKey } from './credentials.js';
 
 const API_BASE_URL = `https://api.${config.domain}`;
-
-/**
- * Get API key for requests
- */
-function getApiKey() {
-    return process.env.STATICLAUNCH_API_KEY || 'public-beta-key';
-}
 
 /**
  * Convert Windows path to POSIX for R2 keys
@@ -33,7 +27,7 @@ async function uploadFile(content, subdomain, version, filePath, contentType) {
     const response = await fetch(`${API_BASE_URL}/api/upload/file`, {
         method: 'POST',
         headers: {
-            'X-API-Key': getApiKey(),
+            'X-API-Key': await getApiKey(),
             'X-Subdomain': subdomain,
             'X-Version': String(version),
             'X-File-Path': filePath,
@@ -64,7 +58,7 @@ async function completeUpload(subdomain, version, fileCount, totalBytes, folderN
     const response = await fetch(`${API_BASE_URL}/api/upload/complete`, {
         method: 'POST',
         headers: {
-            'X-API-Key': getApiKey(),
+            'X-API-Key': await getApiKey(),
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({

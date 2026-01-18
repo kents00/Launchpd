@@ -4,9 +4,9 @@
  */
 
 import { config } from '../config.js';
+import { getApiKey } from './credentials.js';
 
 const API_BASE_URL = `https://api.${config.domain}`;
-const API_KEY = process.env.STATICLAUNCH_API_KEY || 'public-beta-key';
 
 /**
  * Make an authenticated API request
@@ -14,9 +14,10 @@ const API_KEY = process.env.STATICLAUNCH_API_KEY || 'public-beta-key';
 async function apiRequest(endpoint, options = {}) {
     const url = `${API_BASE_URL}${endpoint}`;
 
+    const apiKey = await getApiKey();
     const headers = {
         'Content-Type': 'application/json',
-        'X-API-Key': API_KEY,
+        'X-API-Key': apiKey,
         ...options.headers,
     };
 
