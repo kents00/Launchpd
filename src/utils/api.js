@@ -6,7 +6,7 @@
 import { config } from '../config.js';
 import { getApiKey } from './credentials.js';
 
-const API_BASE_URL = `https://api.${config.domain}`;
+const API_BASE_URL = config.apiUrl;
 
 /**
  * Make an authenticated API request

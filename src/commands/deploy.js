@@ -89,8 +89,34 @@ export async function deploy(folder, options) {
     scanSpinner.succeed(`Found ${fileCount} file(s)`);
 
     // Generate or use provided subdomain
-    const subdomain = options.name || generateSubdomain();
+    // Anonymous users cannot use custom subdomains
+    const creds = await getCredentials();
+    if (options.name && !creds?.email) {
+        warning('Custom subdomains require registration!');
+        info('Anonymous deployments use random subdomains.');
+        info('Run "launchpd register" to use --name option.');
+        console.log('');
+    }
+
+    const subdomain = (options.name && creds?.email) ? options.name : generateSubdomain();
     const url = `https://${subdomain}.launchpd.cloud`;
+
+    // Check if custom subdomain is taken
+    if (options.name && creds?.email) {
+        const checkSpinner = spinner('Checking subdomain availability...');
+        try {
+            const { checkSubdomainAvailable } = await import('../utils/api.js');
+            const isAvailable = await checkSubdomainAvailable(subdomain);
+            if (!isAvailable) {
+                checkSpinner.fail(`Subdomain "${subdomain}" is already taken`);
+                warning('Choose a different subdomain name with --name');
+                process.exit(1);
+            }
+            checkSpinner.succeed(`Subdomain "${subdomain}" is available`);
+        } catch {
+            checkSpinner.warn('Could not verify subdomain availability');
+        }
+    }
 
     // Calculate estimated upload size
     const sizeSpinner = spinner('Calculating folder size...');
@@ -110,8 +136,7 @@ export async function deploy(folder, options) {
     // Display any warnings
     displayQuotaWarnings(quotaCheck.warnings);
 
-    // Show current user status
-    const creds = await getCredentials();
+    // Show current user status (creds already fetched above)
     if (creds?.email) {
         info(`Deploying as: ${creds.email}`);
     } else {
@@ -203,7 +228,7 @@ export async function deploy(folder, options) {
         // Show anonymous limit warnings
         if (!creds?.email) {
             console.log('');
-            warning('⚠️  Anonymous deployment limits:');
+            warning('Anonymous deployment limits:');
             console.log('   • 3 active sites per IP');
             console.log('   • 50MB total storage');
             console.log('   • 7-day site expiration');

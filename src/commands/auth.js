@@ -11,7 +11,7 @@ import { success, error, errorWithSuggestions, info, warning, spinner } from '..
 import chalk from 'chalk';
 
 const API_BASE_URL = config.apiUrl;
-const REGISTER_URL = `https://portal.${config.domain}/auth/register`;
+const REGISTER_URL = `https://${config.domain}/`;
 
 /**
  * Prompt for user input
