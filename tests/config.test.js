@@ -7,7 +7,7 @@ describe('config', () => {
     });
 
     it('has the correct API URL', () => {
-        expect(config.apiUrl).toBe('https://storage.launchpd.cloud');
+        expect(config.apiUrl).toBe('https://api.launchpd.cloud');
     });
 
     it('has a version string', () => {

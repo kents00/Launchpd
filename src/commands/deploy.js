@@ -39,7 +39,6 @@ async function calculateFolderSize(folderPath) {
  * Deploy a local folder to StaticLaunch
  * @param {string} folder - Path to folder to deploy
  * @param {object} options - Command options
- * @param {boolean} options.dryRun - Skip actual upload
  * @param {string} options.name - Custom subdomain
  * @param {string} options.expires - Expiration time (e.g., "30m", "2h", "1d")
  * @param {boolean} options.verbose - Show verbose error details
@@ -145,36 +144,6 @@ export async function deploy(folder, options) {
 
     info(`Deploying ${fileCount} file(s) from ${folderPath}`);
     info(`Target: ${url}`);
-
-    if (options.dryRun) {
-        warning('Dry run mode - skipping upload');
-
-        // List files that would be uploaded
-        for (const file of files) {
-            if (file.isFile()) {
-                const relativePath = file.parentPath
-                    ? `${file.parentPath.replace(folderPath, '')}/${file.name}`.replace(/^[\\/]/, '')
-                    : file.name;
-                info(`  Would upload: ${relativePath.replaceAll('\\', '/')}`);
-            }
-        }
-
-        success(`Dry run complete. ${fileCount} file(s) would be deployed to:`);
-        console.log(`\n  ${url}\n`);
-
-        // Show quota status after dry run
-        if (quotaCheck.quota) {
-            console.log('Quota after this deploy:');
-            const storageAfter = (quotaCheck.quota.usage?.storageUsed || 0) + estimatedBytes;
-            const sitesAfter = quotaCheck.isNewSite
-                ? (quotaCheck.quota.usage?.siteCount || 0) + 1
-                : quotaCheck.quota.usage?.siteCount || 0;
-            console.log(`  Sites: ${sitesAfter}/${quotaCheck.quota.limits.maxSites}`);
-            console.log(`  Storage: ${formatSize(storageAfter)}/${quotaCheck.quota.limits.maxStorageMB}MB`);
-            console.log('');
-        }
-        return;
-    }
 
     // Perform actual upload
     try {

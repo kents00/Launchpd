@@ -38,11 +38,7 @@ launchpd deploy ./my-folder --expires 2h
 # Auto-deletes after 2 hours
 ```
 
-### Dry run (preview without uploading)
 
-```bash
-launchpd deploy ./my-folder --dry-run
-```
 
 ### List your deployments
 

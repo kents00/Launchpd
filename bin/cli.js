@@ -18,7 +18,6 @@ program
     .command('deploy')
     .description('Deploy a folder to a live URL')
     .argument('<folder>', 'Path to the folder to deploy')
-    .option('--dry-run', 'Simulate deployment without uploading to R2')
     .option('--name <subdomain>', 'Use a custom subdomain (optional)')
     .option('--expires <time>', 'Auto-delete after time (e.g., 30m, 2h, 1d). Minimum: 30m')
     .option('--verbose', 'Show detailed error information')

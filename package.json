@@ -1,6 +1,6 @@
 {
     "name": "launchpd",
-    "version": "0.1.13",
+    "version": "0.1.0",
     "description": "Deploy static sites instantly to a live URL",
     "type": "module",
     "bin": {
@@ -20,7 +20,7 @@
     },
     "scripts": {
         "start": "node bin/cli.js",
-        "dev": "node bin/cli.js deploy ../examples/test-site --dry-run",
+        "dev": "node bin/cli.js deploy ../examples/test-site",
         "test": "vitest run",
         "test:watch": "vitest",
         "test:coverage": "vitest run --coverage",

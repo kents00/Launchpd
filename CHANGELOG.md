@@ -5,49 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.11] - 2026-01-18
-
-### Fixed
-- Fixed API URL from `api.launchpd.cloud` to `storage.launchpd.cloud`
-- Login now works correctly with the production API
+## [0.1.0] - 2026-01-19
 
 ### Added
-- New test files for better coverage:
-  - `config.test.js` - Config validation tests
-  - `credentials.test.js` - Credential storage tests
-  - `logger.test.js` - Logger utility tests
-  - `login_error.test.js` - Login error handling tests
-
-### Changed
-- API URL now configured via `config.apiUrl` instead of constructed from domain
-
-## [0.1.3] - 2026-01-16
-
-### Changed
-- **BREAKING**: File uploads now go through API proxy (no local credentials needed)
-- Removed AWS SDK and dotenv dependencies - CLI is now plug-and-play
-- Simplified configuration - no `.env` file required
-- Reduced package size significantly
+- **Initial Release**
+- `launchpd deploy`: Deploy static sites instantly to a global CDN
+- `launchpd login`/`logout`: Manage your account
+- `launchpd list`: View your deployments
+- `launchpd versions`: Manage deployment history
+- `launchpd rollback`: Instant rollback to previous versions
+- `launchpd quota`: Check your usage limits
+- IP-based anonymous limits (3 sites, 50MB storage, 7-day retention)
+- Custom subdomains support (`--name`) with availability check
+- Interactive deployment spinner and progress bar
+- Automatic subdomain generation for anonymous users
+- Secure API-based upload handling
+- Production-ready email verification and registration flow
 
 ### Security
-- R2 credentials no longer bundled in CLI package
-- All file uploads securely proxied through Launchpd API
+- Secure credentials storage
+- API Key based authentication
+- Hashed IP tracking for anonymous users
+- Proxied file uploads via Worker API
 
-## [0.1.0] - 2026-01-16
-
-### Added
-- Initial release
-- `launchpd deploy` - Deploy a folder to a live URL
-- `launchpd list` - List your past deployments
-- `launchpd versions` - List all versions for a subdomain
-- `launchpd rollback` - Rollback to a previous version
-- `launchpd login` - Authenticate with API key
-- `launchpd logout` - Clear stored credentials
-- `launchpd register` - Open browser to create account
-- `launchpd whoami` - Show current user info
-- `launchpd quota` - Check quota and usage
-- Expiration support with `--expires` flag
-- Custom subdomain support with `--name` flag
-- Dry run mode with `--dry-run` flag
-- Anonymous and authenticated deployment tiers
-- Version history and rollback capability
+### Tests
+- Added `quota.test.js` (Anonymous limits & validation)
+- Added `metadata.test.js` (Versioning & API mocks)
