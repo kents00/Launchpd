@@ -10,7 +10,7 @@ import { getCredentials, saveCredentials, clearCredentials, isLoggedIn } from '.
 import { success, error, errorWithSuggestions, info, warning, spinner } from '../utils/logger.js';
 import chalk from 'chalk';
 
-const API_BASE_URL = `https://api.${config.domain}`;
+const API_BASE_URL = config.apiUrl;
 const REGISTER_URL = `https://portal.${config.domain}/auth/register`;
 
 /**

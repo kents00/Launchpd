@@ -90,16 +90,6 @@ launchpd quota
 launchpd logout
 ```
 
-## Tier Limits
-
-| Feature | Anonymous | Free (Registered) |
-|---------|-----------|-------------------|
-| Sites | 3 | 10 |
-| Storage | 50MB | 100MB |
-| Retention | 7 days | 30 days |
-| Versions | 1 | 10 |
-
-
 ## Support
 
 - [Report issues](https://github.com/kents00/launchpd/issues)

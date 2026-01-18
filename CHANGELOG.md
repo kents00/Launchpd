@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.11] - 2026-01-18
+
+### Fixed
+- Fixed API URL from `api.launchpd.cloud` to `storage.launchpd.cloud`
+- Login now works correctly with the production API
+
+### Added
+- New test files for better coverage:
+  - `config.test.js` - Config validation tests
+  - `credentials.test.js` - Credential storage tests
+  - `logger.test.js` - Logger utility tests
+  - `login_error.test.js` - Login error handling tests
+
+### Changed
+- API URL now configured via `config.apiUrl` instead of constructed from domain
+
 ## [0.1.3] - 2026-01-16
 
 ### Changed

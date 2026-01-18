@@ -35,10 +35,6 @@ export function info(message) {
     console.log(chalk.blue('ℹ'), chalk.white(message));
 }
 
-/**
- * Log a warning message
- * @param {string} message
- */
 export function warning(message) {
     console.log(chalk.yellow.bold('⚠'), chalk.yellow(message));
 }
