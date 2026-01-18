@@ -10,5 +10,5 @@ export const config = {
     apiUrl: 'https://storage.launchpd.cloud',
 
     // CLI version
-    version: '0.1.11',
+    version: '0.1.12',
 };
