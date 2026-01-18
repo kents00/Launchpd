@@ -206,7 +206,8 @@ export async function whoami() {
 
     console.log('Account Info:');
     console.log(`  User ID: ${result.user?.id}`);
-    console.log(`  Email: ${result.user?.email || 'Not set'}`);
+    console.log(`  Email: ${result.user?.email || 'Not set'} ${result.user?.email_verified ? chalk.green('(Verified)') : chalk.yellow('(Unverified)')}`);
+    console.log(`  2FA: ${result.user?.is_2fa_enabled ? chalk.green('Enabled') : chalk.gray('Disabled')}`);
     console.log(`  Tier: ${result.tier}`);
     console.log('');
 
