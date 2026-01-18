@@ -12,7 +12,7 @@ const program = new Command();
 program
     .name('launchpd')
     .description('Deploy static sites instantly to a live URL')
-    .version('0.1.0');
+    .version('0.1.11');
 
 program
     .command('deploy')

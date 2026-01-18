@@ -73,7 +73,11 @@ describe('credentials utils', () => {
                 tier: 'free'
             });
 
-            expect(mkdir).toHaveBeenCalledWith(mockConfigDir, { recursive: true });
+            // Check mkdir was called with correct arguments (path-agnostic)
+            expect(mkdir).toHaveBeenCalledWith(
+                expect.stringContaining('.staticlaunch'),
+                { recursive: true }
+            );
             expect(writeFile).toHaveBeenCalled();
         });
     });
@@ -84,7 +88,9 @@ describe('credentials utils', () => {
             unlink.mockResolvedValue(undefined);
 
             await clearCredentials();
-            expect(unlink).toHaveBeenCalledWith(mockCredentialsPath);
+            expect(unlink).toHaveBeenCalledWith(
+                expect.stringContaining('credentials.json')
+            );
         });
 
         it('does nothing when file does not exist', async () => {
