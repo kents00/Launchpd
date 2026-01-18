@@ -199,6 +199,17 @@ export async function deploy(folder, options) {
         if (expiresAt) {
             warning(`Expires: ${formatTimeRemaining(expiresAt)}`);
         }
+
+        // Show anonymous limit warnings
+        if (!creds?.email) {
+            console.log('');
+            warning('⚠️  Anonymous deployment limits:');
+            console.log('   • 3 active sites per IP');
+            console.log('   • 50MB total storage');
+            console.log('   • 7-day site expiration');
+            console.log('');
+            info('Run "launchpd register" to unlock unlimited sites and permanent storage!');
+        }
         console.log('');
     } catch (err) {
         const suggestions = [];

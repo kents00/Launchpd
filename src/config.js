@@ -7,7 +7,7 @@ export const config = {
     domain: 'launchpd.cloud',
 
     // API endpoint
-    apiUrl: 'https://storage.launchpd.cloud',
+    apiUrl: 'https://api.launchpd.cloud',
 
     // CLI version
     version: '0.1.12',
