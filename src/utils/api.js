@@ -6,6 +6,7 @@
 import { config } from '../config.js';
 import { getApiKey, getApiSecret } from './credentials.js';
 import { createHmac } from 'node:crypto';
+import { getMachineId } from './machineId.js';
 
 const API_BASE_URL = config.apiUrl;
 
@@ -20,6 +21,7 @@ async function apiRequest(endpoint, options = {}) {
     const headers = {
         'Content-Type': 'application/json',
         'X-API-Key': apiKey,
+        'X-Device-Fingerprint': getMachineId(),
         ...options.headers,
     };
 
