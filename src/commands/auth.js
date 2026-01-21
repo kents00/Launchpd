@@ -8,6 +8,7 @@ import { exec } from 'node:child_process';
 import { config } from '../config.js';
 import { getCredentials, saveCredentials, clearCredentials, isLoggedIn } from '../utils/credentials.js';
 import { success, error, errorWithSuggestions, info, warning, spinner } from '../utils/logger.js';
+import { formatBytes } from '../utils/quota.js';
 import chalk from 'chalk';
 
 const API_BASE_URL = config.apiUrl;
@@ -311,12 +312,12 @@ export async function quota() {
     console.log(`${chalk.gray('Sites:')}    ${sitesBar} ${chalk.white(sitesUsed)}/${sitesMax} (${getPercentColor(sitesPercent)})`);
 
     // Storage usage
-    const storageMB = result.usage?.storageUsedMB || 0;
-    const storageMaxMB = result.limits?.maxStorageMB || 100;
-    const storagePercent = Math.round((storageMB / storageMaxMB) * 100);
-    const storageBar = createProgressBar(storageMB, storageMaxMB);
+    const storageBytes = result.usage?.storageUsed || 0;
+    const storageMaxBytes = result.limits?.maxStorageBytes || (result.limits?.maxStorageMB || 100) * 1024 * 1024;
+    const storagePercent = Math.round((storageBytes / storageMaxBytes) * 100);
+    const storageBar = createProgressBar(storageBytes, storageMaxBytes);
 
-    console.log(`${chalk.gray('Storage:')}  ${storageBar} ${chalk.white(storageMB)}MB/${storageMaxMB}MB (${getPercentColor(storagePercent)})`);
+    console.log(`${chalk.gray('Storage:')}  ${storageBar} ${chalk.white(formatBytes(storageBytes))}/${formatBytes(storageMaxBytes)} (${getPercentColor(storagePercent)})`);
 
     console.log('');
     console.log(`${chalk.gray('Tier:')}         ${chalk.green(result.tier || 'free')}`);
@@ -333,10 +334,6 @@ export async function quota() {
         warning(`Storage ${storagePercent}% used - consider cleaning up old deployments`);
     }
 
-    if (result.tier === 'free') {
-        console.log('');
-        info(`Upgrade to ${chalk.magenta('Pro')} for 50 sites, 1GB storage, and 50 versions`);
-    }
     console.log('');
 }
 

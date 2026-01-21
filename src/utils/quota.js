@@ -95,7 +95,7 @@ export async function checkQuota(subdomain, estimatedBytes = 0) {
     // Add storage warning if close to limit
     const storagePercentage = storageAfter / quotaData.limits.maxStorageBytes;
     if (storagePercentage > 0.8) {
-        warnings.push(`⚠️ Storage ${Math.round(storagePercentage * 100)}% used after this deploy`);
+        warnings.push(`⚠️ Storage ${Math.round(storagePercentage * 100)}% used (${formatBytes(storageAfter)} / ${formatBytes(quotaData.limits.maxStorageBytes)})`);
     }
 
     // Add site count warning if close to limit
@@ -222,8 +222,10 @@ export function displayQuotaWarnings(warnings) {
 /**
  * Format bytes to human readable
  */
-function formatBytes(bytes) {
-    if (bytes < 1024) return `${bytes}B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
-    return `${(bytes / 1024 / 1024).toFixed(1)}MB`;
+export function formatBytes(bytes) {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
 }
