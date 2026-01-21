@@ -56,6 +56,20 @@ async function validateApiKey(apiKey) {
 }
 
 /**
+ * Background update credentials if new data (like apiSecret) is available
+ */
+async function updateCredentialsIfNeeded(creds, result) {
+    if (result.user?.api_secret && !creds.apiSecret) {
+        await saveCredentials({
+            ...creds,
+            apiSecret: result.user.api_secret,
+            userId: result.user.id || creds.userId,
+            email: result.user.email || creds.email,
+        });
+    }
+}
+
+/**
  * Login command - prompts for API key and validates it
  */
 export async function login() {
@@ -99,6 +113,7 @@ export async function login() {
     // Save credentials
     await saveCredentials({
         apiKey,
+        apiSecret: result.user?.api_secret,
         userId: result.user?.id,
         email: result.user?.email,
         tier: result.tier,
@@ -202,6 +217,9 @@ export async function whoami() {
         process.exit(1);
     }
 
+    // Background upgrade to apiSecret if missing
+    await updateCredentialsIfNeeded(creds, result);
+
     console.log(`\nLogged in as: ${result.user?.email || result.user?.id}\n`);
 
     console.log('Account Info:');
@@ -277,6 +295,9 @@ export async function quota() {
         ]);
         process.exit(1);
     }
+
+    // Background upgrade to apiSecret if missing
+    await updateCredentialsIfNeeded(creds, result);
 
     fetchSpinner.succeed('Quota fetched');
     console.log(`\n${chalk.bold('Quota Status for:')} ${chalk.cyan(result.user?.email || creds.email)}\n`);
