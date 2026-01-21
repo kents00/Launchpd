@@ -4,7 +4,8 @@
  */
 
 import { config } from '../config.js';
-import { getApiKey } from './credentials.js';
+import { getApiKey, getApiSecret } from './credentials.js';
+import { createHmac } from 'node:crypto';
 
 const API_BASE_URL = config.apiUrl;
 
@@ -15,11 +16,31 @@ async function apiRequest(endpoint, options = {}) {
     const url = `${API_BASE_URL}${endpoint}`;
 
     const apiKey = await getApiKey();
+    const apiSecret = await getApiSecret();
     const headers = {
         'Content-Type': 'application/json',
         'X-API-Key': apiKey,
         ...options.headers,
     };
+
+    // Add HMAC signature if secret is available
+    if (apiSecret) {
+        const timestamp = Date.now().toString();
+        const method = (options.method || 'GET').toUpperCase();
+        const body = options.body || '';
+
+        // HMAC-SHA256(secret, method + path + timestamp + body)
+        const hmac = createHmac('sha256', apiSecret);
+        hmac.update(method);
+        hmac.update(endpoint);
+        hmac.update(timestamp);
+        hmac.update(body);
+
+        const signature = hmac.digest('hex');
+
+        headers['X-Timestamp'] = timestamp;
+        headers['X-Signature'] = signature;
+    }
 
     try {
         const response = await fetch(url, {

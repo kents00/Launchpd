@@ -77,6 +77,7 @@ export async function getCredentials() {
             if (data.apiKey) {
                 return {
                     apiKey: data.apiKey,
+                    apiSecret: data.apiSecret || null,
                     userId: data.userId || null,
                     email: data.email || null,
                     tier: data.tier || 'free',
@@ -99,6 +100,7 @@ export async function saveCredentials(credentials) {
 
     const data = {
         apiKey: credentials.apiKey,
+        apiSecret: credentials.apiSecret || null,
         userId: credentials.userId || null,
         email: credentials.email || null,
         tier: credentials.tier || 'free',
@@ -140,4 +142,12 @@ export async function isLoggedIn() {
 export async function getApiKey() {
     const creds = await getCredentials();
     return creds?.apiKey || process.env.STATICLAUNCH_API_KEY || 'public-beta-key';
+}
+
+/**
+ * Get the API secret for requests
+ */
+export async function getApiSecret() {
+    const creds = await getCredentials();
+    return creds?.apiSecret || process.env.STATICLAUNCH_API_SECRET || null;
 }

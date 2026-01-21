@@ -2,7 +2,8 @@ import { readdir, readFile } from 'node:fs/promises';
 import { join, relative, posix, sep } from 'node:path';
 import mime from 'mime-types';
 import { config } from '../config.js';
-import { getApiKey } from './credentials.js';
+import { getApiKey, getApiSecret } from './credentials.js';
+import { createHmac } from 'node:crypto';
 
 const API_BASE_URL = config.apiUrl;
 
@@ -24,16 +25,33 @@ function toPosixPath(windowsPath) {
  * @param {string} contentType - MIME type
  */
 async function uploadFile(content, subdomain, version, filePath, contentType) {
+    const apiKey = await getApiKey();
+    const apiSecret = await getApiSecret();
+    const headers = {
+        'X-API-Key': apiKey,
+        'X-Subdomain': subdomain,
+        'X-Version': String(version),
+        'X-File-Path': filePath,
+        'X-Content-Type': contentType,
+        'Content-Type': 'application/octet-stream',
+    };
+
+    if (apiSecret) {
+        const timestamp = Date.now().toString();
+        const endpoint = '/api/upload/file'; // Match the worker path
+        const hmac = createHmac('sha256', apiSecret);
+        hmac.update('POST');
+        hmac.update(endpoint);
+        hmac.update(timestamp);
+        hmac.update(content); // Buffer is fine for update()
+
+        headers['X-Timestamp'] = timestamp;
+        headers['X-Signature'] = hmac.digest('hex');
+    }
+
     const response = await fetch(`${API_BASE_URL}/api/upload/file`, {
         method: 'POST',
-        headers: {
-            'X-API-Key': await getApiKey(),
-            'X-Subdomain': subdomain,
-            'X-Version': String(version),
-            'X-File-Path': filePath,
-            'X-Content-Type': contentType,
-            'Content-Type': 'application/octet-stream',
-        },
+        headers,
         body: content,
     });
 
@@ -55,20 +73,39 @@ async function uploadFile(content, subdomain, version, filePath, contentType) {
  * @param {string|null} expiresAt - ISO expiration timestamp
  */
 async function completeUpload(subdomain, version, fileCount, totalBytes, folderName, expiresAt) {
+    const apiKey = await getApiKey();
+    const apiSecret = await getApiSecret();
+    const headers = {
+        'X-API-Key': apiKey,
+        'Content-Type': 'application/json',
+    };
+
+    const body = JSON.stringify({
+        subdomain,
+        version,
+        fileCount,
+        totalBytes,
+        folderName,
+        expiresAt,
+    });
+
+    if (apiSecret) {
+        const timestamp = Date.now().toString();
+        const endpoint = '/api/upload/complete';
+        const hmac = createHmac('sha256', apiSecret);
+        hmac.update('POST');
+        hmac.update(endpoint);
+        hmac.update(timestamp);
+        hmac.update(body);
+
+        headers['X-Timestamp'] = timestamp;
+        headers['X-Signature'] = hmac.digest('hex');
+    }
+
     const response = await fetch(`${API_BASE_URL}/api/upload/complete`, {
         method: 'POST',
-        headers: {
-            'X-API-Key': await getApiKey(),
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            subdomain,
-            version,
-            fileCount,
-            totalBytes,
-            folderName,
-            expiresAt,
-        }),
+        headers,
+        body,
     });
 
     if (!response.ok) {
