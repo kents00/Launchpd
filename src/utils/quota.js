@@ -196,7 +196,7 @@ async function userOwnsSite(apiKey, subdomain) {
 function showUpgradePrompt() {
     console.log('');
     console.log('╔══════════════════════════════════════════════════════════════╗');
-    console.log('║  🚀 Upgrade to Launchpd Free Tier                            ║');
+    console.log('║  Upgrade to Launchpd Free Tier                               ║');
     console.log('╠══════════════════════════════════════════════════════════════╣');
     console.log('║  Register for FREE to unlock:                                ║');
     console.log('║    → 10 sites (instead of 3)                                 ║');

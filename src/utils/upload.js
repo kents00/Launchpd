@@ -72,8 +72,15 @@ async function completeUpload(subdomain, version, fileCount, totalBytes, folderN
     });
 
     if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: 'Complete upload failed' }));
-        throw new Error(error.error || `Complete upload failed: ${response.status}`);
+        let errorMsg = 'Complete upload failed';
+        const text = await response.text();
+        try {
+            const data = JSON.parse(text);
+            errorMsg = data.error || `Complete upload failed: ${response.status} ${response.statusText}`;
+        } catch {
+            errorMsg = `Complete upload failed: ${response.status} ${response.statusText} - ${text.substring(0, 100)}`;
+        }
+        throw new Error(errorMsg);
     }
 
     return response.json();

@@ -104,15 +104,25 @@ export async function deploy(folder, options) {
     if (options.name && creds?.email) {
         const checkSpinner = spinner('Checking subdomain availability...');
         try {
-            const { checkSubdomainAvailable } = await import('../utils/api.js');
+            const { checkSubdomainAvailable, listSubdomains } = await import('../utils/api.js');
             const isAvailable = await checkSubdomainAvailable(subdomain);
+
             if (!isAvailable) {
-                checkSpinner.fail(`Subdomain "${subdomain}" is already taken`);
-                warning('Choose a different subdomain name with --name');
-                process.exit(1);
+                // Check if the current user owns it
+                const result = await listSubdomains();
+                const owned = result?.subdomains?.some(s => s.subdomain === subdomain);
+
+                if (owned) {
+                    checkSpinner.succeed(`Deploying new version to your subdomain: "${subdomain}"`);
+                } else {
+                    checkSpinner.fail(`Subdomain "${subdomain}" is already taken`);
+                    warning('Choose a different subdomain name with --name or deployment without it.');
+                    process.exit(1);
+                }
+            } else {
+                checkSpinner.succeed(`Subdomain "${subdomain}" is available`);
             }
-            checkSpinner.succeed(`Subdomain "${subdomain}" is available`);
-        } catch {
+        } catch (err) {
             checkSpinner.warn('Could not verify subdomain availability');
         }
     }

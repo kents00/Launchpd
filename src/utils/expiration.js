@@ -44,11 +44,11 @@ export function parseTimeString(timeStr) {
 /**
  * Calculate expiration timestamp from a time string
  * @param {string} timeStr - Time string (e.g., "30m", "2h", "1d")
- * @returns {string} ISO timestamp of expiration
+ * @returns {Date} Date object of expiration
  */
 export function calculateExpiresAt(timeStr) {
     const ms = parseTimeString(timeStr);
-    return new Date(Date.now() + ms).toISOString();
+    return new Date(Date.now() + ms);
 }
 
 /**

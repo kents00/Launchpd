@@ -1,5 +1,6 @@
 import { getVersionsForSubdomain, getActiveVersion } from '../utils/metadata.js';
 import { getVersions as getVersionsFromAPI } from '../utils/api.js';
+import { isLoggedIn } from '../utils/credentials.js';
 import { success, errorWithSuggestions, info, spinner, formatSize } from '../utils/logger.js';
 import chalk from 'chalk';
 
@@ -12,6 +13,14 @@ import chalk from 'chalk';
  */
 export async function versions(subdomain, options) {
     const verbose = options.verbose || false;
+
+    if (!await isLoggedIn()) {
+        errorWithSuggestions('The versions feature is only available for authenticated users.', [
+            'Run "launchpd login" to log in to your account',
+            'Run "launchpd register" to create a new account',
+        ], { verbose });
+        process.exit(1);
+    }
 
     try {
         const fetchSpinner = spinner(`Fetching versions for ${subdomain}...`);
@@ -72,15 +81,23 @@ export async function versions(subdomain, options) {
 
         for (const v of versionList) {
             const isActive = v.version === activeVersion;
-            const versionStr = chalk.bold.cyan(`v${v.version}`);
-            const date = chalk.gray(new Date(v.timestamp).toLocaleString());
-            const files = chalk.white(`${v.fileCount} files`);
-            const size = v.totalBytes ? chalk.white(formatSize(v.totalBytes)) : chalk.gray('unknown');
-            const status = isActive
+
+            // Format raw strings for correct padding calculation
+            const versionRaw = `v${v.version}`;
+            const dateRaw = new Date(v.timestamp).toLocaleString();
+            const filesRaw = `${v.fileCount} files`;
+            const sizeRaw = v.totalBytes ? formatSize(v.totalBytes) : 'unknown';
+
+            // Apply colors and padding separately
+            const versionStr = chalk.bold.cyan(versionRaw.padEnd(12));
+            const dateStr = chalk.gray(dateRaw.padEnd(25));
+            const filesStr = chalk.white(filesRaw.padEnd(10));
+            const sizeStr = chalk.white(sizeRaw.padEnd(12));
+            const statusStr = isActive
                 ? chalk.green.bold('● active')
                 : chalk.gray('○ inactive');
 
-            console.log(`  ${versionStr.padEnd(18)}${date.padEnd(30)}${files.padEnd(12)}${size.padEnd(14)}${status}`);
+            console.log(`  ${versionStr}${dateStr}${filesStr}${sizeStr}${statusStr}`);
         }
 
         console.log(chalk.gray('  ' + '─'.repeat(70)));
