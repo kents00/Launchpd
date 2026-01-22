@@ -11,7 +11,8 @@ import chalk from 'chalk';
  * @param {boolean} options.json - Output as JSON
  * @param {boolean} options.verbose - Show verbose error details
  */
-export async function versions(subdomain, options) {
+export async function versions(subdomainInput, options) {
+    const subdomain = subdomainInput.toLowerCase();
     const verbose = options.verbose || false;
 
     if (!await isLoggedIn()) {

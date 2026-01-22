@@ -97,7 +97,7 @@ export async function deploy(folder, options) {
         console.log('');
     }
 
-    const subdomain = (options.name && creds?.email) ? options.name : generateSubdomain();
+    const subdomain = (options.name && creds?.email) ? options.name.toLowerCase() : generateSubdomain();
     const url = `https://${subdomain}.launchpd.cloud`;
 
     // Check if custom subdomain is taken

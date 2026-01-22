@@ -10,7 +10,8 @@ import chalk from 'chalk';
  * @param {number} options.to - Specific version to rollback to (optional)
  * @param {boolean} options.verbose - Show verbose error details
  */
-export async function rollback(subdomain, options) {
+export async function rollback(subdomainInput, options) {
+    const subdomain = subdomainInput.toLowerCase();
     const verbose = options.verbose || false;
 
     try {
