@@ -93,4 +93,4 @@ Run `launchpd register` to unlock these benefits!
 
 ## License
 
-[MIT](LICENSE) © [Kent John Edoloverio](https://github.com/kents00)
+[MIT](LICENSE) © [Kent Edoloverio](https://github.com/kents00)
