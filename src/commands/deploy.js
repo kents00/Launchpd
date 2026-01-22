@@ -122,7 +122,7 @@ export async function deploy(folder, options) {
             } else {
                 checkSpinner.succeed(`Subdomain "${subdomain}" is available`);
             }
-        } catch (err) {
+        } catch {
             checkSpinner.warn('Could not verify subdomain availability');
         }
     }

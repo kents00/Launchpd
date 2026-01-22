@@ -1,23 +1,43 @@
 {
     "name": "launchpd",
-    "version": "0.1.12",
+    "version": "1.0.0",
     "description": "Deploy static sites instantly to a live URL",
-    "type": "module",
-    "bin": {
-        "launchpd": "./bin/cli.js"
+    "keywords": [
+        "static",
+        "hosting",
+        "deploy",
+        "cli",
+        "cdn",
+        "website",
+        "publish"
+    ],
+    "homepage": "https://launchpd.cloud",
+    "bugs": {
+        "url": "https://github.com/kents00/launchpd/issues"
     },
-    "main": "./src/commands/index.js",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/kents00/launchpd.git",
+        "directory": "cli"
+    },
+    "license": "MIT",
+    "author": "Kent John Edoloverio",
+    "type": "module",
     "exports": {
         ".": "./src/commands/index.js",
         "./utils": "./src/utils/index.js"
+    },
+    "main": "./src/commands/index.js",
+    "bin": {
+        "launchpd": "bin/cli.js"
+    },
+    "directories": {
+        "test": "tests"
     },
     "files": [
         "bin",
         "src"
     ],
-    "engines": {
-        "node": ">=20.0.0"
-    },
     "scripts": {
         "start": "node bin/cli.js",
         "dev": "node bin/cli.js deploy ../examples/test-site",
@@ -28,27 +48,6 @@
         "lint:fix": "eslint src bin --ext .js --fix",
         "prepublishOnly": "npm run lint && npm run test"
     },
-    "keywords": [
-        "static",
-        "hosting",
-        "deploy",
-        "cli",
-        "cloudflare",
-        "cdn",
-        "website",
-        "publish"
-    ],
-    "author": "Kent John Edoloverio",
-    "license": "MIT",
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/kents00/launchpd.git",
-        "directory": "cli"
-    },
-    "bugs": {
-        "url": "https://github.com/kents00/launchpd/issues"
-    },
-    "homepage": "https://launchpd.cloud",
     "dependencies": {
         "chalk": "^5.4.0",
         "commander": "^14.0.0",
@@ -61,5 +60,8 @@
         "@vitest/coverage-v8": "^2.1.0",
         "eslint": "^9.0.0",
         "vitest": "^2.1.0"
+    },
+    "engines": {
+        "node": ">=20.0.0"
     }
 }

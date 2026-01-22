@@ -4,7 +4,7 @@
  */
 
 import { exec } from 'node:child_process';
-import { prompt, promptSecret } from '../utils/prompt.js';
+import { promptSecret } from '../utils/prompt.js';
 import { config } from '../config.js';
 import { getCredentials, saveCredentials, clearCredentials, isLoggedIn } from '../utils/credentials.js';
 import { success, error, errorWithSuggestions, info, warning, spinner } from '../utils/logger.js';
