@@ -54,15 +54,16 @@
     "dependencies": {
         "chalk": "^5.4.0",
         "commander": "^14.0.0",
+        "launchpd": "^1.0.0",
         "mime-types": "^2.1.35",
         "nanoid": "^5.1.0",
         "ora": "^8.0.1"
     },
     "devDependencies": {
         "@eslint/js": "^9.39.2",
-        "@vitest/coverage-v8": "^2.1.0",
+        "@vitest/coverage-v8": "^4.0.17",
         "eslint": "^9.0.0",
-        "vitest": "^2.1.0"
+        "vitest": "^4.0.17"
     },
     "engines": {
         "node": ">=20.0.0"
