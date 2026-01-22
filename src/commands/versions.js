@@ -34,9 +34,10 @@ export async function versions(subdomainInput, options) {
         if (apiResult && apiResult.versions) {
             versionList = apiResult.versions.map(v => ({
                 version: v.version,
-                timestamp: v.created_at,
-                fileCount: v.file_count,
-                totalBytes: v.total_bytes,
+                timestamp: v.created_at || v.timestamp,
+                fileCount: v.file_count || v.fileCount,
+                totalBytes: v.total_bytes || v.totalBytes,
+                message: v.message || '',
             }));
             activeVersion = apiResult.activeVersion || 1;
         } else {
@@ -77,8 +78,8 @@ export async function versions(subdomainInput, options) {
         console.log('');
 
         // Table header
-        console.log(chalk.gray('  Version   Date                     Files    Size         Status'));
-        console.log(chalk.gray('  ' + '─'.repeat(70)));
+        console.log(chalk.gray('  Version   Date                     Files    Size         Status       Message'));
+        console.log(chalk.gray('  ' + '─'.repeat(100)));
 
         for (const v of versionList) {
             const isActive = v.version === activeVersion;
@@ -95,13 +96,15 @@ export async function versions(subdomainInput, options) {
             const filesStr = chalk.white(filesRaw.padEnd(10));
             const sizeStr = chalk.white(sizeRaw.padEnd(12));
             const statusStr = isActive
-                ? chalk.green.bold('● active')
-                : chalk.gray('○ inactive');
+                ? chalk.green.bold('● active'.padEnd(12))
+                : chalk.gray('○ inactive'.padEnd(12));
 
-            console.log(`  ${versionStr}${dateStr}${filesStr}${sizeStr}${statusStr}`);
+            const messageStr = chalk.italic.gray(v.message || '');
+
+            console.log(`  ${versionStr}${dateStr}${filesStr}${sizeStr}${statusStr}${messageStr}`);
         }
 
-        console.log(chalk.gray('  ' + '─'.repeat(70)));
+        console.log(chalk.gray('  ' + '─'.repeat(100)));
         console.log('');
         info(`Use ${chalk.cyan(`launchpd rollback ${subdomain} --to <n>`)} to restore a version.`);
         console.log('');

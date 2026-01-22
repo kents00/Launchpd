@@ -1,11 +1,7 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
-import { deploy } from '../src/commands/deploy.js';
-import { list } from '../src/commands/list.js';
-import { rollback } from '../src/commands/rollback.js';
-import { versions } from '../src/commands/versions.js';
-import { login, logout, register, whoami, quota } from '../src/commands/auth.js';
+import { deploy, list, rollback, versions, init, status, login, logout, register, whoami, quota } from '../src/commands/index.js';
 
 const program = new Command();
 
@@ -19,6 +15,7 @@ program
     .description('Deploy a folder to a live URL')
     .argument('<folder>', 'Path to the folder to deploy')
     .option('--name <subdomain>', 'Use a custom subdomain (optional)')
+    .option('-m, --message <text>', 'Deployment message (optional)')
     .option('--expires <time>', 'Auto-delete after time (e.g., 30m, 2h, 1d). Minimum: 30m')
     .option('--verbose', 'Show detailed error information')
     .action(async (folder, options) => {
@@ -53,6 +50,21 @@ program
     .option('--verbose', 'Show detailed error information')
     .action(async (subdomain, options) => {
         await rollback(subdomain, options);
+    });
+
+program
+    .command('init')
+    .description('Initialize a new project in the current directory')
+    .option('--name <subdomain>', 'Subdomain to link to')
+    .action(async (options) => {
+        await init(options);
+    });
+
+program
+    .command('status')
+    .description('Show current project status')
+    .action(async () => {
+        await status();
     });
 
 // Authentication commands

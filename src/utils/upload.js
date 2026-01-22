@@ -72,7 +72,7 @@ async function uploadFile(content, subdomain, version, filePath, contentType) {
  * @param {string} folderName - Original folder name
  * @param {string|null} expiresAt - ISO expiration timestamp
  */
-async function completeUpload(subdomain, version, fileCount, totalBytes, folderName, expiresAt) {
+async function completeUpload(subdomain, version, fileCount, totalBytes, folderName, expiresAt, message) {
     const apiKey = await getApiKey();
     const apiSecret = await getApiSecret();
     const headers = {
@@ -87,6 +87,7 @@ async function completeUpload(subdomain, version, fileCount, totalBytes, folderN
         totalBytes,
         folderName,
         expiresAt,
+        message,
     });
 
     if (apiSecret) {
@@ -176,6 +177,6 @@ export async function uploadFolder(localPath, subdomain, version = 1, onProgress
  * @param {string} folderName - Folder name
  * @param {string|null} expiresAt - Expiration ISO timestamp
  */
-export async function finalizeUpload(subdomain, version, fileCount, totalBytes, folderName, expiresAt = null) {
-    return completeUpload(subdomain, version, fileCount, totalBytes, folderName, expiresAt);
+export async function finalizeUpload(subdomain, version, fileCount, totalBytes, folderName, expiresAt = null, message = null) {
+    return completeUpload(subdomain, version, fileCount, totalBytes, folderName, expiresAt, message);
 }

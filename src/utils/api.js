@@ -82,7 +82,7 @@ export async function getNextVersionFromAPI(subdomain) {
  * Record a new deployment in the API
  */
 export async function recordDeployment(deploymentData) {
-    const { subdomain, folderName, fileCount, totalBytes, version, expiresAt } = deploymentData;
+    const { subdomain, folderName, fileCount, totalBytes, version, expiresAt, message } = deploymentData;
 
     return apiRequest('/api/deployments', {
         method: 'POST',
@@ -94,6 +94,7 @@ export async function recordDeployment(deploymentData) {
             version,
             cliVersion: '0.1.0',
             expiresAt,
+            message,
         }),
     });
 }

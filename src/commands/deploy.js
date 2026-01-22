@@ -5,7 +5,8 @@ import { generateSubdomain } from '../utils/id.js';
 import { uploadFolder, finalizeUpload } from '../utils/upload.js';
 import { getNextVersion } from '../utils/metadata.js';
 import { saveLocalDeployment } from '../utils/localConfig.js';
-import { getNextVersionFromAPI } from '../utils/api.js';
+import { getNextVersionFromAPI, checkSubdomainAvailable, listSubdomains } from '../utils/api.js';
+import { getProjectConfig, findProjectRoot } from '../utils/projectConfig.js';
 import { success, errorWithSuggestions, info, warning, spinner, formatSize } from '../utils/logger.js';
 import { calculateExpiresAt, formatTimeRemaining } from '../utils/expiration.js';
 import { checkQuota, displayQuotaWarnings } from '../utils/quota.js';
@@ -97,14 +98,28 @@ export async function deploy(folder, options) {
         console.log('');
     }
 
-    const subdomain = (options.name && creds?.email) ? options.name.toLowerCase() : generateSubdomain();
+    // Detect project config if no name provided
+    let subdomain = (options.name && creds?.email) ? options.name.toLowerCase() : null;
+
+    if (!subdomain) {
+        const projectRoot = findProjectRoot(folderPath);
+        const config = await getProjectConfig(projectRoot);
+        if (config?.subdomain) {
+            subdomain = config.subdomain;
+            info(`Using project subdomain: ${chalk.bold(subdomain)}`);
+        }
+    }
+
+    if (!subdomain) {
+        subdomain = generateSubdomain();
+    }
+
     const url = `https://${subdomain}.launchpd.cloud`;
 
-    // Check if custom subdomain is taken
-    if (options.name && creds?.email) {
+    // Check if custom subdomain is taken (only if explicitly provided or new)
+    if (options.name || !subdomain) {
         const checkSpinner = spinner('Checking subdomain availability...');
         try {
-            const { checkSubdomainAvailable, listSubdomains } = await import('../utils/api.js');
             const isAvailable = await checkSubdomainAvailable(subdomain);
 
             if (!isAvailable) {
@@ -183,7 +198,8 @@ export async function deploy(folder, options) {
             fileCount,
             totalBytes,
             folderName,
-            expiresAt?.toISOString() || null
+            expiresAt?.toISOString() || null,
+            options.message || null
         );
         finalizeSpinner.succeed('Deployment finalized');
 

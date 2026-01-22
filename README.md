@@ -11,8 +11,9 @@
 ## Features
 
 *   **Blazing Fast**: Deploy folders in seconds with a single command.
-*   **Zero Config**: No YAML files or server setup required.
-*   **Version Control**: Every deployment is versioned. Roll back instantly if something goes wrong.
+*   **Project-Based**: Link local folders to subdomains once and deploy without re-typing names.
+*   **Zero Config**: No complex setup; optionally use `.launchpd.json` for project persistence.
+*   **Version Control**: Every deployment is versioned with commit messages. Roll back instantly.
 *   **Secure**: Private uploads with API key authentication or safe anonymous testing.
 *   **Auto-Expiration**: Set temporary deployments that delete themselves automatically.
 
@@ -44,15 +45,18 @@ npm install -g launchpd
 ### Deployment
 | Command | Description |
 | :--- | :--- |
-| `launchpd deploy <folder>` | Deploy a local folder to a live URL |
-| `launchpd deploy . --name site` | Deploy with a custom subdomain |
+| `launchpd init` | Link current folder to a subdomain (persisted in `.launchpd.json`) |
+| `launchpd deploy <folder>` | Deploy a local folder (uses linked subdomain if available) |
+| `launchpd deploy . -m "Fix layout"` | Deploy with a message (like a git commit) |
+| `launchpd deploy . --name site` | Deploy with a custom subdomain explicitly |
 | `launchpd deploy . --expires 2h` | Set auto-deletion (e.g., `30m`, `1d`, `7d`) |
 
 ### Management
 | Command | Description |
 | :--- | :--- |
+| `launchpd status` | Show linked subdomain and latest deployment info |
 | `launchpd list` | View your active deployments |
-| `launchpd versions <subdomain>` | See version history for a specific site |
+| `launchpd versions <subdomain>` | See version history with messages |
 | `launchpd rollback <subdomain>` | Rollback to the previous version |
 | `launchpd rollback <id> --to <v>` | Rollback to a specific version number |
 
