@@ -44,6 +44,7 @@ describe('credentials utils', () => {
             const result = await getCredentials();
             expect(result).toEqual({
                 apiKey: 'test-key',
+                apiSecret: null,
                 userId: 'user-123',
                 email: 'test@example.com',
                 tier: 'pro',

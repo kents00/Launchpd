@@ -1,14 +1,13 @@
-
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { login } from '../src/commands/auth.js';
 import * as credentials from '../src/utils/credentials.js';
 import * as logger from '../src/utils/logger.js';
-import { createInterface } from 'node:readline';
+import * as promptUtils from '../src/utils/prompt.js';
 
 // Mocks
-vi.mock('node:readline');
 vi.mock('../src/utils/credentials.js');
 vi.mock('../src/utils/logger.js');
+vi.mock('../src/utils/prompt.js');
 
 // Mock config to avoid loading real config which might depend on files
 vi.mock('../src/config.js', () => ({
@@ -30,13 +29,6 @@ describe('login command', () => {
         mockConsoleError = vi.spyOn(console, 'error').mockImplementation(() => { });
         mockExit = vi.spyOn(process, 'exit').mockImplementation(() => { throw new Error('process.exit'); });
 
-        // Helper for prompting
-        const mockQuestion = vi.fn();
-        createInterface.mockReturnValue({
-            question: mockQuestion,
-            close: vi.fn(),
-        });
-
         // Default mock implementations
         credentials.isLoggedIn.mockResolvedValue(false);
         logger.spinner.mockReturnValue({
@@ -47,17 +39,9 @@ describe('login command', () => {
         });
     });
 
-    afterEach(() => {
-        vi.restoreAllMocks();
-    });
-
     it('should handle invalid API key', async () => {
         // Mock prompt to return invalid key
-        const mockRl = {
-            question: vi.fn((q, cb) => cb('invalid-key')),
-            close: vi.fn()
-        };
-        createInterface.mockReturnValue(mockRl);
+        promptUtils.promptSecret.mockResolvedValue('invalid-key');
 
         // Mock fetch failure (simulating invalid key result from server)
         global.fetch = vi.fn().mockResolvedValue({
@@ -79,11 +63,7 @@ describe('login command', () => {
 
     it('should handle network errors gracefully', async () => {
         // Mock prompt
-        const mockRl = {
-            question: vi.fn((q, cb) => cb('some-key')),
-            close: vi.fn()
-        };
-        createInterface.mockReturnValue(mockRl);
+        promptUtils.promptSecret.mockResolvedValue('some-key');
 
         // Mock network error
         global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));

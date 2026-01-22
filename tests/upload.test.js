@@ -11,7 +11,8 @@ vi.mock('node:fs/promises', () => ({
 
 // Mock credentials
 vi.mock('../src/utils/credentials.js', () => ({
-    getApiKey: vi.fn().mockResolvedValue('test-api-key')
+    getApiKey: vi.fn().mockResolvedValue('test-api-key'),
+    getApiSecret: vi.fn().mockResolvedValue('test-api-secret')
 }));
 
 // Mock global fetch

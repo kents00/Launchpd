@@ -3,8 +3,8 @@
  * login, logout, register, whoami
  */
 
-import { createInterface } from 'node:readline';
 import { exec } from 'node:child_process';
+import { prompt, promptSecret } from '../utils/prompt.js';
 import { config } from '../config.js';
 import { getCredentials, saveCredentials, clearCredentials, isLoggedIn } from '../utils/credentials.js';
 import { success, error, errorWithSuggestions, info, warning, spinner } from '../utils/logger.js';
@@ -14,22 +14,6 @@ import chalk from 'chalk';
 const API_BASE_URL = config.apiUrl;
 const REGISTER_URL = `https://${config.domain}/`;
 
-/**
- * Prompt for user input
- */
-function prompt(question) {
-    const rl = createInterface({
-        input: process.stdin,
-        output: process.stdout,
-    });
-
-    return new Promise((resolve) => {
-        rl.question(question, (answer) => {
-            rl.close();
-            resolve(answer.trim());
-        });
-    });
-}
 
 /**
  * Validate API key with the server
@@ -86,12 +70,12 @@ export async function login() {
     console.log('Enter your API key from the dashboard.');
     console.log(`Don't have one? Run ${chalk.cyan('"launchpd register"')} first.\n`);
 
-    const apiKey = await prompt('API Key: ');
+    const apiKey = await promptSecret('API Key: ');
 
     if (!apiKey) {
         errorWithSuggestions('API key is required', [
             'Get your API key from the dashboard',
-            `Visit: https://portal.${config.domain}/api-keys`,
+            `Visit: https://${config.domain}/settings`,
             'Run "launchpd register" if you don\'t have an account',
         ]);
         process.exit(1);

@@ -10,4 +10,5 @@ export * from './localConfig.js';
 export * from './logger.js';
 export * from './metadata.js';
 export * from './quota.js';
+export * from './prompt.js';
 export * from './upload.js';
