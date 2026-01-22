@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { deploy } from '../src/commands/deploy.js';
+import * as validator from '../src/utils/validator.js';
 import * as upload from '../src/utils/upload.js';
 import * as metadata from '../src/utils/metadata.js';
 import * as api from '../src/utils/api.js';
@@ -16,6 +17,7 @@ vi.mock('../src/utils/metadata.js');
 vi.mock('../src/utils/api.js');
 vi.mock('../src/utils/logger.js');
 vi.mock('../src/utils/quota.js');
+vi.mock('../src/utils/validator.js');
 vi.mock('../src/utils/credentials.js', () => ({
     getCredentials: vi.fn().mockResolvedValue({ email: 'test@example.com' })
 }));
@@ -40,6 +42,7 @@ describe('deploy command', () => {
         vi.mocked(readdir).mockResolvedValue([
             { isFile: () => true, name: 'index.html', path: '/test' }
         ]);
+        vi.mocked(validator.validateStaticOnly).mockResolvedValue({ success: true, violations: [] });
         vi.mocked(quota.checkQuota).mockResolvedValue({ allowed: true, warnings: [] });
         vi.mocked(api.getNextVersionFromAPI).mockResolvedValue(1);
         vi.mocked(upload.uploadFolder).mockResolvedValue({ uploaded: 1, totalBytes: 100 });
@@ -60,6 +63,7 @@ describe('deploy command', () => {
             expect.any(Number),
             expect.any(Number),
             expect.any(String),
+            null,
             null
         );
         expect(logger.success).toHaveBeenCalledWith(expect.stringContaining('Deployed successfully'));
@@ -96,6 +100,25 @@ describe('deploy command', () => {
 
         await deploy('./test', {});
 
+        expect(exitMock).toHaveBeenCalledWith(1);
+    });
+
+    it('should exit if static-only validation fails', async () => {
+        vi.mocked(validator.validateStaticOnly).mockResolvedValue({
+            success: false,
+            violations: ['package.json', 'src/api.py']
+        });
+
+        await deploy('./test', {});
+
+        expect(logger.errorWithSuggestions).toHaveBeenCalledWith(
+            expect.stringContaining('contains files that are not allowed'),
+            expect.arrayContaining([
+                expect.stringContaining('package.json'),
+                expect.stringContaining('src/api.py')
+            ]),
+            expect.anything()
+        );
         expect(exitMock).toHaveBeenCalledWith(1);
     });
 });

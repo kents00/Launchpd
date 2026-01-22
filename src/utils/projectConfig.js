@@ -31,7 +31,7 @@ export async function getProjectConfig(projectDir = findProjectRoot()) {
             const content = await readFile(configPath, 'utf8');
             return JSON.parse(content);
         }
-    } catch (err) {
+    } catch {
         // Silently fail or handle corrupted config
     }
     return null;

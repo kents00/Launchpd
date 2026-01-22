@@ -68,6 +68,7 @@ export async function versions(subdomainInput, options) {
                     fileCount: v.fileCount,
                     totalBytes: v.totalBytes,
                     isActive: v.version === activeVersion,
+                    message: v.message,
                 })),
             }, null, 2));
             return;

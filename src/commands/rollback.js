@@ -28,6 +28,7 @@ export async function rollback(subdomainInput, options) {
                 version: v.version,
                 timestamp: v.created_at,
                 fileCount: v.file_count,
+                message: v.message,
             }));
             currentActive = apiResult.activeVersion || 1;
             useAPI = true;
@@ -67,7 +68,8 @@ export async function rollback(subdomainInput, options) {
                 versions.forEach(v => {
                     const isActive = v.version === currentActive;
                     const marker = isActive ? chalk.green(' (active)') : '';
-                    console.log(`  ${chalk.cyan(`v${v.version}`)} - ${chalk.gray(v.timestamp)}${marker}`);
+                    const message = v.message ? ` - "${v.message}"` : '';
+                    console.log(`  ${chalk.cyan(`v${v.version}`)}${message} - ${chalk.gray(v.timestamp)}${marker}`);
                 });
                 process.exit(1);
             }
@@ -106,6 +108,9 @@ export async function rollback(subdomainInput, options) {
 
         rollbackSpinner.succeed(`Rolled back to ${chalk.cyan(`v${targetVersion}`)}`);
         console.log(`\n  🔄 https://${subdomain}.launchpd.cloud\n`);
+        if (targetDeployment?.message) {
+            info(`Version message: "${chalk.italic(targetDeployment.message)}"`);
+        }
         info(`Restored deployment from: ${chalk.gray(targetDeployment?.timestamp || 'unknown')}`);
 
     } catch (err) {

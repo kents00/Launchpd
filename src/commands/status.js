@@ -1,12 +1,12 @@
 import { getProjectConfig, findProjectRoot } from '../utils/projectConfig.js';
 import { getDeployment } from '../utils/api.js';
-import { success, errorWithSuggestions, info, spinner, warning, formatSize } from '../utils/logger.js';
+import { errorWithSuggestions, info, spinner, warning, formatSize } from '../utils/logger.js';
 import chalk from 'chalk';
 
 /**
  * Show current project status
  */
-export async function status(options) {
+export async function status(_options) {
     const projectRoot = findProjectRoot();
     if (!projectRoot) {
         warning('Not a Launchpd project (no .launchpd.json found)');
@@ -47,7 +47,7 @@ export async function status(options) {
             warning('\nNo deployments found for this project yet.');
             info('Run "launchpd deploy <folder>" to push your first version.');
         }
-    } catch (err) {
+    } catch {
         statusSpinner.fail('Failed to fetch deployment status');
         info(`Subdomain: ${config.subdomain}`);
         // Don't exit, just show what we have

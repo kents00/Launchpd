@@ -1,4 +1,5 @@
 import { existsSync, statSync } from 'node:fs';
+import chalk from 'chalk';
 import { readdir } from 'node:fs/promises';
 import { resolve, basename, join } from 'node:path';
 import { generateSubdomain } from '../utils/id.js';
@@ -11,6 +12,7 @@ import { success, errorWithSuggestions, info, warning, spinner, formatSize } fro
 import { calculateExpiresAt, formatTimeRemaining } from '../utils/expiration.js';
 import { checkQuota, displayQuotaWarnings } from '../utils/quota.js';
 import { getCredentials } from '../utils/credentials.js';
+import { validateStaticOnly } from '../utils/validator.js';
 
 /**
  * Calculate total size of a folder
@@ -87,6 +89,22 @@ export async function deploy(folder, options) {
         process.exit(1);
     }
     scanSpinner.succeed(`Found ${fileCount} file(s)`);
+
+    // Static-Only Validation
+    const validationSpinner = spinner('Validating files...');
+    const validation = await validateStaticOnly(folderPath);
+    if (!validation.success) {
+        validationSpinner.fail('Deployment blocked: Non-static files detected');
+        errorWithSuggestions('Your project contains files that are not allowed.', [
+            'Launchpd only supports static files (HTML, CSS, JS, images, etc.)',
+            'Remove framework files, backend code, and build metadata:',
+            ...validation.violations.map(v => `   - ${v}`).slice(0, 10),
+            validation.violations.length > 10 ? `   - ...and ${validation.violations.length - 10} more` : '',
+            'If you use a framework (React, Vue, etc.), deploy the "dist" or "build" folder instead.'
+        ], { verbose });
+        process.exit(1);
+    }
+    validationSpinner.succeed('Project validated (Static files only)');
 
     // Generate or use provided subdomain
     // Anonymous users cannot use custom subdomains

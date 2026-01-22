@@ -11,9 +11,6 @@
         "website",
         "publish"
     ],
-    "publishConfig": {
-        "registry": "https://npm.pkg.github.com"
-    },
     "homepage": "https://launchpd.cloud",
     "bugs": {
         "url": "https://github.com/kents00/launchpd/issues"
