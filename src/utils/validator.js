@@ -1,5 +1,6 @@
 import { readdir } from 'node:fs/promises';
 import { extname } from 'node:path';
+import { isIgnored } from './ignore.js';
 
 // Allowed static file extensions
 const ALLOWED_EXTENSIONS = new Set([
@@ -62,6 +63,11 @@ export async function validateStaticOnly(folderPath) {
             // 1. Check if the file/dir itself is a forbidden indicator
             if (FORBIDDEN_INDICATORS.includes(fileName) || FORBIDDEN_INDICATORS.includes(ext)) {
                 violations.push(file.name);
+                continue;
+            }
+
+            // 2. Skip ignored files and directories
+            if (isIgnored(fileName, file.isDirectory())) {
                 continue;
             }
 

@@ -1,18 +1,21 @@
 import { existsSync, statSync } from 'node:fs';
+import { exec } from 'node:child_process';
 import chalk from 'chalk';
 import { readdir } from 'node:fs/promises';
-import { resolve, basename, join } from 'node:path';
+import { resolve, basename, join, relative, sep } from 'node:path';
 import { generateSubdomain } from '../utils/id.js';
 import { uploadFolder, finalizeUpload } from '../utils/upload.js';
 import { getNextVersion } from '../utils/metadata.js';
 import { saveLocalDeployment } from '../utils/localConfig.js';
 import { getNextVersionFromAPI, checkSubdomainAvailable, listSubdomains } from '../utils/api.js';
-import { getProjectConfig, findProjectRoot } from '../utils/projectConfig.js';
+import { getProjectConfig, findProjectRoot, updateProjectConfig } from '../utils/projectConfig.js';
 import { success, errorWithSuggestions, info, warning, spinner, formatSize } from '../utils/logger.js';
 import { calculateExpiresAt, formatTimeRemaining } from '../utils/expiration.js';
 import { checkQuota, displayQuotaWarnings } from '../utils/quota.js';
 import { getCredentials } from '../utils/credentials.js';
 import { validateStaticOnly } from '../utils/validator.js';
+import { isIgnored } from '../utils/ignore.js';
+import { prompt } from '../utils/prompt.js';
 
 /**
  * Calculate total size of a folder
@@ -22,10 +25,17 @@ async function calculateFolderSize(folderPath) {
     let totalSize = 0;
 
     for (const file of files) {
+        const parentDir = file.parentPath || file.path;
+        const relativePath = relative(folderPath, join(parentDir, file.name));
+        const pathParts = relativePath.split(sep);
+
+        // Skip ignored directories/files in the path
+        if (pathParts.some(part => isIgnored(part, file.isDirectory()))) {
+            continue;
+        }
+
         if (file.isFile()) {
-            const fullPath = file.parentPath
-                ? join(file.parentPath, file.name)
-                : join(folderPath, file.name);
+            const fullPath = join(parentDir, file.name);
             try {
                 const stats = statSync(fullPath);
                 totalSize += stats.size;
@@ -65,6 +75,16 @@ export async function deploy(folder, options) {
         }
     }
 
+    // Validate deployment message is provided
+    if (!options.message) {
+        errorWithSuggestions('Deployment message is required.', [
+            'Use -m or --message to provide a description',
+            'Example: launchpd deploy . -m "Fix layout"',
+            'Example: launchpd deploy . -m "Initial deployment"'
+        ], { verbose });
+        process.exit(1);
+    }
+
     // Validate folder exists
     if (!existsSync(folderPath)) {
         errorWithSuggestions(`Folder not found: ${folderPath}`, [
@@ -78,33 +98,52 @@ export async function deploy(folder, options) {
     // Check folder is not empty
     const scanSpinner = spinner('Scanning folder...');
     const files = await readdir(folderPath, { recursive: true, withFileTypes: true });
-    const fileCount = files.filter(f => f.isFile()).length;
+
+    // Filter out ignored files for the count
+    const activeFiles = files.filter(file => {
+        if (!file.isFile()) return false;
+        const parentDir = file.parentPath || file.path;
+        const relativePath = relative(folderPath, join(parentDir, file.name));
+        const pathParts = relativePath.split(sep);
+        return !pathParts.some(part => isIgnored(part, file.isDirectory()));
+    });
+
+    const fileCount = activeFiles.length;
 
     if (fileCount === 0) {
-        scanSpinner.fail('Folder is empty');
+        scanSpinner.fail('Folder is empty or only contains ignored files');
         errorWithSuggestions('Nothing to deploy.', [
             'Add some files to your folder',
+            'Make sure your files are not in ignored directories (like node_modules)',
             'Make sure index.html exists for static sites',
         ], { verbose });
         process.exit(1);
     }
-    scanSpinner.succeed(`Found ${fileCount} file(s)`);
+    scanSpinner.succeed(`Found ${fileCount} file(s) (ignored system files skipped)`);
 
     // Static-Only Validation
     const validationSpinner = spinner('Validating files...');
     const validation = await validateStaticOnly(folderPath);
     if (!validation.success) {
-        validationSpinner.fail('Deployment blocked: Non-static files detected');
-        errorWithSuggestions('Your project contains files that are not allowed.', [
-            'Launchpd only supports static files (HTML, CSS, JS, images, etc.)',
-            'Remove framework files, backend code, and build metadata:',
-            ...validation.violations.map(v => `   - ${v}`).slice(0, 10),
-            validation.violations.length > 10 ? `   - ...and ${validation.violations.length - 10} more` : '',
-            'If you use a framework (React, Vue, etc.), deploy the "dist" or "build" folder instead.'
-        ], { verbose });
-        process.exit(1);
+        if (options.force) {
+            validationSpinner.warn('Static-only validation failed, but proceeding due to --force');
+            warning('Non-static files detected.');
+            warning(chalk.bold.red('IMPORTANT: Launchpd only hosts STATIC files.'));
+            warning('Backend code (Node.js, PHP, etc.) will NOT be executed on the server.');
+        } else {
+            validationSpinner.fail('Deployment blocked: Non-static files detected');
+            errorWithSuggestions('Your project contains files that are not allowed.', [
+                'Launchpd only supports static files (HTML, CSS, JS, images, etc.)',
+                'Remove framework files, backend code, and build metadata:',
+                ...validation.violations.map(v => `   - ${v}`).slice(0, 10),
+                validation.violations.length > 10 ? `   - ...and ${validation.violations.length - 10} more` : '',
+                'If you use a framework (React, Vue, etc.), deploy the "dist" or "build" folder instead.',
+            ], { verbose });
+            process.exit(1);
+        }
+    } else {
+        validationSpinner.succeed('Project validated (Static files only)');
     }
-    validationSpinner.succeed('Project validated (Static files only)');
 
     // Generate or use provided subdomain
     // Anonymous users cannot use custom subdomains
@@ -118,18 +157,34 @@ export async function deploy(folder, options) {
 
     // Detect project config if no name provided
     let subdomain = (options.name && creds?.email) ? options.name.toLowerCase() : null;
+    let configSubdomain = null;
 
-    if (!subdomain) {
-        const projectRoot = findProjectRoot(folderPath);
-        const config = await getProjectConfig(projectRoot);
-        if (config?.subdomain) {
-            subdomain = config.subdomain;
-            info(`Using project subdomain: ${chalk.bold(subdomain)}`);
-        }
+    const projectRoot = findProjectRoot(folderPath);
+    const config = await getProjectConfig(projectRoot);
+    if (config?.subdomain) {
+        configSubdomain = config.subdomain;
     }
 
     if (!subdomain) {
-        subdomain = generateSubdomain();
+        if (configSubdomain) {
+            subdomain = configSubdomain;
+            info(`Using project subdomain: ${chalk.bold(subdomain)}`);
+        } else {
+            subdomain = generateSubdomain();
+        }
+    } else if (configSubdomain && subdomain !== configSubdomain) {
+        warning(`Mismatch: This project is linked to ${chalk.bold(configSubdomain)} but you are deploying to ${chalk.bold(subdomain)}`);
+
+        let shouldUpdate = options.yes;
+        if (!shouldUpdate) {
+            const confirm = await prompt(`Would you like to update this project's default subdomain to "${subdomain}"? (Y/N): `);
+            shouldUpdate = (confirm.toLowerCase() === 'y' || confirm.toLowerCase() === 'yes');
+        }
+
+        if (shouldUpdate) {
+            await updateProjectConfig({ subdomain }, projectRoot);
+            success(`Project configuration updated to: ${subdomain}`);
+        }
     }
 
     const url = `https://${subdomain}.launchpd.cloud`;
@@ -167,13 +222,23 @@ export async function deploy(folder, options) {
 
     // Check quota before deploying
     const quotaSpinner = spinner('Checking quota...');
-    const quotaCheck = await checkQuota(subdomain, estimatedBytes);
+    const isUpdate = (configSubdomain && subdomain === configSubdomain);
+
+    const quotaCheck = await checkQuota(subdomain, estimatedBytes, { isUpdate });
 
     if (!quotaCheck.allowed) {
-        quotaSpinner.fail('Deployment blocked due to quota limits');
-        process.exit(1);
+        if (options.force) {
+            quotaSpinner.warn('Deployment blocked due to quota limits, but proceeding due to --force');
+            warning('Uploading anyway... (server might still reject if physical limit is hit)');
+        } else {
+            quotaSpinner.fail('Deployment blocked due to quota limits');
+            info('Try running "launchpd quota" to check your storage.');
+            info('Use --force to try anyway (if you think this is a mistake)');
+            process.exit(1);
+        }
+    } else {
+        quotaSpinner.succeed('Quota check passed');
     }
-    quotaSpinner.succeed('Quota check passed');
 
     // Display any warnings
     displayQuotaWarnings(quotaCheck.warnings);
@@ -217,7 +282,7 @@ export async function deploy(folder, options) {
             totalBytes,
             folderName,
             expiresAt?.toISOString() || null,
-            options.message || null
+            options.message
         );
         finalizeSpinner.succeed('Deployment finalized');
 
@@ -234,6 +299,17 @@ export async function deploy(folder, options) {
 
         success(`Deployed successfully! (v${version})`);
         console.log(`\n${url}`);
+
+        if (options.open) {
+            const platform = process.platform;
+            let cmd;
+            if (platform === 'darwin') cmd = `open "${url}"`;
+            else if (platform === 'win32') cmd = `start "" "${url}"`;
+            else cmd = `xdg-open "${url}"`;
+
+            exec(cmd);
+        }
+
         if (expiresAt) {
             warning(`Expires: ${formatTimeRemaining(expiresAt)}`);
         }

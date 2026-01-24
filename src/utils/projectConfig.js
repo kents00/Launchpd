@@ -47,6 +47,20 @@ export async function saveProjectConfig(config, projectDir = process.cwd()) {
 }
 
 /**
+ * Update project configuration
+ */
+export async function updateProjectConfig(updates, projectDir = findProjectRoot()) {
+    if (!projectDir) return null;
+    const config = await getProjectConfig(projectDir);
+    const newConfig = {
+        ...config,
+        ...updates,
+        updatedAt: new Date().toISOString()
+    };
+    return await saveProjectConfig(newConfig, projectDir);
+}
+
+/**
  * Initialize a new project config
  */
 export async function initProjectConfig(subdomain, projectDir = process.cwd()) {

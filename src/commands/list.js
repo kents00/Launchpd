@@ -32,6 +32,7 @@ export async function list(options) {
                     version: d.version,
                     timestamp: d.created_at,
                     expiresAt: d.expires_at,
+                    message: d.message,
                     isActive: d.active_version === d.version,
                 }));
                 source = 'api';
@@ -65,12 +66,13 @@ export async function list(options) {
         // Header
         console.log(
             chalk.gray(
-                padRight('URL', 40) +
-                padRight('Folder', 15) +
-                padRight('Files', 7) +
-                padRight('Size', 12) +
-                padRight('Date', 12) +
-                'Status'
+                padRight('URL', 35) +
+                padRight('VER', 6) +
+                padRight('FOLDER', 15) +
+                padRight('FILES', 7) +
+                padRight('SIZE', 10) +
+                padRight('DATE', 12) +
+                'STATUS'
             )
         );
         console.log(chalk.gray('─'.repeat(100)));
@@ -84,26 +86,28 @@ export async function list(options) {
 
             // Determine status with colors
             let status;
-            if (dep.expiresAt) {
-                if (isExpired(dep.expiresAt)) {
-                    status = chalk.red.bold('● expired');
-                } else {
-                    status = chalk.yellow(`⏱ ${formatTimeRemaining(dep.expiresAt)}`);
-                }
-            } else {
+            if (dep.expiresAt && isExpired(dep.expiresAt)) {
+                status = chalk.red.bold('● expired');
+            } else if (dep.isActive) {
                 status = chalk.green.bold('● active');
+            } else if (dep.expiresAt) {
+                status = chalk.yellow(`⏱ ${formatTimeRemaining(dep.expiresAt)}`);
+            } else {
+                status = chalk.gray('○ inactive');
             }
 
-            // Version badge
-            const versionBadge = chalk.magenta(`v${dep.version || 1}`);
+            // Version info
+            const versionStr = `v${dep.version || 1}`;
 
             console.log(
-                chalk.cyan(padRight(url, 40)) +
+                chalk.cyan(padRight(url, 35)) +
+                chalk.magenta(padRight(versionStr, 6)) +
                 chalk.white(padRight(dep.folderName || '-', 15)) +
                 chalk.white(padRight(String(dep.fileCount), 7)) +
-                chalk.white(padRight(size, 12)) +
+                chalk.white(padRight(size, 10)) +
                 chalk.gray(padRight(date, 12)) +
-                status + ' ' + versionBadge
+                status +
+                (dep.message ? chalk.gray(` - ${dep.message}`) : '')
             );
         }
 

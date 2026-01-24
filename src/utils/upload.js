@@ -4,6 +4,7 @@ import mime from 'mime-types';
 import { config } from '../config.js';
 import { getApiKey, getApiSecret } from './credentials.js';
 import { createHmac } from 'node:crypto';
+import { isIgnored } from './ignore.js';
 
 const API_BASE_URL = config.apiUrl;
 
@@ -141,11 +142,26 @@ export async function uploadFolder(localPath, subdomain, version = 1, onProgress
     for (const file of files) {
         if (!file.isFile()) continue;
 
+        const fileName = file.name;
+        const parentDir = file.parentPath || file.path;
+
+        // Skip ignored directories in the path
+        const relativePath = relative(localPath, join(parentDir, fileName));
+        const pathParts = relativePath.split(sep);
+
+        if (pathParts.some(part => isIgnored(part, true))) {
+            continue;
+        }
+
+        // Skip ignored files
+        if (isIgnored(fileName, false)) {
+            continue;
+        }
+
         // Build full local path
-        const fullPath = join(file.parentPath || file.path, file.name);
+        const fullPath = join(parentDir, fileName);
 
         // Build relative path for R2 key
-        const relativePath = relative(localPath, fullPath);
         const posixPath = toPosixPath(relativePath);
 
         // Detect content type

@@ -15,20 +15,49 @@ const API_BASE_URL = `https://api.${config.domain}`;
  *
  * @param {string} subdomain - Target subdomain (null for new site)
  * @param {number} estimatedBytes - Estimated upload size in bytes
+ * @param {object} options - Options
+ * @param {boolean} options.isUpdate - Whether this is known to be an update
  * @returns {Promise<{allowed: boolean, isNewSite: boolean, quota: object, warnings: string[]}>}
  */
-export async function checkQuota(subdomain, estimatedBytes = 0) {
+export async function checkQuota(subdomain, estimatedBytes = 0, options = {}) {
     const creds = await getCredentials();
 
     let quotaData;
 
     if (creds?.apiKey) {
         // Authenticated user
-        quotaData = await checkAuthenticatedQuota(creds.apiKey);
+        quotaData = await checkAuthenticatedQuota(creds.apiKey, options.isUpdate);
     } else {
         // Anonymous user
         quotaData = await checkAnonymousQuota();
     }
+    // ... skipped ...
+    /**
+     * Check quota for authenticated user
+     */
+    async function checkAuthenticatedQuota(apiKey, isUpdate = false) {
+        try {
+            const url = new URL(`${API_BASE_URL}/api/quota`);
+            if (isUpdate) {
+                url.searchParams.append('is_update', 'true');
+            }
+
+            const response = await fetch(url.toString(), {
+                headers: {
+                    'X-API-Key': apiKey,
+                },
+            });
+
+            if (!response.ok) {
+                return null;
+            }
+
+            return await response.json();
+        } catch {
+            return null;
+        }
+    }
+    // ... skipped ...
 
     if (!quotaData) {
         // API unavailable, allow deployment (fail-open for MVP)
@@ -40,10 +69,23 @@ export async function checkQuota(subdomain, estimatedBytes = 0) {
         };
     }
 
+    // DEBUG: Write input options to file
+    try {
+        const { appendFileSync } = await import('node:fs');
+        appendFileSync('quota_debug_trace.txt', `\n[${new Date().toISOString()}] Check: ${subdomain}, isUpdate: ${options.isUpdate}, type: ${typeof options.isUpdate}`);
+    } catch (e) { }
+
     // Check if this is an existing site the user owns
-    const isNewSite = subdomain ? !await userOwnsSite(creds?.apiKey, subdomain) : true;
+    // If explicitly marked as update, assume user owns it
+    let isNewSite = true;
+    if (options.isUpdate) {
+        isNewSite = false;
+    } else if (subdomain) {
+        isNewSite = !await userOwnsSite(creds?.apiKey, subdomain);
+    }
 
     const warnings = [...(quotaData.warnings || [])];
+
     const allowed = true;
 
     // Check if blocked (anonymous limit reached)
@@ -107,6 +149,8 @@ export async function checkQuota(subdomain, estimatedBytes = 0) {
         }
     }
 
+
+
     return {
         allowed,
         isNewSite,
@@ -118,9 +162,14 @@ export async function checkQuota(subdomain, estimatedBytes = 0) {
 /**
  * Check quota for authenticated user
  */
-async function checkAuthenticatedQuota(apiKey) {
+async function checkAuthenticatedQuota(apiKey, isUpdate = false) {
     try {
-        const response = await fetch(`${API_BASE_URL}/api/quota`, {
+        const url = new URL(`${API_BASE_URL}/api/quota`);
+        if (isUpdate) {
+            url.searchParams.append('is_update', 'true');
+        }
+
+        const response = await fetch(url.toString(), {
             headers: {
                 'X-API-Key': apiKey,
             },
@@ -180,12 +229,18 @@ async function userOwnsSite(apiKey, subdomain) {
         });
 
         if (!response.ok) {
+            console.log('Fetch subdomains failed:', response.status);
             return false;
         }
 
         const data = await response.json();
-        return data.subdomains?.some(s => s.subdomain === subdomain) || false;
-    } catch {
+        console.log('User subdomains:', data.subdomains?.map(s => s.subdomain));
+        console.log('Checking for:', subdomain);
+        const owns = data.subdomains?.some(s => s.subdomain === subdomain) || false;
+        console.log('Owns site?', owns);
+        return owns;
+    } catch (err) {
+        console.log('Error checking ownership:', err);
         return false;
     }
 }

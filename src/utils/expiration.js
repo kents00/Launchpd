@@ -2,10 +2,9 @@
  * Parse a time string into milliseconds
  * Supports: 30m, 1h, 2h, 1d, 7d, etc.
  * Minimum: 30 minutes
- *
- * @param {string} timeStr - Time string (e.g., "30m", "2h", "1d")
- * @returns {number} Milliseconds
  */
+
+export const MIN_EXPIRATION_MS = 30 * 60 * 1000;
 export function parseTimeString(timeStr) {
     const regex = /^(\d+)([mhd])$/i;
     const match = regex.exec(timeStr);
@@ -33,8 +32,7 @@ export function parseTimeString(timeStr) {
     }
 
     // Minimum 30 minutes
-    const minMs = 30 * 60 * 1000;
-    if (ms < minMs) {
+    if (ms < MIN_EXPIRATION_MS) {
         throw new Error('Minimum expiration time is 30 minutes (30m)');
     }
 

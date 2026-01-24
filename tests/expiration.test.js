@@ -51,13 +51,13 @@ describe('expiration utils', () => {
         });
 
         it('formats hours and minutes', () => {
-            const future = new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString();
+            const future = new Date(Date.now() + 3 * 60 * 60 * 1000 + 60000).toISOString();
             const result = formatTimeRemaining(future);
             expect(result).toContain('3h');
         });
 
         it('formats minutes only', () => {
-            const future = new Date(Date.now() + 45 * 60 * 1000).toISOString();
+            const future = new Date(Date.now() + 45 * 60 * 1000 + 60000).toISOString();
             const result = formatTimeRemaining(future);
             expect(result).toContain('m remaining');
         });

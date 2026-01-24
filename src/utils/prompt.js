@@ -8,12 +8,15 @@ export function prompt(question) {
     const rl = createInterface({
         input: process.stdin,
         output: process.stdout,
+        terminal: true
     });
 
     return new Promise((resolve) => {
         rl.question(question, (answer) => {
             rl.close();
-            resolve(answer.trim());
+            // Small delay to allow Windows handles to cleanup before process.exit might be called
+            // Increased to 100ms to be safer against UV_HANDLE_CLOSING assertion on Windows
+            setTimeout(() => resolve(answer.trim()), 100);
         });
     });
 }

@@ -23,6 +23,12 @@ export async function versions(subdomainInput, options) {
         process.exit(1);
     }
 
+    if (options.to) {
+        warning(`The --to option is for the ${chalk.bold('rollback')} command.`);
+        info(`Try: ${chalk.cyan(`launchpd rollback ${subdomain} --to ${options.to}`)}`);
+        console.log('');
+    }
+
     try {
         const fetchSpinner = spinner(`Fetching versions for ${subdomain}...`);
 

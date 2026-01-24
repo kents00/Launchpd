@@ -40,7 +40,7 @@ describe('deploy command', () => {
         });
         vi.mocked(existsSync).mockReturnValue(true);
         vi.mocked(readdir).mockResolvedValue([
-            { isFile: () => true, name: 'index.html', path: '/test' }
+            { isFile: () => true, isDirectory: () => false, name: 'index.html', path: '/test' }
         ]);
         vi.mocked(validator.validateStaticOnly).mockResolvedValue({ success: true, violations: [] });
         vi.mocked(quota.checkQuota).mockResolvedValue({ allowed: true, warnings: [] });
@@ -54,7 +54,7 @@ describe('deploy command', () => {
     });
 
     it('should perform a full successful deployment', async () => {
-        await deploy('./test-folder', { name: 'my-site' });
+        await deploy('./test-folder', { name: 'my-site', message: 'test deployment' });
 
         expect(upload.uploadFolder).toHaveBeenCalled();
         expect(upload.finalizeUpload).toHaveBeenCalledWith(
@@ -64,7 +64,7 @@ describe('deploy command', () => {
             expect.any(Number),
             expect.any(String),
             null,
-            null
+            'test deployment'
         );
         expect(logger.success).toHaveBeenCalledWith(expect.stringContaining('Deployed successfully'));
     });

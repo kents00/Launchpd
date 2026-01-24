@@ -1,6 +1,7 @@
 import { getProjectConfig, findProjectRoot } from '../utils/projectConfig.js';
 import { getDeployment } from '../utils/api.js';
 import { errorWithSuggestions, info, spinner, warning, formatSize } from '../utils/logger.js';
+import { formatTimeRemaining } from '../utils/expiration.js';
 import chalk from 'chalk';
 
 /**
@@ -41,6 +42,14 @@ export async function status(_options) {
             }
             console.log(`  File Count:      ${active.file_count || active.fileCount}`);
             console.log(`  Total Size:      ${formatSize(active.total_bytes || active.totalBytes)}`);
+
+            // Show expiration if set
+            if (active.expires_at || active.expiresAt) {
+                const expiryStr = formatTimeRemaining(active.expires_at || active.expiresAt);
+                const expiryColor = expiryStr === 'expired' ? chalk.red : chalk.yellow;
+                console.log(`  Expires:         ${expiryColor(expiryStr)}`);
+            }
+
             console.log(`  URL:             ${chalk.underline.blue(`https://${config.subdomain}.launchpd.cloud`)}`);
             console.log('');
         } else {

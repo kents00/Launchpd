@@ -49,6 +49,7 @@ npm install -g launchpd
 | `launchpd deploy . -m "Fix layout"` | Deploy with a message (like a git commit) |
 | `launchpd deploy . --name site` | Deploy with a custom subdomain explicitly |
 | `launchpd deploy . --expires 2h` | Set auto-deletion (e.g., `30m`, `1d`, `7d`) |
+| `launchpd deploy . --open` | Deploy and immediately open the site in your browser |
 
 ### Management
 | Command | Description |
@@ -57,7 +58,7 @@ npm install -g launchpd
 | `launchpd list` | View your active deployments |
 | `launchpd versions <subdomain>` | See version history with messages |
 | `launchpd rollback <subdomain>` | Rollback to the previous version |
-| `launchpd rollback <id> --to <v>` | Rollback to a specific version number |
+| `launchpd rollback <subdomain> --to <v>` | Rollback to a specific version number |
 
 ### Identity & Auth
 | Command | Description |
