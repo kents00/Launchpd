@@ -1,7 +1,12 @@
 #!/usr/bin/env node
 
+import fs from 'fs';
 import { Command } from 'commander';
+import updateNotifier from 'update-notifier';
 import { deploy, list, rollback, versions, init, status, login, logout, register, whoami, quota } from '../src/commands/index.js';
+
+const packageJson = JSON.parse(fs.readFileSync(new URL('../package.json', import.meta.url)));
+updateNotifier({ pkg: packageJson }).notify();
 
 
 const program = new Command();
