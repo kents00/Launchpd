@@ -1,7 +1,7 @@
 import { getVersionsForSubdomain, getActiveVersion } from '../utils/metadata.js';
 import { getVersions as getVersionsFromAPI } from '../utils/api.js';
 import { isLoggedIn } from '../utils/credentials.js';
-import { success, errorWithSuggestions, info, spinner, formatSize } from '../utils/logger.js';
+import { success, errorWithSuggestions, info, spinner, warning, formatSize } from '../utils/logger.js';
 import chalk from 'chalk';
 
 /**

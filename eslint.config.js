@@ -15,6 +15,11 @@ export default [
                 __filename: 'readonly',
                 global: 'readonly',
                 fetch: 'readonly', // Node.js 18+ built-in
+                URL: 'readonly',
+                setTimeout: 'readonly',
+                setInterval: 'readonly',
+                clearTimeout: 'readonly',
+                clearInterval: 'readonly',
                 // Vitest globals
                 describe: 'readonly',
                 it: 'readonly',

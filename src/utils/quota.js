@@ -53,7 +53,7 @@ export async function checkQuota(subdomain, estimatedBytes = 0, options = {}) {
             }
 
             return await response.json();
-        } catch {
+        } catch (err) {
             return null;
         }
     }
@@ -73,7 +73,8 @@ export async function checkQuota(subdomain, estimatedBytes = 0, options = {}) {
     try {
         const { appendFileSync } = await import('node:fs');
         appendFileSync('quota_debug_trace.txt', `\n[${new Date().toISOString()}] Check: ${subdomain}, isUpdate: ${options.isUpdate}, type: ${typeof options.isUpdate}`);
-    } catch (e) { }
+    } catch (_err) {
+    }
 
     // Check if this is an existing site the user owns
     // If explicitly marked as update, assume user owns it
