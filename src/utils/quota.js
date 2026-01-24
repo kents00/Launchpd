@@ -53,7 +53,7 @@ export async function checkQuota(subdomain, estimatedBytes = 0, options = {}) {
             }
 
             return await response.json();
-        } catch (err) {
+        } catch {
             return null;
         }
     }
@@ -73,7 +73,8 @@ export async function checkQuota(subdomain, estimatedBytes = 0, options = {}) {
     try {
         const { appendFileSync } = await import('node:fs');
         appendFileSync('quota_debug_trace.txt', `\n[${new Date().toISOString()}] Check: ${subdomain}, isUpdate: ${options.isUpdate}, type: ${typeof options.isUpdate}`);
-    } catch (_err) {
+    } catch {
+        // Ignore trace errors
     }
 
     // Check if this is an existing site the user owns
@@ -160,31 +161,6 @@ export async function checkQuota(subdomain, estimatedBytes = 0, options = {}) {
     };
 }
 
-/**
- * Check quota for authenticated user
- */
-async function checkAuthenticatedQuota(apiKey, isUpdate = false) {
-    try {
-        const url = new URL(`${API_BASE_URL}/api/quota`);
-        if (isUpdate) {
-            url.searchParams.append('is_update', 'true');
-        }
-
-        const response = await fetch(url.toString(), {
-            headers: {
-                'X-API-Key': apiKey,
-            },
-        });
-
-        if (!response.ok) {
-            return null;
-        }
-
-        return await response.json();
-    } catch {
-        return null;
-    }
-}
 
 /**
  * Check quota for anonymous user
