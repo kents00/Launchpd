@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 import { config } from '../src/config.js';
 import { info, success } from '../src/utils/logger.js';
 import chalk from 'chalk';
