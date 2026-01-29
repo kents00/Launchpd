@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { uploadFolder, finalizeUpload } from '../src/utils/upload.js';
 import { readdir, readFile } from 'node:fs/promises';
-import { join } from 'node:path';
 
 // Mock fs/promises
 vi.mock('node:fs/promises', () => ({
@@ -16,7 +15,7 @@ vi.mock('../src/utils/credentials.js', () => ({
 }));
 
 // Mock global fetch
-global.fetch = vi.fn();
+globalThis.fetch = vi.fn();
 
 describe('Upload Utility', () => {
     beforeEach(() => {
@@ -55,14 +54,14 @@ describe('Upload Utility', () => {
             // We can just verify the X-File-Path header.
 
             readdir.mockResolvedValue([
-                { isFile: () => true, name: 'main.js', path: 'C:\\test\\subdir', parentPath: 'C:\\test\\subdir' }
+                { isFile: () => true, name: 'main.js', path: String.raw`C:\test\subdir`, parentPath: String.raw`C:\test\subdir` }
             ]);
             readFile.mockResolvedValue(Buffer.from('js content'));
             fetch.mockResolvedValue({ ok: true, json: () => Promise.resolve({}) });
 
             // We need to carefully mock relative and join if we want to test cross-platform exactly,
             // but for now let's see if it works with the current implementation.
-            await uploadFolder('C:\\test', 'mysite', 1);
+            await uploadFolder(String.raw`C:\test`, 'mysite', 1);
 
             // Note: toPosixPath uses path.sep, so it depends on the environment running the test.
             // In windows (where the user is), path.sep is \.

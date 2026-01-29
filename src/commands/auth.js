@@ -7,7 +7,7 @@ import { exec } from 'node:child_process';
 import { promptSecret } from '../utils/prompt.js';
 import { config } from '../config.js';
 import { getCredentials, saveCredentials, clearCredentials, isLoggedIn } from '../utils/credentials.js';
-import { success, error, errorWithSuggestions, info, warning, spinner } from '../utils/logger.js';
+import { success, error, errorWithSuggestions, info, warning, spinner, log } from '../utils/logger.js';
 import { formatBytes } from '../utils/quota.js';
 import chalk from 'chalk';
 
@@ -66,9 +66,9 @@ export async function login() {
         return;
     }
 
-    console.log('\nLaunchpd Login\n');
-    console.log('Enter your API key from the dashboard.');
-    console.log(`Don't have one? Run ${chalk.cyan('"launchpd register"')} first.\n`);
+    log('\nLaunchpd Login\n');
+    log('Enter your API key from the dashboard.');
+    log(`Don't have one? Run ${chalk.cyan('"launchpd register"')} first.\n`);
 
     const apiKey = await promptSecret('API Key: ');
 
@@ -105,12 +105,12 @@ export async function login() {
     });
 
     validateSpinner.succeed('Logged in successfully!');
-    console.log('');
-    console.log(`  ${chalk.gray('Email:')} ${chalk.cyan(result.user?.email || 'N/A')}`);
-    console.log(`  ${chalk.gray('Tier:')} ${chalk.green(result.tier)}`);
-    console.log(`  ${chalk.gray('Sites:')} ${result.usage?.siteCount || 0}/${result.limits?.maxSites || '?'}`);
-    console.log(`  ${chalk.gray('Storage:')} ${result.usage?.storageUsedMB || 0}MB/${result.limits?.maxStorageMB || '?'}MB`);
-    console.log('');
+    log('');
+    log(`  ${chalk.gray('Email:')} ${chalk.cyan(result.user?.email || 'N/A')}`);
+    log(`  ${chalk.gray('Tier:')} ${chalk.green(result.tier)}`);
+    log(`  ${chalk.gray('Sites:')} ${result.usage?.siteCount || 0}/${result.limits?.maxSites || '?'}`);
+    log(`  ${chalk.gray('Storage:')} ${result.usage?.storageUsedMB || 0}MB/${result.limits?.maxStorageMB || '?'}MB`);
+    log('');
 }
 
 /**
@@ -131,15 +131,15 @@ export async function logout() {
     if (creds?.email) {
         info(`Was logged in as: ${chalk.cyan(creds.email)}`);
     }
-    console.log(`\nYou can still deploy anonymously (limited to ${chalk.yellow('3 sites')}, ${chalk.yellow('50MB')}).`);
+    log(`\nYou can still deploy anonymously (limited to ${chalk.yellow('3 sites')}, ${chalk.yellow('50MB')}).`);
 }
 
 /**
  * Register command - opens browser to registration page
  */
 export async function register() {
-    console.log('\nRegister for Launchpd\n');
-    console.log(`Opening registration page: ${chalk.cyan(REGISTER_URL)}\n`);
+    log('\nRegister for Launchpd\n');
+    log(`Opening registration page: ${chalk.cyan(REGISTER_URL)}\n`);
 
     // Open browser based on platform
     const platform = process.platform;
@@ -155,21 +155,21 @@ export async function register() {
 
     exec(cmd, (err) => {
         if (err) {
-            console.log(`Please open this URL in your browser:\n  ${chalk.cyan(REGISTER_URL)}\n`);
+            log(`Please open this URL in your browser:\n  ${chalk.cyan(REGISTER_URL)}\n`);
         }
     });
 
-    console.log('After registering:');
-    console.log(`  1. Get your API key from the dashboard`);
-    console.log(`  2. Run: ${chalk.cyan('launchpd login')}`);
-    console.log('');
+    log('After registering:');
+    log(`  1. Get your API key from the dashboard`);
+    log(`  2. Run: ${chalk.cyan('launchpd login')}`);
+    log('');
 
     info('Registration benefits:');
-    console.log(`  ${chalk.green('✓')} ${chalk.white('10 sites')} ${chalk.gray('(instead of 3)')}`);
-    console.log(`  ${chalk.green('✓')} ${chalk.white('100MB storage')} ${chalk.gray('(instead of 50MB)')}`);
-    console.log(`  ${chalk.green('✓')} ${chalk.white('30-day retention')} ${chalk.gray('(instead of 7 days)')}`);
-    console.log(`  ${chalk.green('✓')} ${chalk.white('10 versions per site')}`);
-    console.log('');
+    log(`  ${chalk.green('✓')} ${chalk.white('10 sites')} ${chalk.gray('(instead of 3)')}`);
+    log(`  ${chalk.green('✓')} ${chalk.white('100MB storage')} ${chalk.gray('(instead of 50MB)')}`);
+    log(`  ${chalk.green('✓')} ${chalk.white('30-day retention')} ${chalk.gray('(instead of 7 days)')}`);
+    log(`  ${chalk.green('✓')} ${chalk.white('10 versions per site')}`);
+    log('');
 }
 
 /**
@@ -179,14 +179,14 @@ export async function whoami() {
     const creds = await getCredentials();
 
     if (!creds) {
-        console.log('\n👤 Not logged in (anonymous mode)\n');
-        console.log('Anonymous limits:');
-        console.log(`  • ${chalk.white('3 sites')} maximum`);
-        console.log(`  • ${chalk.white('50MB')} total storage`);
-        console.log(`  • ${chalk.white('7-day')} retention`);
-        console.log(`  • ${chalk.white('1 version')} per site`);
-        console.log(`\nRun ${chalk.cyan('"launchpd login"')} to authenticate`);
-        console.log(`Run ${chalk.cyan('"launchpd register"')} to create an account\n`);
+        log('\n👤 Not logged in (anonymous mode)\n');
+        log('Anonymous limits:');
+        log(`  • ${chalk.white('3 sites')} maximum`);
+        log(`  • ${chalk.white('50MB')} total storage`);
+        log(`  • ${chalk.white('7-day')} retention`);
+        log(`  • ${chalk.white('1 version')} per site`);
+        log(`\nRun ${chalk.cyan('"launchpd login"')} to authenticate`);
+        log(`Run ${chalk.cyan('"launchpd register"')} to create an account\n`);
         return;
     }
 
@@ -205,32 +205,33 @@ export async function whoami() {
     // Background upgrade to apiSecret if missing
     await updateCredentialsIfNeeded(creds, result);
 
-    console.log(`\nLogged in as: ${result.user?.email || result.user?.id}\n`);
+    log(`\nLogged in as: ${result.user?.email || result.user?.id}\n`);
 
-    console.log('Account Info:');
-    console.log(`  User ID: ${result.user?.id}`);
-    console.log(`  Email: ${result.user?.email || 'Not set'} ${result.user?.email_verified ? chalk.green('(Verified)') : chalk.yellow('(Unverified)')}`);
-    console.log(`  2FA: ${result.user?.is_2fa_enabled ? chalk.green('Enabled') : chalk.gray('Disabled')}`);
-    console.log(`  Tier: ${result.tier}`);
-    console.log('');
+    log('Account Info:');
+    log(`  User ID: ${result.user?.id}`);
+    log(`  Email: ${result.user?.email || 'Not set'} ${result.user?.email_verified ? chalk.green('(Verified)') : chalk.yellow('(Unverified)')}`);
+    const is2FA = result.user?.is_2fa_enabled || result.user?.is_email_2fa_enabled;
+    log(`  2FA: ${is2FA ? chalk.green('Enabled') : chalk.gray('Disabled')}`);
+    log(`  Tier: ${result.tier}`);
+    log('');
 
-    console.log('Usage:');
-    console.log(`  Sites: ${result.usage?.siteCount || 0} / ${result.limits?.maxSites}`);
-    console.log(`  Storage: ${result.usage?.storageUsedMB || 0}MB / ${result.limits?.maxStorageMB}MB`);
-    console.log(`  Sites remaining: ${result.usage?.sitesRemaining || 0}`);
-    console.log(`  Storage remaining: ${result.usage?.storageRemainingMB || 0}MB`);
-    console.log('');
+    log('Usage:');
+    log(`  Sites: ${result.usage?.siteCount || 0} / ${result.limits?.maxSites}`);
+    log(`  Storage: ${result.usage?.storageUsedMB || 0}MB / ${result.limits?.maxStorageMB}MB`);
+    log(`  Sites remaining: ${result.usage?.sitesRemaining || 0}`);
+    log(`  Storage remaining: ${result.usage?.storageRemainingMB || 0}MB`);
+    log('');
 
-    console.log('Limits:');
-    console.log(`  Max versions per site: ${result.limits?.maxVersionsPerSite}`);
-    console.log(`  Retention: ${result.limits?.retentionDays} days`);
-    console.log('');
+    log('Limits:');
+    log(`  Max versions per site: ${result.limits?.maxVersionsPerSite}`);
+    log(`  Retention: ${result.limits?.retentionDays} days`);
+    log('');
 
     // Show warnings
     if (result.warnings && result.warnings.length > 0) {
-        console.log('⚠️ Warnings:');
-        result.warnings.forEach(w => console.log(`  ${w}`));
-        console.log('');
+        log('⚠️ Warnings:');
+        result.warnings.forEach(w => log(`  ${w}`));
+        log('');
     }
 
     if (!result.canCreateNewSite) {
@@ -246,25 +247,25 @@ export async function quota() {
     const creds = await getCredentials();
 
     if (!creds) {
-        console.log(`\n${chalk.bold('Anonymous Quota Status')}\n`);
-        console.log(chalk.gray('You are not logged in.'));
-        console.log('');
-        console.log(chalk.bold('Anonymous tier limits:'));
-        console.log(chalk.gray('  ┌─────────────────────────────────┐'));
-        console.log(chalk.gray('  │') + ` Sites:      ${chalk.white('3 maximum')}           ` + chalk.gray('│'));
-        console.log(chalk.gray('  │') + ` Storage:    ${chalk.white('50MB total')}          ` + chalk.gray('│'));
-        console.log(chalk.gray('  │') + ` Retention:  ${chalk.white('7 days')}              ` + chalk.gray('│'));
-        console.log(chalk.gray('  │') + ` Versions:   ${chalk.white('1 per site')}          ` + chalk.gray('│'));
-        console.log(chalk.gray('  └─────────────────────────────────┘'));
-        console.log('');
-        console.log(`${chalk.cyan('Register for FREE')} to unlock more:`);
-        console.log(`   ${chalk.green('→')} ${chalk.white('10 sites')}`);
-        console.log(`   ${chalk.green('→')} ${chalk.white('100MB storage')}`);
-        console.log(`   ${chalk.green('→')} ${chalk.white('30-day retention')}`);
-        console.log(`   ${chalk.green('→')} ${chalk.white('10 versions per site')}`);
-        console.log('');
-        console.log(`Run: ${chalk.cyan('launchpd register')}`);
-        console.log('');
+        log(`\n${chalk.bold('Anonymous Quota Status')}\n`);
+        log(chalk.gray('You are not logged in.'));
+        log('');
+        log(chalk.bold('Anonymous tier limits:'));
+        log(chalk.gray('  ┌─────────────────────────────────┐'));
+        log(chalk.gray('  │') + ` Sites:      ${chalk.white('3 maximum')}           ` + chalk.gray('│'));
+        log(chalk.gray('  │') + ` Storage:    ${chalk.white('50MB total')}          ` + chalk.gray('│'));
+        log(chalk.gray('  │') + ` Retention:  ${chalk.white('7 days')}              ` + chalk.gray('│'));
+        log(chalk.gray('  │') + ` Versions:   ${chalk.white('1 per site')}          ` + chalk.gray('│'));
+        log(chalk.gray('  └─────────────────────────────────┘'));
+        log('');
+        log(`${chalk.cyan('Register for FREE')} to unlock more:`);
+        log(`   ${chalk.green('→')} ${chalk.white('10 sites')}`);
+        log(`   ${chalk.green('→')} ${chalk.white('100MB storage')}`);
+        log(`   ${chalk.green('→')} ${chalk.white('30-day retention')}`);
+        log(`   ${chalk.green('→')} ${chalk.white('10 versions per site')}`);
+        log('');
+        log(`Run: ${chalk.cyan('launchpd register')}`);
+        log('');
         return;
     }
 
@@ -285,7 +286,7 @@ export async function quota() {
     await updateCredentialsIfNeeded(creds, result);
 
     fetchSpinner.succeed('Quota fetched');
-    console.log(`\n${chalk.bold('Quota Status for:')} ${chalk.cyan(result.user?.email || creds.email)}\n`);
+    log(`\n${chalk.bold('Quota Status for:')} ${chalk.cyan(result.user?.email || creds.email)}\n`);
 
     // Sites usage
     const sitesUsed = result.usage?.siteCount || 0;
@@ -293,7 +294,7 @@ export async function quota() {
     const sitesPercent = Math.round((sitesUsed / sitesMax) * 100);
     const sitesBar = createProgressBar(sitesUsed, sitesMax);
 
-    console.log(`${chalk.gray('Sites:')}    ${sitesBar} ${chalk.white(sitesUsed)}/${sitesMax} (${getPercentColor(sitesPercent)})`);
+    log(`${chalk.gray('Sites:')}    ${sitesBar} ${chalk.white(sitesUsed)}/${sitesMax} (${getPercentColor(sitesPercent)})`);
 
     // Storage usage
     const storageBytes = result.usage?.storageUsed || 0;
@@ -301,13 +302,13 @@ export async function quota() {
     const storagePercent = Math.round((storageBytes / storageMaxBytes) * 100);
     const storageBar = createProgressBar(storageBytes, storageMaxBytes);
 
-    console.log(`${chalk.gray('Storage:')}  ${storageBar} ${chalk.white(formatBytes(storageBytes))}/${formatBytes(storageMaxBytes)} (${getPercentColor(storagePercent)})`);
+    log(`${chalk.gray('Storage:')}  ${storageBar} ${chalk.white(formatBytes(storageBytes))}/${formatBytes(storageMaxBytes)} (${getPercentColor(storagePercent)})`);
 
-    console.log('');
-    console.log(`${chalk.gray('Tier:')}         ${chalk.green(result.tier || 'free')}`);
-    console.log(`${chalk.gray('Retention:')}    ${chalk.white(result.limits?.retentionDays || 30)} days`);
-    console.log(`${chalk.gray('Max versions:')} ${chalk.white(result.limits?.maxVersionsPerSite || 10)} per site`);
-    console.log('');
+    log('');
+    log(`${chalk.gray('Tier:')}         ${chalk.green(result.tier || 'free')}`);
+    log(`${chalk.gray('Retention:')}    ${chalk.white(result.limits?.retentionDays || 30)} days`);
+    log(`${chalk.gray('Max versions:')} ${chalk.white(result.limits?.maxVersionsPerSite || 10)} per site`);
+    log('');
 
     // Status indicators
     if (result.canCreateNewSite === false) {
@@ -318,7 +319,7 @@ export async function quota() {
         warning(`Storage ${storagePercent}% used - consider cleaning up old deployments`);
     }
 
-    console.log('');
+    log('');
 }
 
 /**

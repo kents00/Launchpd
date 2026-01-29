@@ -9,7 +9,7 @@ let activeSpinner = null;
  * @param {string} message
  */
 export function success(message) {
-    console.log(chalk.green.bold('✓'), chalk.green(message));
+    console.log(chalk.green.bold('✓'), chalk.green(message)); // skipcq: JS-0002
 }
 
 /**
@@ -20,10 +20,10 @@ export function success(message) {
  * @param {Error} options.cause - Original error for verbose mode
  */
 export function error(message, options = {}) {
-    console.error(chalk.red.bold('✗'), chalk.red(message));
+    console.error(chalk.red.bold('✗'), chalk.red(message)); // skipcq: JS-0002
     if (options.verbose && options.cause) {
-        console.error(chalk.gray('  Stack trace:'));
-        console.error(chalk.gray(`  ${options.cause.stack || options.cause.message}`));
+        console.error(chalk.gray('  Stack trace:')); // skipcq: JS-0002
+        console.error(chalk.gray(`  ${options.cause.stack || options.cause.message}`)); // skipcq: JS-0002
     }
 }
 
@@ -32,11 +32,32 @@ export function error(message, options = {}) {
  * @param {string} message
  */
 export function info(message) {
-    console.log(chalk.blue('ℹ'), chalk.white(message));
+    console.log(chalk.blue('ℹ'), chalk.white(message)); // skipcq: JS-0002
 }
 
+/**
+ * Log a warning message
+ * @param {string} message
+ */
 export function warning(message) {
-    console.log(chalk.yellow.bold('⚠'), chalk.yellow(message));
+    console.log(chalk.yellow.bold('⚠'), chalk.yellow(message)); // skipcq: JS-0002
+}
+
+/**
+ * Log a plain message
+ * @param {string} message
+ */
+export function log(message = '') {
+    console.log(message); // skipcq: JS-0002
+}
+
+/**
+ * Log a raw message (can be object, table, etc.)
+ * @param {any} data
+ * @param {string} method - console method to use
+ */
+export function raw(data, method = 'log') {
+    console[method](data); // skipcq: JS-0002
 }
 
 /**
@@ -66,9 +87,9 @@ export function spinner(text) {
          * Mark spinner as successful and stop
          * @param {string} text - Success message
          */
-        succeed(text) {
+        succeed(message) {
             if (activeSpinner) {
-                activeSpinner.succeed(chalk.green(text));
+                activeSpinner.succeed(chalk.green(message));
                 activeSpinner = null;
             }
         },
@@ -77,9 +98,9 @@ export function spinner(text) {
          * Mark spinner as failed and stop
          * @param {string} text - Failure message
          */
-        fail(text) {
+        fail(message) {
             if (activeSpinner) {
-                activeSpinner.fail(chalk.red(text));
+                activeSpinner.fail(chalk.red(message));
                 activeSpinner = null;
             }
         },
@@ -88,9 +109,9 @@ export function spinner(text) {
          * Stop spinner with info message
          * @param {string} text - Info message
          */
-        info(text) {
+        info(message) {
             if (activeSpinner) {
-                activeSpinner.info(chalk.blue(text));
+                activeSpinner.info(chalk.blue(message));
                 activeSpinner = null;
             }
         },
@@ -99,9 +120,9 @@ export function spinner(text) {
          * Stop spinner with warning
          * @param {string} text - Warning message
          */
-        warn(text) {
+        warn(message) {
             if (activeSpinner) {
-                activeSpinner.warn(chalk.yellow(text));
+                activeSpinner.warn(chalk.yellow(message));
                 activeSpinner = null;
             }
         },
@@ -143,10 +164,10 @@ export function formatSize(bytes, decimals = 2) {
 export function errorWithSuggestions(message, suggestions = [], options = {}) {
     error(message, options);
     if (suggestions.length > 0) {
-        console.log('');
-        console.log(chalk.yellow('💡 Suggestions:'));
+        log('');
+        log(chalk.yellow('💡 Suggestions:'));
         suggestions.forEach(suggestion => {
-            console.log(chalk.gray(`   • ${suggestion}`));
+            log(chalk.gray(`   • ${suggestion}`));
         });
     }
 }

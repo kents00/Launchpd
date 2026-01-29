@@ -84,7 +84,7 @@ export async function getNextVersionFromAPI(subdomain) {
 export async function recordDeployment(deploymentData) {
     const { subdomain, folderName, fileCount, totalBytes, version, expiresAt, message } = deploymentData;
 
-    return apiRequest('/api/deployments', {
+    return await apiRequest('/api/deployments', {
         method: 'POST',
         body: JSON.stringify({
             subdomain,
@@ -92,7 +92,7 @@ export async function recordDeployment(deploymentData) {
             fileCount,
             totalBytes,
             version,
-            cliVersion: '0.1.0',
+            cliVersion: config.version,
             expiresAt,
             message,
         }),
@@ -103,28 +103,28 @@ export async function recordDeployment(deploymentData) {
  * Get list of user's deployments
  */
 export async function listDeployments(limit = 50, offset = 0) {
-    return apiRequest(`/api/deployments?limit=${limit}&offset=${offset}`);
+    return await apiRequest(`/api/deployments?limit=${limit}&offset=${offset}`);
 }
 
 /**
  * Get deployment details for a subdomain
  */
 export async function getDeployment(subdomain) {
-    return apiRequest(`/api/deployments/${subdomain}`);
+    return await apiRequest(`/api/deployments/${subdomain}`);
 }
 
 /**
  * Get version history for a subdomain
  */
 export async function getVersions(subdomain) {
-    return apiRequest(`/api/versions/${subdomain}`);
+    return await apiRequest(`/api/versions/${subdomain}`);
 }
 
 /**
  * Rollback to a specific version
  */
 export async function rollbackVersion(subdomain, version) {
-    return apiRequest(`/api/versions/${subdomain}/rollback`, {
+    return await apiRequest(`/api/versions/${subdomain}/rollback`, {
         method: 'PUT',
         body: JSON.stringify({ version }),
     });
@@ -142,9 +142,28 @@ export async function checkSubdomainAvailable(subdomain) {
  * Reserve a subdomain
  */
 export async function reserveSubdomain(subdomain) {
-    return apiRequest('/api/subdomains/reserve', {
+    return await apiRequest('/api/subdomains/reserve', {
         method: 'POST',
         body: JSON.stringify({ subdomain }),
+    });
+}
+
+/**
+ * Delete a site (subdomain)
+ */
+export async function deleteSite(subdomain) {
+    return await apiRequest(`/api/subdomains/${subdomain}`, {
+        method: 'DELETE',
+    });
+}
+
+/**
+ * Unreserve a subdomain
+ */
+export async function unreserveSubdomain(subdomain) {
+    // Note: Admin only, but good to have in client client lib
+    return await apiRequest(`/api/admin/reserve-subdomain/${subdomain}`, {
+        method: 'DELETE',
     });
 }
 
@@ -152,21 +171,21 @@ export async function reserveSubdomain(subdomain) {
  * Get user's subdomains
  */
 export async function listSubdomains() {
-    return apiRequest('/api/subdomains');
+    return await apiRequest('/api/subdomains');
 }
 
 /**
  * Get current user info
  */
 export async function getCurrentUser() {
-    return apiRequest('/api/users/me');
+    return await apiRequest('/api/users/me');
 }
 
 /**
  * Health check
  */
 export async function healthCheck() {
-    return apiRequest('/api/health');
+    return await apiRequest('/api/health');
 }
 
 export default {
@@ -177,6 +196,8 @@ export default {
     rollbackVersion,
     checkSubdomainAvailable,
     reserveSubdomain,
+    deleteSite,
+    unreserveSubdomain,
     listSubdomains,
     getCurrentUser,
     healthCheck,

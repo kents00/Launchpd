@@ -89,6 +89,7 @@ async function completeUpload(subdomain, version, fileCount, totalBytes, folderN
         folderName,
         expiresAt,
         message,
+        cliVersion: config.version,
     });
 
     if (apiSecret) {
@@ -194,5 +195,5 @@ export async function uploadFolder(localPath, subdomain, version = 1, onProgress
  * @param {string|null} expiresAt - Expiration ISO timestamp
  */
 export async function finalizeUpload(subdomain, version, fileCount, totalBytes, folderName, expiresAt = null, message = null) {
-    return completeUpload(subdomain, version, fileCount, totalBytes, folderName, expiresAt, message);
+    return await completeUpload(subdomain, version, fileCount, totalBytes, folderName, expiresAt, message);
 }

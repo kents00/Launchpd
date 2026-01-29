@@ -9,14 +9,15 @@ const PROJECT_CONFIG_FILE = '.launchpd.json';
  */
 export function findProjectRoot(startDir = process.cwd()) {
     let current = resolve(startDir);
-    while (true) {
+    while (current) {
         if (existsSync(join(current, PROJECT_CONFIG_FILE))) {
             return current;
         }
         const parent = resolve(current, '..');
-        if (parent === current) return null;
+        if (parent === current) break;
         current = parent;
     }
+    return null;
 }
 
 /**

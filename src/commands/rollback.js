@@ -1,6 +1,6 @@
 import { getVersionsForSubdomain, setActiveVersion, getActiveVersion } from '../utils/metadata.js';
 import { getVersions as getVersionsFromAPI, rollbackVersion as rollbackViaAPI } from '../utils/api.js';
-import { error, errorWithSuggestions, info, warning, spinner } from '../utils/logger.js';
+import { error, errorWithSuggestions, info, warning, spinner, log } from '../utils/logger.js';
 import chalk from 'chalk';
 
 /**
@@ -63,13 +63,13 @@ export async function rollback(subdomainInput, options) {
             const versionExists = versions.some(v => v.version === targetVersion);
             if (!versionExists) {
                 error(`Version ${targetVersion} does not exist.`);
-                console.log('');
+                log('');
                 info('Available versions:');
                 versions.forEach(v => {
                     const isActive = v.version === currentActive;
                     const marker = isActive ? chalk.green(' (active)') : '';
                     const message = v.message ? ` - "${v.message}"` : '';
-                    console.log(`  ${chalk.cyan(`v${v.version}`)}${message} - ${chalk.gray(v.timestamp)}${marker}`);
+                    log(`  ${chalk.cyan(`v${v.version}`)}${message} - ${chalk.gray(v.timestamp)}${marker}`);
                 });
                 process.exit(1);
             }
@@ -107,7 +107,7 @@ export async function rollback(subdomainInput, options) {
         const targetDeployment = versions.find(v => v.version === targetVersion);
 
         rollbackSpinner.succeed(`Rolled back to ${chalk.cyan(`v${targetVersion}`)}`);
-        console.log(`\n  🔄 https://${subdomain}.launchpd.cloud\n`);
+        log(`\n  🔄 https://${subdomain}.launchpd.cloud\n`);
         if (targetDeployment?.message) {
             info(`Version message: "${chalk.italic(targetDeployment.message)}"`);
         }

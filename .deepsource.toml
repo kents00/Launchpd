@@ -4,7 +4,7 @@ version = 1
 name = "javascript"
 
   [analyzers.meta]
-  environment = ["vitest"]
+  environment = ["vitest", "nodejs"]
 
 [[code_formatters]]
 name = "prettier"

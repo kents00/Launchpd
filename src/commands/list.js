@@ -1,6 +1,6 @@
 import { getLocalDeployments } from '../utils/localConfig.js';
 import { listDeployments as listFromAPI } from '../utils/api.js';
-import { errorWithSuggestions, info, spinner, formatSize } from '../utils/logger.js';
+import { errorWithSuggestions, info, spinner, formatSize, log } from '../utils/logger.js';
 import { formatTimeRemaining, isExpired } from '../utils/expiration.js';
 import chalk from 'chalk';
 
@@ -54,17 +54,17 @@ export async function list(options) {
         fetchSpinner.succeed(`Found ${deployments.length} deployment(s)`);
 
         if (options.json) {
-            console.log(JSON.stringify(deployments, null, 2));
+            log(JSON.stringify(deployments, null, 2));
             return;
         }
 
         // Display as table
-        console.log('');
-        console.log(chalk.bold('Your Deployments:'));
-        console.log(chalk.gray('─'.repeat(100)));
+        log('');
+        log(chalk.bold('Your Deployments:'));
+        log(chalk.gray('─'.repeat(100)));
 
         // Header
-        console.log(
+        log(
             chalk.gray(
                 padRight('URL', 35) +
                 padRight('VER', 6) +
@@ -75,7 +75,7 @@ export async function list(options) {
                 'STATUS'
             )
         );
-        console.log(chalk.gray('─'.repeat(100)));
+        log(chalk.gray('─'.repeat(100)));
 
         // Rows (most recent first)
         const sorted = [...deployments].reverse();
@@ -99,7 +99,7 @@ export async function list(options) {
             // Version info
             const versionStr = `v${dep.version || 1}`;
 
-            console.log(
+            log(
                 chalk.cyan(padRight(url, 35)) +
                 chalk.magenta(padRight(versionStr, 6)) +
                 chalk.white(padRight(dep.folderName || '-', 15)) +
@@ -111,12 +111,12 @@ export async function list(options) {
             );
         }
 
-        console.log(chalk.gray('─'.repeat(100)));
+        log(chalk.gray('─'.repeat(100)));
         const syncStatus = source === 'api'
             ? chalk.green(' ✓ synced')
             : chalk.yellow(' ⚠ local only');
-        console.log(chalk.gray(`Total: ${deployments.length} deployment(s)`) + syncStatus);
-        console.log('');
+        log(chalk.gray(`Total: ${deployments.length} deployment(s)`) + syncStatus);
+        log('');
 
     } catch (err) {
         errorWithSuggestions(`Failed to list deployments: ${err.message}`, [

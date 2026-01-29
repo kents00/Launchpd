@@ -55,6 +55,7 @@
         "mime-types": "^2.1.35",
         "nanoid": "^5.1.0",
         "ora": "^8.0.1",
+        "qrcode": "^1.5.4",
         "update-notifier": "^7.3.1"
     },
     "devDependencies": {

@@ -17,17 +17,15 @@ vi.mock('../src/config.js', () => ({
 }));
 
 describe('login command', () => {
-    let mockConsoleLog;
-    let mockConsoleError;
-    let mockExit;
+    // No extra variables needed here if they are only used for side-effect setup
 
     beforeEach(() => {
         vi.clearAllMocks();
 
-        // Mock console
-        mockConsoleLog = vi.spyOn(console, 'log').mockImplementation(() => { });
-        mockConsoleError = vi.spyOn(console, 'error').mockImplementation(() => { });
-        mockExit = vi.spyOn(process, 'exit').mockImplementation(() => { throw new Error('process.exit'); });
+        // Mock console and exit to prevent output during tests
+        vi.spyOn(console, 'log').mockImplementation(() => { });
+        vi.spyOn(console, 'error').mockImplementation(() => { });
+        vi.spyOn(process, 'exit').mockImplementation(() => { throw new Error('process.exit'); });
 
         // Default mock implementations
         credentials.isLoggedIn.mockResolvedValue(false);
@@ -44,10 +42,10 @@ describe('login command', () => {
         promptUtils.promptSecret.mockResolvedValue('invalid-key');
 
         // Mock fetch failure (simulating invalid key result from server)
-        global.fetch = vi.fn().mockResolvedValue({
+        globalThis.fetch = vi.fn().mockResolvedValue({
             ok: false,
             status: 401,
-            json: async () => ({ error: 'Invalid key' })
+            json: () => Promise.resolve({ error: 'Invalid key' })
         });
 
         // Expect process.exit(1) to be called
@@ -66,7 +64,7 @@ describe('login command', () => {
         promptUtils.promptSecret.mockResolvedValue('some-key');
 
         // Mock network error
-        global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
+        globalThis.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
 
         await expect(login()).rejects.toThrow('process.exit');
 

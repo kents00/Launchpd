@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import * as api from '../src/utils/api.js';
-import { getApiKey } from '../src/utils/credentials.js';
 
 // Mock credentials
 vi.mock('../src/utils/credentials.js', () => ({
@@ -9,7 +8,7 @@ vi.mock('../src/utils/credentials.js', () => ({
 }));
 
 // Mock global fetch
-global.fetch = vi.fn();
+globalThis.fetch = vi.fn();
 
 describe('API Utility', () => {
     beforeEach(() => {

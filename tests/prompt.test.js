@@ -33,7 +33,6 @@ describe('prompt utils', () => {
     describe('promptSecret', () => {
         let mockStdin;
         let mockStdout;
-        let mockExit;
 
         beforeEach(() => {
             mockStdin = {
@@ -48,7 +47,6 @@ describe('prompt utils', () => {
             mockStdout = {
                 write: vi.fn(),
             };
-            mockExit = vi.spyOn(process, 'exit').mockImplementation(() => { });
 
             vi.spyOn(process, 'stdin', 'get').mockReturnValue(mockStdin);
             vi.spyOn(process, 'stdout', 'get').mockReturnValue(mockStdout);

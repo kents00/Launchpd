@@ -1,7 +1,7 @@
 import { getVersionsForSubdomain, getActiveVersion } from '../utils/metadata.js';
 import { getVersions as getVersionsFromAPI } from '../utils/api.js';
 import { isLoggedIn } from '../utils/credentials.js';
-import { success, errorWithSuggestions, info, spinner, warning, formatSize } from '../utils/logger.js';
+import { success, errorWithSuggestions, info, spinner, warning, formatSize, log } from '../utils/logger.js';
 import chalk from 'chalk';
 
 /**
@@ -26,7 +26,7 @@ export async function versions(subdomainInput, options) {
     if (options.to) {
         warning(`The --to option is for the ${chalk.bold('rollback')} command.`);
         info(`Try: ${chalk.cyan(`launchpd rollback ${subdomain} --to ${options.to}`)}`);
-        console.log('');
+        log('');
     }
 
     try {
@@ -65,7 +65,7 @@ export async function versions(subdomainInput, options) {
         fetchSpinner.succeed(`Found ${versionList.length} version(s)`);
 
         if (options.json) {
-            console.log(JSON.stringify({
+            log(JSON.stringify({
                 subdomain,
                 activeVersion,
                 versions: versionList.map(v => ({
@@ -80,13 +80,13 @@ export async function versions(subdomainInput, options) {
             return;
         }
 
-        console.log('');
+        log('');
         success(`Versions for ${chalk.cyan(subdomain)}.launchpd.cloud:`);
-        console.log('');
+        log('');
 
         // Table header
-        console.log(chalk.gray('  Version   Date                     Files    Size         Status       Message'));
-        console.log(chalk.gray('  ' + '─'.repeat(100)));
+        log(chalk.gray('  Version   Date                     Files    Size         Status       Message'));
+        log(chalk.gray('  ' + '─'.repeat(100)));
 
         for (const v of versionList) {
             const isActive = v.version === activeVersion;
@@ -108,13 +108,13 @@ export async function versions(subdomainInput, options) {
 
             const messageStr = chalk.italic.gray(v.message || '');
 
-            console.log(`  ${versionStr}${dateStr}${filesStr}${sizeStr}${statusStr}${messageStr}`);
+            log(`  ${versionStr}${dateStr}${filesStr}${sizeStr}${statusStr}${messageStr}`);
         }
 
-        console.log(chalk.gray('  ' + '─'.repeat(100)));
-        console.log('');
+        log(chalk.gray('  ' + '─'.repeat(100)));
+        log('');
         info(`Use ${chalk.cyan(`launchpd rollback ${subdomain} --to <n>`)} to restore a version.`);
-        console.log('');
+        log('');
 
     } catch (err) {
         errorWithSuggestions(`Failed to list versions: ${err.message}`, [

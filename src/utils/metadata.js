@@ -56,10 +56,10 @@ async function apiRequest(endpoint, options = {}) {
  * @param {number} version - Version number for this deployment
  * @param {Date|null} expiresAt - Expiration date, or null for no expiration
  */
-export async function recordDeployment(subdomain, folderPath, fileCount, totalBytes = 0, version = 1, expiresAt = null) {
+export async function recordDeploymentInMetadata(subdomain, folderPath, fileCount, totalBytes = 0, version = 1, expiresAt = null) {
     const folderName = folderPath.split(/[\\/]/).pop() || 'unknown';
 
-    return apiRequest('/api/deployments', {
+    return await apiRequest('/api/deployments', {
         method: 'POST',
         body: JSON.stringify({
             subdomain,
@@ -114,7 +114,7 @@ export async function getVersionsForSubdomain(subdomain) {
  * @param {number} version - Version to make active
  */
 export async function setActiveVersion(subdomain, version) {
-    return apiRequest(`/api/versions/${subdomain}/rollback`, {
+    return await apiRequest(`/api/versions/${subdomain}/rollback`, {
         method: 'PUT',
         body: JSON.stringify({ version }),
     });
@@ -137,10 +137,10 @@ export async function getActiveVersion(subdomain) {
  * @param {number} fromVersion - Source version
  * @param {number} toVersion - Target version
  */
-export async function copyVersionFiles(subdomain, fromVersion, toVersion) {
+export function copyVersionFiles(subdomain, fromVersion, toVersion) {
     // Rollback is now handled by setActiveVersion - no need to copy files
     // The worker serves files from the specified version directly
-    return { fromVersion, toVersion, note: 'Handled by API' };
+    return Promise.resolve({ fromVersion, toVersion, note: 'Handled by API' });
 }
 
 /**
@@ -176,9 +176,9 @@ export async function deleteSubdomain(_subdomain) {
  * Note: Cleanup is handled server-side automatically
  * @returns {Promise<Array>} Array of expired deployment records
  */
-export async function getExpiredDeployments() {
+export function getExpiredDeployments() {
     // Expiration cleanup is handled server-side
-    return [];
+    return Promise.resolve([]);
 }
 
 /**
@@ -195,7 +195,7 @@ export async function removeDeploymentRecords(_subdomain) {
  * Note: This is now handled automatically by the worker
  * @returns {Promise<{cleaned: string[], errors: string[]}>}
  */
-export async function cleanupExpiredDeployments() {
+export function cleanupExpiredDeployments() {
     // Cleanup is handled server-side automatically
-    return { cleaned: [], errors: [], note: 'Handled automatically by server' };
+    return Promise.resolve({ cleaned: [], errors: [], note: 'Handled automatically by server' });
 }

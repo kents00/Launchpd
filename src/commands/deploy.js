@@ -8,14 +8,15 @@ import { uploadFolder, finalizeUpload } from '../utils/upload.js';
 import { getNextVersion } from '../utils/metadata.js';
 import { saveLocalDeployment } from '../utils/localConfig.js';
 import { getNextVersionFromAPI, checkSubdomainAvailable, listSubdomains } from '../utils/api.js';
-import { getProjectConfig, findProjectRoot, updateProjectConfig } from '../utils/projectConfig.js';
-import { success, errorWithSuggestions, info, warning, spinner, formatSize } from '../utils/logger.js';
+import { getProjectConfig, findProjectRoot, updateProjectConfig, initProjectConfig } from '../utils/projectConfig.js';
+import { success, errorWithSuggestions, info, warning, spinner, formatSize, log, raw } from '../utils/logger.js';
 import { calculateExpiresAt, formatTimeRemaining } from '../utils/expiration.js';
 import { checkQuota, displayQuotaWarnings } from '../utils/quota.js';
 import { getCredentials } from '../utils/credentials.js';
 import { validateStaticOnly } from '../utils/validator.js';
 import { isIgnored } from '../utils/ignore.js';
 import { prompt } from '../utils/prompt.js';
+import QRCode from 'qrcode';
 
 /**
  * Calculate total size of a folder
@@ -152,7 +153,7 @@ export async function deploy(folder, options) {
         warning('Custom subdomains require registration!');
         info('Anonymous deployments use random subdomains.');
         info('Run "launchpd register" to use --name option.');
-        console.log('');
+        log('');
     }
 
     // Detect project config if no name provided
@@ -189,29 +190,37 @@ export async function deploy(folder, options) {
 
     const url = `https://${subdomain}.launchpd.cloud`;
 
-    // Check if custom subdomain is taken (only if explicitly provided or new)
-    if (options.name || !subdomain) {
-        const checkSpinner = spinner('Checking subdomain availability...');
-        try {
-            const isAvailable = await checkSubdomainAvailable(subdomain);
+    // Check subdomain availability and ownership (ALWAYS run this)
+    const checkSpinner = spinner('Checking subdomain availability...');
+    try {
+        const isAvailable = await checkSubdomainAvailable(subdomain);
 
-            if (!isAvailable) {
-                // Check if the current user owns it
-                const result = await listSubdomains();
-                const owned = result?.subdomains?.some(s => s.subdomain === subdomain);
+        if (!isAvailable) {
+            // Check if the current user owns it
+            const result = await listSubdomains();
+            const owned = result?.subdomains?.some(s => s.subdomain === subdomain);
 
-                if (owned) {
-                    checkSpinner.succeed(`Deploying new version to your subdomain: "${subdomain}"`);
-                } else {
-                    checkSpinner.fail(`Subdomain "${subdomain}" is already taken`);
-                    warning('Choose a different subdomain name with --name or deployment without it.');
-                    process.exit(1);
-                }
+            if (owned) {
+                checkSpinner.succeed(`Deploying new version to your subdomain: "${subdomain}"`);
             } else {
-                checkSpinner.succeed(`Subdomain "${subdomain}" is available`);
+                checkSpinner.fail(`Subdomain "${subdomain}" is already taken by another user`);
+                warning('You do not own this subdomain. Please choose a different name.');
+                process.exit(1);
             }
-        } catch {
-            checkSpinner.warn('Could not verify subdomain availability');
+        } else {
+            // If strictly new, it's available
+            checkSpinner.succeed(`Subdomain "${subdomain}" is available`);
+        }
+    } catch {
+        checkSpinner.warn('Could not verify subdomain availability (skipping check)');
+    }
+
+    // Auto-init: If using --name and no config exists, prompt to save it
+    if (options.name && !configSubdomain) {
+        const confirm = await prompt(`\nRun "launchpd init" to link '${folderPath}' to '${subdomain}'? (Y/N): `);
+        if (confirm.toLowerCase() === 'y' || confirm.toLowerCase() === 'yes' || confirm === '') {
+            await initProjectConfig(subdomain, folderPath);
+            success(`Project initialized! Future deploys here can skip --name.`);
         }
     }
 
@@ -298,7 +307,7 @@ export async function deploy(folder, options) {
         });
 
         success(`Deployed successfully! (v${version})`);
-        console.log(`\n${url}`);
+        log(`\n${url}`);
 
         if (options.open) {
             const platform = process.platform;
@@ -310,21 +319,52 @@ export async function deploy(folder, options) {
             exec(cmd);
         }
 
+
+
         if (expiresAt) {
             warning(`Expires: ${formatTimeRemaining(expiresAt)}`);
         }
 
         // Show anonymous limit warnings
         if (!creds?.email) {
-            console.log('');
+            log('');
             warning('Anonymous deployment limits:');
-            console.log('   • 3 active sites per IP');
-            console.log('   • 50MB total storage');
-            console.log('   • 7-day site expiration');
-            console.log('');
+            log('   • 3 active sites per IP');
+            log('   • 50MB total storage');
+            log('   • 7-day site expiration');
+            log('');
             info('Run "launchpd register" to unlock unlimited sites and permanent storage!');
         }
-        console.log('');
+        log('');
+
+        if (options.qr) {
+            try {
+                // Determine terminal width to avoid wrapping
+                const terminalWidth = process.stdout.columns || 80;
+
+                // version: 2-3 is typical for these URLs. L level is smallest.
+                // margin: 2 is safe but compact.
+                const qr = await QRCode.toString(url, {
+                    type: 'terminal',
+                    small: true,
+                    margin: 2,
+                    errorCorrectionLevel: 'L'
+                });
+
+                // Check if QR might wrap
+                const firstLine = qr.split('\n')[0];
+                if (firstLine.length > terminalWidth) {
+                    warning('\nTerminal is too narrow to display the QR code correctly.');
+                    info(`Please expand your terminal to at least ${firstLine.length} columns.`);
+                    info(`URL: ${url}`);
+                } else {
+                    log(`\nScan this QR code to view your site on mobile:\n${qr}`);
+                }
+            } catch (err) {
+                warning('Could not generate QR code.');
+                if (verbose) raw(err, 'error');
+            }
+        }
     } catch (err) {
         const suggestions = [];
 

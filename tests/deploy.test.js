@@ -10,14 +10,45 @@ import { existsSync } from 'node:fs';
 import { readdir } from 'node:fs/promises';
 
 // Mock everything
-vi.mock('node:fs');
-vi.mock('node:fs/promises');
+// Mock node:fs with actual fallbacks to prevent breaking top-level reads like package.json
+vi.mock('node:fs', async () => {
+    const actual = await vi.importActual('node:fs');
+    return {
+        ...actual,
+        existsSync: vi.fn(),
+        statSync: vi.fn(),
+    };
+});
+vi.mock('node:fs/promises', async () => {
+    const actual = await vi.importActual('node:fs/promises');
+    return {
+        ...actual,
+        readdir: vi.fn(),
+    };
+});
 vi.mock('../src/utils/upload.js');
 vi.mock('../src/utils/metadata.js');
 vi.mock('../src/utils/api.js');
 vi.mock('../src/utils/logger.js');
 vi.mock('../src/utils/quota.js');
 vi.mock('../src/utils/validator.js');
+vi.mock('../src/utils/prompt.js', () => ({
+    prompt: vi.fn().mockResolvedValue(''),
+    confirm: vi.fn().mockResolvedValue(true)
+}));
+vi.mock('../src/utils/projectConfig.js', () => ({
+    getProjectConfig: vi.fn().mockResolvedValue(null),
+    findProjectRoot: vi.fn().mockReturnValue(null),
+    updateProjectConfig: vi.fn().mockResolvedValue({}),
+    initProjectConfig: vi.fn().mockResolvedValue({})
+}));
+vi.mock('../src/utils/localConfig.js', () => ({
+    saveLocalDeployment: vi.fn().mockResolvedValue({})
+}));
+vi.mock('../src/utils/expiration.js', () => ({
+    calculateExpiresAt: vi.fn().mockReturnValue(new Date()),
+    formatTimeRemaining: vi.fn().mockReturnValue('1h')
+}));
 vi.mock('../src/utils/credentials.js', () => ({
     getCredentials: vi.fn().mockResolvedValue({ email: 'test@example.com' })
 }));
@@ -120,5 +151,18 @@ describe('deploy command', () => {
             expect.anything()
         );
         expect(exitMock).toHaveBeenCalledWith(1);
+    });
+
+    it('should generate a QR code when --qr option is provided', async () => {
+        const QRCode = await import('qrcode');
+        const toStringSpy = vi.spyOn(QRCode.default, 'toString').mockResolvedValue('MOCK_QR_CODE');
+
+        await deploy('./test-folder', { name: 'my-site', message: 'test qr', qr: true });
+
+        expect(toStringSpy).toHaveBeenCalledWith(
+            expect.stringContaining('my-site.launchpd.cloud'),
+            expect.objectContaining({ type: 'terminal', small: true })
+        );
+        toStringSpy.mockRestore();
     });
 });

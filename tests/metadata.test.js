@@ -1,7 +1,6 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { getNextVersion, recordDeployment } from '../src/utils/metadata.js';
-import { config } from '../src/config.js';
+import { getNextVersion, recordDeploymentInMetadata } from '../src/utils/metadata.js';
 
 // Mock Config
 vi.mock('../src/config.js', () => ({
@@ -13,7 +12,7 @@ vi.mock('../src/config.js', () => ({
 
 // Mock Fetch
 const mockFetch = vi.fn();
-global.fetch = mockFetch;
+globalThis.fetch = mockFetch;
 
 describe('Metadata Utilities', () => {
     beforeEach(() => {
@@ -29,7 +28,7 @@ describe('Metadata Utilities', () => {
         it('should return 1 if no previous versions exist', async () => {
             mockFetch.mockResolvedValue({
                 ok: true,
-                json: async () => ({ versions: [] })
+                json: () => Promise.resolve({ versions: [] })
             });
 
             const version = await getNextVersion('new-site');
@@ -39,7 +38,7 @@ describe('Metadata Utilities', () => {
         it('should increment the max version found', async () => {
             mockFetch.mockResolvedValue({
                 ok: true,
-                json: async () => ({
+                json: () => Promise.resolve({
                     versions: [
                         { version: 1 },
                         { version: 5 },
@@ -69,11 +68,11 @@ describe('Metadata Utilities', () => {
         });
     });
 
-    describe('recordDeployment', () => {
+    describe('recordDeploymentInMetadata', () => {
         it('should send correct payload to API', async () => {
             mockFetch.mockResolvedValue({
                 ok: true,
-                json: async () => ({ success: true })
+                json: () => Promise.resolve({ success: true })
             });
 
             const deployData = {
@@ -84,7 +83,7 @@ describe('Metadata Utilities', () => {
                 version: 2
             };
 
-            await recordDeployment(
+            await recordDeploymentInMetadata(
                 deployData.subdomain,
                 deployData.folderPath,
                 deployData.fileCount,

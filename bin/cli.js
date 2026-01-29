@@ -3,7 +3,8 @@
 import fs from 'fs';
 import { Command } from 'commander';
 import updateNotifier from 'update-notifier';
-import { deploy, list, rollback, versions, init, status, login, logout, register, whoami, quota } from '../src/commands/index.js';
+import { deploy, list, rollback, versions, init, status, login, logout, register, whoami, quota, del } from '../src/commands/index.js';
+import { config } from '../src/config.js';
 
 const packageJson = JSON.parse(fs.readFileSync(new URL('../package.json', import.meta.url)));
 updateNotifier({ pkg: packageJson }).notify();
@@ -14,7 +15,7 @@ const program = new Command();
 program
     .name('launchpd')
     .description('Deploy static sites instantly to a live URL')
-    .version('0.1.12');
+    .version(packageJson.version);
 
 program
     .command('deploy')
@@ -27,6 +28,7 @@ program
     .option('--force', 'Force deployment even with warnings')
     .option('-o, --open', 'Open the site URL in the default browser after deployment')
     .option('--verbose', 'Show detailed error information')
+    .option('--qr', 'Show QR code for deployment')
     .action(async (folder, options) => {
         await deploy(folder || '.', options);
     });
@@ -111,6 +113,16 @@ program
     .description('Check current quota and usage')
     .action(async () => {
         await quota();
+    });
+
+program
+    .command('delete')
+    .description('Delete a deployment (permanently)')
+    .argument('<subdomain>', 'The subdomain to delete')
+    .option('--force', 'Force delete (no confirmation prompt)')
+    .option('--verbose', 'Show detailed error information')
+    .action(async (subdomain, options) => {
+        await del(subdomain, options);
     });
 
 program.parseAsync();

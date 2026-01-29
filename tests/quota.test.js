@@ -9,6 +9,8 @@ const mocks = vi.hoisted(() => ({
     warning: vi.fn(),
     error: vi.fn(),
     info: vi.fn(),
+    log: vi.fn(),
+    raw: vi.fn(),
 }));
 
 // Mock dependencies using hoisted functions
@@ -20,12 +22,14 @@ vi.mock('../src/utils/credentials.js', () => ({
 vi.mock('../src/utils/logger.js', () => ({
     warning: mocks.warning,
     error: mocks.error,
-    info: mocks.info
+    info: mocks.info,
+    log: mocks.log,
+    raw: mocks.raw,
 }));
 
 // Mock Fetch
 const mockFetch = vi.fn();
-global.fetch = mockFetch;
+globalThis.fetch = mockFetch;
 
 describe('checkQuota', () => {
     beforeEach(() => {
@@ -51,7 +55,7 @@ describe('checkQuota', () => {
     it('should block anonymous deployment if limit reached', async () => {
         mockFetch.mockResolvedValue({
             ok: true,
-            json: async () => ({
+            json: () => Promise.resolve({
                 blocked: true,
                 upgradeMessage: 'Limit reached',
                 limits: { maxSites: 3 },
@@ -69,7 +73,7 @@ describe('checkQuota', () => {
         // Mock anonymous quota response
         mockFetch.mockResolvedValue({
             ok: true,
-            json: async () => ({
+            json: () => Promise.resolve({
                 blocked: false,
                 canCreateNewSite: true,
                 limits: { maxStorageBytes: 1000 },
@@ -86,7 +90,7 @@ describe('checkQuota', () => {
     it('should block if storage limit exceeded', async () => {
         mockFetch.mockResolvedValue({
             ok: true,
-            json: async () => ({
+            json: () => Promise.resolve({
                 blocked: false,
                 canCreateNewSite: true,
                 limits: { maxStorageBytes: 1000, maxSites: 10 },
@@ -105,7 +109,7 @@ describe('checkQuota', () => {
         mockFetch
             .mockResolvedValueOnce({ // checkQuota (anonymous)
                 ok: true,
-                json: async () => ({
+                json: () => Promise.resolve({
                     blocked: false,
                     canCreateNewSite: false, // Cannot create new
                     limits: { maxSites: 3 },
@@ -114,7 +118,7 @@ describe('checkQuota', () => {
             })
             .mockResolvedValueOnce({ // userOwnsSite (check fails or returns false)
                 ok: true,
-                json: async () => ({ subdomains: [] })
+                json: () => Promise.resolve({ subdomains: [] })
             });
 
         // We need userOwnsSite to be called if subdomain provided,

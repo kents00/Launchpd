@@ -88,3 +88,13 @@ export function promptSecret(question) {
         stdin.on('keypress', handler);
     });
 }
+
+/**
+ * Prompt for confirmation (y/N)
+ * @param {string} question
+ * @returns {Promise<boolean>}
+ */
+export async function confirm(question) {
+    const answer = await prompt(`${question} (y/N): `);
+    return answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes';
+}

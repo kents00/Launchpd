@@ -5,7 +5,7 @@
 
 import { config } from '../config.js';
 import { getCredentials, getClientToken } from './credentials.js';
-import { warning, error, info } from './logger.js';
+import { warning, error, info, log, raw } from './logger.js';
 
 const API_BASE_URL = `https://api.${config.domain}`;
 
@@ -49,11 +49,22 @@ export async function checkQuota(subdomain, estimatedBytes = 0, options = {}) {
             });
 
             if (!response.ok) {
+                if (options.verbose || process.env.DEBUG) {
+                    raw(`Quota check failed: ${response.status} ${response.statusText}`, 'error');
+                    const text = await response.text();
+                    raw(`Response: ${text}`, 'error');
+                }
                 return null;
             }
 
             return await response.json();
-        } catch {
+        } catch (err) {
+            if (options.verbose || process.env.DEBUG) {
+                raw('Quota check error:', 'error');
+                raw(err, 'error');
+                if (err.cause) raw('Cause:', 'error');
+                if (err.cause) raw(err.cause, 'error');
+            }
             return null;
         }
     }
@@ -65,7 +76,7 @@ export async function checkQuota(subdomain, estimatedBytes = 0, options = {}) {
             allowed: true,
             isNewSite: true,
             quota: null,
-            warnings: ['⚠️ Could not verify quota (API unavailable)'],
+            warnings: ['Could not verify quota (API unavailable)'],
         };
     }
 
@@ -88,11 +99,22 @@ export async function checkQuota(subdomain, estimatedBytes = 0, options = {}) {
 
     const warnings = [...(quotaData.warnings || [])];
 
-    const allowed = true;
+    // Add quota warning (de-duplicated) - early so it shows even if blocked later
+    const remaining = quotaData.usage?.sitesRemaining;
+    if (typeof remaining === 'number') {
+        const warningMsg = `You have ${remaining} site(s) remaining`;
+        // Only push if not already present in warnings from backend
+        if (!warnings.some(w => w.toLowerCase().includes('site(s) remaining'))) {
+            warnings.push(warningMsg);
+        }
+    }
 
-    // Check if blocked (anonymous limit reached)
+    // Determine if deployment is allowed based on API flags or local calculations
+    let allowed = quotaData.canDeploy !== undefined ? quotaData.canDeploy : true;
+
+    // Check if blocked (anonymous limit reached or explicitly blocked by backend)
     if (quotaData.blocked) {
-        console.log(quotaData.upgradeMessage);
+        if (quotaData.upgradeMessage) log(quotaData.upgradeMessage);
         return {
             allowed: false,
             isNewSite,
@@ -102,24 +124,31 @@ export async function checkQuota(subdomain, estimatedBytes = 0, options = {}) {
     }
 
     // Check site limit for new sites
-    if (isNewSite && !quotaData.canCreateNewSite) {
-        error(`Site limit reached (${quotaData.limits.maxSites} sites)`);
-        if (!creds?.apiKey) {
-            showUpgradePrompt();
-        } else {
-            info('Upgrade to Pro for more sites, or delete an existing site');
+    if (isNewSite) {
+        const canCreate = quotaData.canCreateNewSite !== undefined ? quotaData.canCreateNewSite : (remaining > 0);
+        if (!canCreate) {
+            error(`Site limit reached (${quotaData.limits?.maxSites || 'unknown'} sites)`);
+            if (!creds?.apiKey) {
+                showUpgradePrompt();
+            } else {
+                info('Upgrade to Pro for more sites, or delete an existing site');
+                info('Check your quota status: launchpd whoami');
+            }
+            return {
+                allowed: false,
+                isNewSite,
+                quota: quotaData,
+                warnings,
+            };
         }
-        return {
-            allowed: false,
-            isNewSite,
-            quota: quotaData,
-            warnings,
-        };
     }
 
     // Check storage limit
-    const storageAfter = (quotaData.usage?.storageUsed || 0) + estimatedBytes;
-    if (storageAfter > quotaData.limits.maxStorageBytes) {
+    const maxStorage = quotaData.limits?.maxStorageBytes || (quotaData.limits?.maxStorageMB * 1024 * 1024);
+    const storageUsed = quotaData.usage?.storageUsed || (quotaData.usage?.storageUsedMB * 1024 * 1024) || 0;
+    const storageAfter = storageUsed + estimatedBytes;
+
+    if (maxStorage && storageAfter > maxStorage) {
         const overBy = storageAfter - quotaData.limits.maxStorageBytes;
         error(`Storage limit exceeded by ${formatBytes(overBy)}`);
         error(`Current: ${formatBytes(quotaData.usage.storageUsed)} / ${formatBytes(quotaData.limits.maxStorageBytes)}`);
@@ -139,19 +168,8 @@ export async function checkQuota(subdomain, estimatedBytes = 0, options = {}) {
     // Add storage warning if close to limit
     const storagePercentage = storageAfter / quotaData.limits.maxStorageBytes;
     if (storagePercentage > 0.8) {
-        warnings.push(`⚠️ Storage ${Math.round(storagePercentage * 100)}% used (${formatBytes(storageAfter)} / ${formatBytes(quotaData.limits.maxStorageBytes)})`);
+        warnings.push(`Storage ${Math.round(storagePercentage * 100)}% used (${formatBytes(storageAfter)} / ${formatBytes(quotaData.limits.maxStorageBytes)})`);
     }
-
-    // Add site count warning if close to limit
-    if (isNewSite) {
-        const sitesAfter = (quotaData.usage?.siteCount || 0) + 1;
-        const sitePercentage = sitesAfter / quotaData.limits.maxSites;
-        if (sitePercentage > 0.8) {
-            warnings.push(`⚠️ ${quotaData.limits.maxSites - sitesAfter} site(s) remaining after this deploy`);
-        }
-    }
-
-
 
     return {
         allowed,
@@ -206,18 +224,22 @@ async function userOwnsSite(apiKey, subdomain) {
         });
 
         if (!response.ok) {
-            console.log('Fetch subdomains failed:', response.status);
+            log(`Fetch subdomains failed: ${response.status}`);
             return false;
         }
 
         const data = await response.json();
-        console.log('User subdomains:', data.subdomains?.map(s => s.subdomain));
-        console.log('Checking for:', subdomain);
+        if (process.env.DEBUG) {
+            log(`User subdomains: ${data.subdomains?.map(s => s.subdomain)}`);
+            log(`Checking for: ${subdomain}`);
+        }
         const owns = data.subdomains?.some(s => s.subdomain === subdomain) || false;
-        console.log('Owns site?', owns);
+        if (process.env.DEBUG) {
+            log(`Owns site? ${owns}`);
+        }
         return owns;
     } catch (err) {
-        console.log('Error checking ownership:', err);
+        log(`Error checking ownership: ${err.message}`);
         return false;
     }
 }
@@ -226,19 +248,19 @@ async function userOwnsSite(apiKey, subdomain) {
  * Show upgrade prompt for anonymous users
  */
 function showUpgradePrompt() {
-    console.log('');
-    console.log('╔══════════════════════════════════════════════════════════════╗');
-    console.log('║  Upgrade to Launchpd Free Tier                               ║');
-    console.log('╠══════════════════════════════════════════════════════════════╣');
-    console.log('║  Register for FREE to unlock:                                ║');
-    console.log('║    → 10 sites (instead of 3)                                 ║');
-    console.log('║    → 100MB storage (instead of 50MB)                         ║');
-    console.log('║    → 30-day retention (instead of 7 days)                    ║');
-    console.log('║    → 10 version history per site                             ║');
-    console.log('╠══════════════════════════════════════════════════════════════╣');
-    console.log('║  Run: launchpd register                                      ║');
-    console.log('╚══════════════════════════════════════════════════════════════╝');
-    console.log('');
+    log('');
+    log('╔══════════════════════════════════════════════════════════════╗');
+    log('║  Upgrade to Launchpd Free Tier                               ║');
+    log('╠══════════════════════════════════════════════════════════════╣');
+    log('║  Register for FREE to unlock:                                ║');
+    log('║    → 10 sites (instead of 3)                                 ║');
+    log('║    → 100MB storage (instead of 50MB)                         ║');
+    log('║    → 30-day retention (instead of 7 days)                    ║');
+    log('║    → 10 version history per site                             ║');
+    log('╠══════════════════════════════════════════════════════════════╣');
+    log('║  Run: launchpd register                                      ║');
+    log('╚══════════════════════════════════════════════════════════════╝');
+    log('');
 }
 
 /**
@@ -246,7 +268,7 @@ function showUpgradePrompt() {
  */
 export function displayQuotaWarnings(warnings) {
     if (warnings && warnings.length > 0) {
-        console.log('');
+        log('');
         warnings.forEach(w => warning(w));
     }
 }
