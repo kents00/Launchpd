@@ -110,7 +110,7 @@ export async function checkQuota(subdomain, estimatedBytes = 0, options = {}) {
     }
 
     // Determine if deployment is allowed based on API flags or local calculations
-    let allowed = quotaData.canDeploy !== undefined ? quotaData.canDeploy : true;
+    const allowed = quotaData.canDeploy ?? true;
 
     // Check if blocked (anonymous limit reached or explicitly blocked by backend)
     if (quotaData.blocked) {
@@ -128,11 +128,11 @@ export async function checkQuota(subdomain, estimatedBytes = 0, options = {}) {
         const canCreate = quotaData.canCreateNewSite !== undefined ? quotaData.canCreateNewSite : (remaining > 0);
         if (!canCreate) {
             error(`Site limit reached (${quotaData.limits?.maxSites || 'unknown'} sites)`);
-            if (!creds?.apiKey) {
-                showUpgradePrompt();
-            } else {
+            if (creds?.apiKey) {
                 info('Upgrade to Pro for more sites, or delete an existing site');
                 info('Check your quota status: launchpd whoami');
+            } else {
+                showUpgradePrompt();
             }
             return {
                 allowed: false,
@@ -152,10 +152,10 @@ export async function checkQuota(subdomain, estimatedBytes = 0, options = {}) {
         const overBy = storageAfter - quotaData.limits.maxStorageBytes;
         error(`Storage limit exceeded by ${formatBytes(overBy)}`);
         error(`Current: ${formatBytes(quotaData.usage.storageUsed)} / ${formatBytes(quotaData.limits.maxStorageBytes)}`);
-        if (!creds?.apiKey) {
-            showUpgradePrompt();
-        } else {
+        if (creds?.apiKey) {
             info('Upgrade to Pro for more storage, or delete old deployments');
+        } else {
+            showUpgradePrompt();
         }
         return {
             allowed: false,

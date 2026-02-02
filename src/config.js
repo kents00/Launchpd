@@ -11,8 +11,9 @@ try {
         packageJson = JSON.parse(content);
     }
 } catch (err) {
-    // In some test environments or if package.json is missing,
-    // we use the fallback version
+    if (err.code !== 'ENOENT') {
+        console.warn('Warning: Could not read package.json:', err.message);
+    }
 }
 
 /**
