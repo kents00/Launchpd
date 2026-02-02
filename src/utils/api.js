@@ -7,8 +7,24 @@ import { config } from '../config.js';
 import { getApiKey, getApiSecret } from './credentials.js';
 import { createHmac } from 'node:crypto';
 import { getMachineId } from './machineId.js';
+import {
+    APIError,
+    MaintenanceError,
+    AuthError,
+    NetworkError,
+    TwoFactorRequiredError
+} from './errors.js';
 
 const API_BASE_URL = config.apiUrl;
+
+// Re-export error classes for convenience
+export {
+    APIError,
+    MaintenanceError,
+    AuthError,
+    NetworkError,
+    TwoFactorRequiredError
+} from './errors.js';
 
 /**
  * Make an authenticated API request
@@ -50,17 +66,46 @@ async function apiRequest(endpoint, options = {}) {
             headers,
         });
 
+        // Handle maintenance mode (503 with maintenance_mode flag)
+        if (response.status === 503) {
+            const data = await response.json().catch(() => ({}));
+            if (data.maintenance_mode) {
+                throw new MaintenanceError(data.message || 'LaunchPd is under maintenance');
+            }
+            throw new APIError(data.message || 'Service unavailable', 503, data);
+        }
+
+        // Handle authentication errors
+        if (response.status === 401) {
+            const data = await response.json().catch(() => ({}));
+            // Check if 2FA is required (special case - not a real auth error)
+            if (data.requires_2fa) {
+                throw new TwoFactorRequiredError(data.two_factor_type, data.message);
+            }
+            throw new AuthError(data.message || 'Authentication failed', data);
+        }
+
+        // Handle rate limiting / quota errors
+        if (response.status === 429) {
+            const data = await response.json().catch(() => ({}));
+            throw new APIError(data.message || 'Rate limit exceeded', 429, data);
+        }
+
         const data = await response.json();
 
         if (!response.ok) {
-            throw new Error(data.error || `API error: ${response.status}`);
+            throw new APIError(data.error || data.message || `API error: ${response.status}`, response.status, data);
         }
 
         return data;
     } catch (err) {
-        // If API is unavailable, return null to allow fallback to local storage
-        if (err.message.includes('fetch failed') || err.message.includes('ENOTFOUND')) {
-            return null;
+        // Re-throw our custom errors
+        if (err instanceof APIError || err instanceof NetworkError) {
+            throw err;
+        }
+        // If API is unavailable, throw NetworkError for consistent handling
+        if (err.message.includes('fetch failed') || err.message.includes('ENOTFOUND') || err.message.includes('ECONNREFUSED')) {
+            throw new NetworkError('Unable to connect to LaunchPd servers');
         }
         throw err;
     }
@@ -149,15 +194,6 @@ export async function reserveSubdomain(subdomain) {
 }
 
 /**
- * Delete a site (subdomain)
- */
-export async function deleteSite(subdomain) {
-    return await apiRequest(`/api/subdomains/${subdomain}`, {
-        method: 'DELETE',
-    });
-}
-
-/**
  * Unreserve a subdomain
  */
 export async function unreserveSubdomain(subdomain) {
@@ -188,6 +224,48 @@ export async function healthCheck() {
     return await apiRequest('/api/health');
 }
 
+/**
+ * Resend email verification
+ */
+export async function resendVerification() {
+    return await apiRequest('/api/auth/resend-verification', {
+        method: 'POST',
+    });
+}
+
+/**
+ * Regenerate API key
+ */
+export async function regenerateApiKey() {
+    return await apiRequest('/api/api-key/regenerate', {
+        method: 'POST',
+        body: JSON.stringify({ confirm: 'yes' }),
+    });
+}
+
+/**
+ * Change password
+ */
+export async function changePassword(currentPassword, newPassword, confirmPassword) {
+    return await apiRequest('/api/settings/change-password', {
+        method: 'POST',
+        body: JSON.stringify({
+            current_password: currentPassword,
+            new_password: newPassword,
+            confirm_password: confirmPassword,
+        }),
+    });
+}
+
+/**
+ * Server-side logout
+ */
+export async function serverLogout() {
+    return await apiRequest('/api/auth/logout', {
+        method: 'POST',
+    });
+}
+
 export default {
     recordDeployment,
     listDeployments,
@@ -196,9 +274,12 @@ export default {
     rollbackVersion,
     checkSubdomainAvailable,
     reserveSubdomain,
-    deleteSite,
     unreserveSubdomain,
     listSubdomains,
     getCurrentUser,
     healthCheck,
+    resendVerification,
+    regenerateApiKey,
+    changePassword,
+    serverLogout,
 };

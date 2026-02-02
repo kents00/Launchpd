@@ -8,6 +8,4 @@ export { rollback } from './rollback.js';
 export { versions } from './versions.js';
 export { init } from './init.js';
 export { status } from './status.js';
-export { login, logout, register, whoami, quota } from './auth.js';
-
-export { deleteCommand as del } from './delete.js';
+export { login, logout, register, whoami, quota, resendEmailVerification } from './auth.js';

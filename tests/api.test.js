@@ -54,11 +54,11 @@ describe('API Utility', () => {
                 .rejects.toThrow('Unauthorized');
         });
 
-        it('should return null if fetch fails (network error)', async () => {
+        it('should throw NetworkError if fetch fails (network error)', async () => {
             fetch.mockRejectedValue(new Error('fetch failed'));
 
-            const result = await api.healthCheck();
-            expect(result).toBeNull();
+            await expect(api.healthCheck())
+                .rejects.toThrow('Unable to connect to LaunchPd servers');
         });
     });
 

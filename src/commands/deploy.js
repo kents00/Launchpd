@@ -7,7 +7,7 @@ import { generateSubdomain } from '../utils/id.js';
 import { uploadFolder, finalizeUpload } from '../utils/upload.js';
 import { getNextVersion } from '../utils/metadata.js';
 import { saveLocalDeployment } from '../utils/localConfig.js';
-import { getNextVersionFromAPI, checkSubdomainAvailable, listSubdomains } from '../utils/api.js';
+import { getNextVersionFromAPI, checkSubdomainAvailable, listSubdomains, MaintenanceError, NetworkError, AuthError } from '../utils/api.js';
 import { getProjectConfig, findProjectRoot, updateProjectConfig, initProjectConfig } from '../utils/projectConfig.js';
 import { success, errorWithSuggestions, info, warning, spinner, formatSize, log, raw } from '../utils/logger.js';
 import { calculateExpiresAt, formatTimeRemaining } from '../utils/expiration.js';
@@ -16,6 +16,7 @@ import { getCredentials } from '../utils/credentials.js';
 import { validateStaticOnly } from '../utils/validator.js';
 import { isIgnored } from '../utils/ignore.js';
 import { prompt } from '../utils/prompt.js';
+import { handleCommonError } from '../utils/errors.js';
 import QRCode from 'qrcode';
 
 /**
@@ -366,9 +367,42 @@ export async function deploy(folder, options) {
             }
         }
     } catch (err) {
+        // Handle common errors with standardized messages
+        if (handleCommonError(err, { error: (msg) => errorWithSuggestions(msg, [], { verbose }), info, warning })) {
+            process.exit(1);
+        }
+
+        // Handle maintenance mode specifically
+        if (err instanceof MaintenanceError || err.isMaintenanceError) {
+            errorWithSuggestions('⚠️ LaunchPd is under maintenance', [
+                'Please try again in a few minutes',
+                'Check https://status.launchpd.cloud for updates',
+            ], { verbose });
+            process.exit(1);
+        }
+
+        // Handle network errors
+        if (err instanceof NetworkError || err.isNetworkError) {
+            errorWithSuggestions('Unable to connect to LaunchPd', [
+                'Check your internet connection',
+                'The API server may be temporarily unavailable',
+                'Check https://status.launchpd.cloud for service status',
+            ], { verbose, cause: err });
+            process.exit(1);
+        }
+
+        // Handle auth errors
+        if (err instanceof AuthError || err.isAuthError) {
+            errorWithSuggestions('Authentication failed', [
+                'Run "launchpd login" to authenticate',
+                'Your API key may have expired or been revoked',
+            ], { verbose, cause: err });
+            process.exit(1);
+        }
+
         const suggestions = [];
 
-        // Provide context-specific suggestions
+        // Provide context-specific suggestions for other errors
         if (err.message.includes('fetch failed') || err.message.includes('ENOTFOUND')) {
             suggestions.push('Check your internet connection');
             suggestions.push('The API server may be temporarily unavailable');

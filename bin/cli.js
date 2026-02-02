@@ -3,7 +3,7 @@
 import fs from 'fs';
 import { Command } from 'commander';
 import updateNotifier from 'update-notifier';
-import { deploy, list, rollback, versions, init, status, login, logout, register, whoami, quota, del } from '../src/commands/index.js';
+import { deploy, list, rollback, versions, init, status, login, logout, register, whoami, quota, resendEmailVerification } from '../src/commands/index.js';
 import { config } from '../src/config.js';
 
 const packageJson = JSON.parse(fs.readFileSync(new URL('../package.json', import.meta.url)));
@@ -116,13 +116,10 @@ program
     });
 
 program
-    .command('delete')
-    .description('Delete a deployment (permanently)')
-    .argument('<subdomain>', 'The subdomain to delete')
-    .option('--force', 'Force delete (no confirmation prompt)')
-    .option('--verbose', 'Show detailed error information')
-    .action(async (subdomain, options) => {
-        await del(subdomain, options);
+    .command('verify')
+    .description('Resend email verification')
+    .action(async () => {
+        await resendEmailVerification();
     });
 
 program.parseAsync();
