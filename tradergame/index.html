@@ -1,250 +1,295 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ChartTrader Pro</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="style.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
     <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
-</head>
+  </head>
 
-<body>
+  <body>
     <div class="app-container">
-        <!-- Header / Top Bar -->
-        <header class="top-bar">
-            <div class="logo">
-                <i class="fa-solid fa-chart-line"></i> ChartTrader <span class="pro-badge">PRO</span>
+      <!-- Header / Top Bar -->
+      <header class="top-bar">
+        <div class="logo">
+          <i class="fa-solid fa-chart-line"></i> ChartTrader
+          <span class="pro-badge">PRO</span>
+        </div>
+        <div class="account-info">
+          <div class="stat-item">
+            <span class="label">Balance</span>
+            <span class="value" id="balance-display">$10,000.00</span>
+          </div>
+          <div class="stat-item">
+            <span class="label">Equity</span>
+            <span class="value" id="equity-display">$10,000.00</span>
+          </div>
+          <div class="stat-item">
+            <span class="label">P&L</span>
+            <span class="value neutral" id="pnl-display">$0.00</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Workspace -->
+      <main class="workspace">
+        <!-- Chart Area -->
+        <div class="chart-container" id="chart-container">
+          <div class="chart-overlay-info">
+            <span id="current-price" class="current-price">0.00</span>
+          </div>
+          <div class="chart-overlay-labels" id="chart-overlay-labels"></div>
+        </div>
+
+        <!-- Sidebar / Control Panel -->
+        <aside class="control-panel">
+          <!-- Side Toggle -->
+          <div class="order-side-toggle">
+            <button class="side-btn sell" id="side-sell">
+              <span class="side-label">Sell</span>
+              <span class="side-price" id="price-sell">0.00</span>
+            </button>
+            <div class="side-middle">
+              <span id="order-qty-label">1</span>
             </div>
-            <div class="account-info">
-                <div class="stat-item">
-                    <span class="label">Balance</span>
-                    <span class="value" id="balance-display">$10,000.00</span>
+            <button class="side-btn buy active" id="side-buy">
+              <span class="side-label">Buy</span>
+              <span class="side-price" id="price-buy">0.00</span>
+            </button>
+          </div>
+
+          <!-- Order Type Tabs -->
+          <div class="order-tabs">
+            <button class="tab-btn active" data-tab="market">Market</button>
+            <button class="tab-btn" data-tab="limit">Limit</button>
+            <button class="tab-btn" data-tab="stop">Stop</button>
+          </div>
+
+          <div class="tab-content" id="order-form">
+            <!-- Price Input (Hidden for Market) -->
+            <div class="input-group hidden" id="group-limit-price">
+              <div class="input-header">
+                <span id="price-label">Price</span>
+                <div class="dropdown-wrapper">
+                  <span class="dropdown-trigger"
+                    >Ask + 0 <i class="fa-solid fa-chevron-down"></i
+                  ></span>
                 </div>
-                <div class="stat-item">
-                    <span class="label">Equity</span>
-                    <span class="value" id="equity-display">$10,000.00</span>
+              </div>
+              <div class="input-wrapper">
+                <input
+                  type="number"
+                  id="input-price"
+                  value="0.00"
+                  step="0.01"
+                />
+                <div class="input-stepper">
+                  <button class="stepper-btn up" data-input="input-price">
+                    <i class="fa-solid fa-chevron-up"></i>
+                  </button>
+                  <button class="stepper-btn down" data-input="input-price">
+                    <i class="fa-solid fa-chevron-down"></i>
+                  </button>
                 </div>
-                <div class="stat-item">
-                    <span class="label">P&L</span>
-                    <span class="value neutral" id="pnl-display">$0.00</span>
-                </div>
+              </div>
             </div>
-        </header>
 
-        <!-- Main Workspace -->
-        <main class="workspace">
-            <!-- Chart Area -->
-            <div class="chart-container" id="chart-container">
-                <div class="chart-overlay-info">
-                    <span id="current-price" class="current-price">0.00</span>
+            <!-- Margin / Units -->
+            <div class="input-group">
+              <div class="input-header">
+                <div class="dropdown-wrapper">
+                  <span class="dropdown-trigger"
+                    >Margin USD <i class="fa-solid fa-chevron-down"></i
+                  ></span>
                 </div>
-                <div class="chart-overlay-labels" id="chart-overlay-labels"></div>
+              </div>
+              <div class="input-wrapper">
+                <input
+                  type="number"
+                  id="input-margin"
+                  value="1000.00"
+                  step="50"
+                />
+                <div class="unit-counter">
+                  <span id="display-units">1.000 Units</span>
+                </div>
+                <div class="input-stepper">
+                  <button class="stepper-btn up" data-input="input-margin">
+                    <i class="fa-solid fa-chevron-up"></i>
+                  </button>
+                  <button class="stepper-btn down" data-input="input-margin">
+                    <i class="fa-solid fa-chevron-down"></i>
+                  </button>
+                </div>
+              </div>
             </div>
 
-            <!-- Sidebar / Control Panel -->
-            <aside class="control-panel">
-                <!-- Side Toggle -->
-                <div class="order-side-toggle">
-                    <button class="side-btn sell" id="side-sell">
-                        <span class="side-label">Sell</span>
-                        <span class="side-price" id="price-sell">0.00</span>
-                    </button>
-                    <div class="side-middle">
-                        <span id="order-qty-label">1</span>
+            <!-- Exits -->
+            <div class="collapsible-section open">
+              <div class="section-header">
+                <span>Exits</span>
+                <i class="fa-solid fa-chevron-up"></i>
+              </div>
+              <div class="section-body">
+                <!-- TP -->
+                <div class="exit-row">
+                  <div class="exit-info">
+                    <span class="exit-label"
+                      >Take profit, price
+                      <i class="fa-solid fa-chevron-down"></i
+                    ></span>
+                    <label class="switch">
+                      <input type="checkbox" id="tp-toggle" />
+                      <span class="slider round"></span>
+                    </label>
+                  </div>
+                  <div class="input-wrapper disabled" id="tp-input-wrap">
+                    <input
+                      type="number"
+                      id="input-tp"
+                      placeholder="Price"
+                      disabled
+                      step="0.01"
+                    />
+                    <div class="input-stepper">
+                      <button class="stepper-btn up" data-input="input-tp">
+                        <i class="fa-solid fa-chevron-up"></i>
+                      </button>
+                      <button class="stepper-btn down" data-input="input-tp">
+                        <i class="fa-solid fa-chevron-down"></i>
+                      </button>
                     </div>
-                    <button class="side-btn buy active" id="side-buy">
-                        <span class="side-label">Buy</span>
-                        <span class="side-price" id="price-buy">0.00</span>
-                    </button>
+                    <span class="tick-label">0 Ticks</span>
+                  </div>
                 </div>
-
-                <!-- Order Type Tabs -->
-                <div class="order-tabs">
-                    <button class="tab-btn active" data-tab="market">Market</button>
-                    <button class="tab-btn" data-tab="limit">Limit</button>
-                    <button class="tab-btn" data-tab="stop">Stop</button>
+                <!-- SL -->
+                <div class="exit-row">
+                  <div class="exit-info">
+                    <span class="exit-label"
+                      >Stop loss, price <i class="fa-solid fa-chevron-down"></i
+                    ></span>
+                    <label class="switch">
+                      <input type="checkbox" id="sl-toggle" />
+                      <span class="slider round"></span>
+                    </label>
+                  </div>
+                  <div class="input-wrapper disabled" id="sl-input-wrap">
+                    <input
+                      type="number"
+                      id="input-sl"
+                      placeholder="Price"
+                      disabled
+                      step="0.01"
+                    />
+                    <div class="input-stepper">
+                      <button class="stepper-btn up" data-input="input-sl">
+                        <i class="fa-solid fa-chevron-up"></i>
+                      </button>
+                      <button class="stepper-btn down" data-input="input-sl">
+                        <i class="fa-solid fa-chevron-down"></i>
+                      </button>
+                    </div>
+                    <span class="tick-label">0 Ticks</span>
+                  </div>
                 </div>
-
-                <div class="tab-content" id="order-form">
-                    <!-- Price Input (Hidden for Market) -->
-                    <div class="input-group hidden" id="group-limit-price">
-                        <div class="input-header">
-                            <span id="price-label">Price</span>
-                            <div class="dropdown-wrapper">
-                                <span class="dropdown-trigger">Ask + 0 <i class="fa-solid fa-chevron-down"></i></span>
-                            </div>
-                        </div>
-                        <div class="input-wrapper">
-                            <input type="number" id="input-price" value="0.00" step="0.01">
-                            <div class="input-stepper">
-                                <button class="stepper-btn up" data-input="input-price"><i
-                                        class="fa-solid fa-chevron-up"></i></button>
-                                <button class="stepper-btn down" data-input="input-price"><i
-                                        class="fa-solid fa-chevron-down"></i></button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Margin / Units -->
-                    <div class="input-group">
-                        <div class="input-header">
-                            <div class="dropdown-wrapper">
-                                <span class="dropdown-trigger">Margin USD <i
-                                        class="fa-solid fa-chevron-down"></i></span>
-                            </div>
-                        </div>
-                        <div class="input-wrapper">
-                            <input type="number" id="input-margin" value="1000.00" step="50">
-                            <div class="unit-counter">
-                                <span id="display-units">1.000 Units</span>
-                            </div>
-                            <div class="input-stepper">
-                                <button class="stepper-btn up" data-input="input-margin"><i
-                                        class="fa-solid fa-chevron-up"></i></button>
-                                <button class="stepper-btn down" data-input="input-margin"><i
-                                        class="fa-solid fa-chevron-down"></i></button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Exits -->
-                    <div class="collapsible-section open">
-                        <div class="section-header">
-                            <span>Exits</span>
-                            <i class="fa-solid fa-chevron-up"></i>
-                        </div>
-                        <div class="section-body">
-                            <!-- TP -->
-                            <div class="exit-row">
-                                <div class="exit-info">
-                                    <span class="exit-label">Take profit, price <i
-                                            class="fa-solid fa-chevron-down"></i></span>
-                                    <label class="switch">
-                                        <input type="checkbox" id="tp-toggle">
-                                        <span class="slider round"></span>
-                                    </label>
-                                </div>
-                                <div class="input-wrapper disabled" id="tp-input-wrap">
-                                    <input type="number" id="input-tp" placeholder="Price" disabled step="0.01">
-                                    <div class="input-stepper">
-                                        <button class="stepper-btn up" data-input="input-tp"><i
-                                                class="fa-solid fa-chevron-up"></i></button>
-                                        <button class="stepper-btn down" data-input="input-tp"><i
-                                                class="fa-solid fa-chevron-down"></i></button>
-                                    </div>
-                                    <span class="tick-label">0 Ticks</span>
-                                </div>
-                            </div>
-                            <!-- SL -->
-                            <div class="exit-row">
-                                <div class="exit-info">
-                                    <span class="exit-label">Stop loss, price <i
-                                            class="fa-solid fa-chevron-down"></i></span>
-                                    <label class="switch">
-                                        <input type="checkbox" id="sl-toggle">
-                                        <span class="slider round"></span>
-                                    </label>
-                                </div>
-                                <div class="input-wrapper disabled" id="sl-input-wrap">
-                                    <input type="number" id="input-sl" placeholder="Price" disabled step="0.01">
-                                    <div class="input-stepper">
-                                        <button class="stepper-btn up" data-input="input-sl"><i
-                                                class="fa-solid fa-chevron-up"></i></button>
-                                        <button class="stepper-btn down" data-input="input-sl"><i
-                                                class="fa-solid fa-chevron-down"></i></button>
-                                    </div>
-                                    <span class="tick-label">0 Ticks</span>
-                                </div>
-                            </div>
-                            <div class="add-level">
-                                <i class="fa-solid fa-plus"></i> Add level
-                            </div>
-                        </div>
-                    </div>
-
-
-                    <!-- Order Info -->
-                    <div class="order-info-section">
-                        <h4>Order info</h4>
-                        <div class="info-row">
-                            <span>Margin <i class="fa-solid fa-circle-question"></i></span>
-                            <span class="info-val"><span id="info-margin">1,000.00</span> / <span
-                                    id="info-max-margin">10,000.00</span></span>
-                        </div>
-                        <div class="progress-bar">
-                            <div class="progress-fill" style="width: 10%;"></div>
-                        </div>
-                        <div class="info-row">
-                            <span>Leverage</span>
-                            <span class="info-val">10:1</span>
-                        </div>
-                        <div class="info-row">
-                            <span>Tick value</span>
-                            <span class="info-val">1.00 <span class="currency">USD</span></span>
-                        </div>
-                        <div class="info-row">
-                            <span>Trade value</span>
-                            <span class="info-val trade-total">10,000.00 <span class="currency">USD</span></span>
-                        </div>
-                    </div>
-
-                    <!-- Action Button -->
-                    <button id="btn-execute-trade" class="btn btn-execute-buy">
-                        <span class="action-text">Buy</span>
-                        <span class="action-sub">1.000 BITCOIN @ Market</span>
-                    </button>
+                <div class="add-level">
+                  <i class="fa-solid fa-plus"></i> Add level
                 </div>
+              </div>
+            </div>
 
-                <!-- Open Position -->
-                <div class="panel-section position-info hidden" id="position-panel">
-                    <h3>Open Position</h3>
-                    <div class="position-card">
-                        <div class="pos-row">
-                            <span class="pos-type" id="pos-type">LONG</span>
-                            <span class="pos-size" id="pos-size">1.0 Lot</span>
-                        </div>
-                        <div class="pos-row">
-                            <span>Entry</span>
-                            <span id="pos-entry">0.00</span>
-                        </div>
-                        <div class="pos-row">
-                            <span>Current</span>
-                            <span id="pos-current">0.00</span>
-                        </div>
-                        <div class="pos-row pnl-row">
-                            <span>P&L</span>
-                            <span id="pos-pnl" class="neutral">$0.00</span>
-                        </div>
-                        <button id="btn-close" class="btn btn-close">CLOSE POSITION</button>
-                    </div>
-                </div>
+            <!-- Order Info -->
+            <div class="order-info-section">
+              <h4>Order info</h4>
+              <div class="info-row">
+                <span>Margin <i class="fa-solid fa-circle-question"></i></span>
+                <span class="info-val"
+                  ><span id="info-margin">1,000.00</span> /
+                  <span id="info-max-margin">10,000.00</span></span
+                >
+              </div>
+              <div class="progress-bar">
+                <div class="progress-fill" style="width: 10%"></div>
+              </div>
+              <div class="info-row">
+                <span>Leverage</span>
+                <span class="info-val">10:1</span>
+              </div>
+              <div class="info-row">
+                <span>Tick value</span>
+                <span class="info-val"
+                  >1.00 <span class="currency">USD</span></span
+                >
+              </div>
+              <div class="info-row">
+                <span>Trade value</span>
+                <span class="info-val trade-total"
+                  >10,000.00 <span class="currency">USD</span></span
+                >
+              </div>
+            </div>
 
-                <div class="panel-section">
-                    <h3>Game Stats</h3>
-                    <ul class="stats-list">
-                        <li><span>Trades</span> <span id="stat-trades">0</span></li>
-                        <li><span>Wins</span> <span id="stat-wins">0</span></li>
-                        <li><span>Losses</span> <span id="stat-losses">0</span></li>
-                        <li><span>Win Rate</span> <span id="stat-winrate">0%</span></li>
-                    </ul>
-                </div>
+            <!-- Action Button -->
+            <button id="btn-execute-trade" class="btn btn-execute-buy">
+              <span class="action-text">Buy</span>
+              <span class="action-sub">1.000 BITCOIN @ Market</span>
+            </button>
+          </div>
 
-                <div class="panel-section debug-controls">
-                    <h3>Speed</h3>
-                    <div class="speed-toggles">
-                        <button class="speed-btn active" data-speed="1">1x</button>
-                        <button class="speed-btn" data-speed="5">5x</button>
-                        <button class="speed-btn" data-speed="10">Max</button>
-                    </div>
-                </div>
-            </aside>
-        </main>
+          <!-- Open Position -->
+          <div class="panel-section position-info hidden" id="position-panel">
+            <h3>Open Position</h3>
+            <div class="position-card">
+              <div class="pos-row">
+                <span class="pos-type" id="pos-type">LONG</span>
+                <span class="pos-size" id="pos-size">1.0 Lot</span>
+              </div>
+              <div class="pos-row">
+                <span>Entry</span>
+                <span id="pos-entry">0.00</span>
+              </div>
+              <div class="pos-row">
+                <span>Current</span>
+                <span id="pos-current">0.00</span>
+              </div>
+              <div class="pos-row pnl-row">
+                <span>P&L</span>
+                <span id="pos-pnl" class="neutral">$0.00</span>
+              </div>
+              <button id="btn-close" class="btn btn-close">
+                CLOSE POSITION
+              </button>
+            </div>
+          </div>
+
+          <div class="panel-section">
+            <h3>Game Stats</h3>
+            <ul class="stats-list">
+              <li><span>Trades</span> <span id="stat-trades">0</span></li>
+              <li><span>Wins</span> <span id="stat-wins">0</span></li>
+              <li><span>Losses</span> <span id="stat-losses">0</span></li>
+              <li><span>Win Rate</span> <span id="stat-winrate">0%</span></li>
+            </ul>
+          </div>
+
+          <div class="panel-section debug-controls">
+            <h3>Speed</h3>
+            <div class="speed-toggles">
+              <button class="speed-btn active" data-speed="1">1x</button>
+              <button class="speed-btn" data-speed="5">5x</button>
+              <button class="speed-btn" data-speed="10">Max</button>
+            </div>
+          </div>
+        </aside>
+      </main>
     </div>
     <script src="app.js"></script>
-</body>
-
+  </body>
 </html>
