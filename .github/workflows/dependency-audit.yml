@@ -12,6 +12,8 @@ on:
 jobs:
   audit:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout code
@@ -26,9 +28,5 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run npm audit
-        run: npm audit --audit-level=moderate
-        continue-on-error: true
-
-      - name: Run npm audit (production only)
+      - name: Run npm audit (production dependencies)
         run: npm audit --omit=dev --audit-level=high

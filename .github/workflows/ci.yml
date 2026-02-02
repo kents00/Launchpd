@@ -9,6 +9,8 @@ on:
 jobs:
   lint-and-test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     strategy:
       matrix:
@@ -29,9 +31,6 @@ jobs:
 
       - name: Run linter
         run: npm run lint
-
-      - name: Run tests
-        run: npm run test
 
       - name: Run tests with coverage
         run: npm run test:coverage
