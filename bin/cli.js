@@ -1,10 +1,9 @@
 #!/usr/bin/env node
 
-import fs from 'fs';
+import fs from 'node:fs';
 import { Command } from 'commander';
 import updateNotifier from 'update-notifier';
 import { deploy, list, rollback, versions, init, status, login, logout, register, whoami, quota, resendEmailVerification } from '../src/commands/index.js';
-import { config } from '../src/config.js';
 
 const packageJson = JSON.parse(fs.readFileSync(new URL('../package.json', import.meta.url)));
 updateNotifier({ pkg: packageJson }).notify();

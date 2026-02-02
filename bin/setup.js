@@ -32,7 +32,9 @@ async function setup() {
     success('No configuration needed - just deploy!');
 }
 
-setup().catch(err => {
+try {
+    await setup();
+} catch (err) {
     console.error(`Setup failed: ${err.message}`);
     process.exit(1);
-});
+}
