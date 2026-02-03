@@ -40,8 +40,8 @@ describe('login command', () => {
     it('should handle invalid API key', async () => {
         // Mock prompt to select API Key login method (choice '1') and return invalid key
         promptUtils.prompt.mockResolvedValue('1');
-        // Key must start with lpd_ to pass format validation
-        promptUtils.promptSecret.mockResolvedValue('lpd_invalid-key');
+        // Key must match format: lpd_ + 16-64 alphanumeric chars to pass validation
+        promptUtils.promptSecret.mockResolvedValue('lpd_test_invalid_key_1234');
 
         // Mock fetch failure (simulating invalid key result from server)
         globalThis.fetch = vi.fn().mockResolvedValue({
@@ -64,8 +64,8 @@ describe('login command', () => {
     it('should handle network errors gracefully', async () => {
         // Mock prompt to select API Key login method (choice '1')
         promptUtils.prompt.mockResolvedValue('1');
-        // Key must start with lpd_ to pass format validation
-        promptUtils.promptSecret.mockResolvedValue('lpd_some-key');
+        // Key must match format: lpd_ + 16-64 alphanumeric chars to pass validation
+        promptUtils.promptSecret.mockResolvedValue('lpd_test_network_key_5678');
 
         // Mock network error
         globalThis.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
