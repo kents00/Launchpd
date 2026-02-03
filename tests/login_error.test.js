@@ -38,7 +38,9 @@ describe('login command', () => {
     });
 
     it('should handle invalid API key', async () => {
-        // Mock prompt to return invalid key
+        // Mock prompt to select API Key login method (choice '1') and return invalid key
+        promptUtils.prompt.mockResolvedValue('1');
+        // Key must start with lpd_ to pass format validation
         promptUtils.promptSecret.mockResolvedValue('lpd_invalid-key');
 
         // Mock fetch failure (simulating invalid key result from server)
@@ -60,7 +62,9 @@ describe('login command', () => {
     });
 
     it('should handle network errors gracefully', async () => {
-        // Mock prompt
+        // Mock prompt to select API Key login method (choice '1')
+        promptUtils.prompt.mockResolvedValue('1');
+        // Key must start with lpd_ to pass format validation
         promptUtils.promptSecret.mockResolvedValue('lpd_some-key');
 
         // Mock network error
