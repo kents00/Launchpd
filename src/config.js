@@ -10,7 +10,7 @@ try {
     if (content) {
         packageJson = JSON.parse(content);
     }
-} catch (err) {
+} catch {
     // In some test environments or if package.json is missing,
     // we use the fallback version
 }

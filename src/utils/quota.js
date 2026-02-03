@@ -110,7 +110,7 @@ export async function checkQuota(subdomain, estimatedBytes = 0, options = {}) {
     }
 
     // Determine if deployment is allowed based on API flags or local calculations
-    let allowed = quotaData.canDeploy !== undefined ? quotaData.canDeploy : true;
+    const allowed = quotaData.canDeploy !== undefined ? quotaData.canDeploy : true;
 
     // Check if blocked (anonymous limit reached or explicitly blocked by backend)
     if (quotaData.blocked) {
