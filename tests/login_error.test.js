@@ -39,7 +39,7 @@ describe('login command', () => {
 
     it('should handle invalid API key', async () => {
         // Mock prompt to return invalid key
-        promptUtils.promptSecret.mockResolvedValue('invalid-key');
+        promptUtils.promptSecret.mockResolvedValue('lpd_invalid-key');
 
         // Mock fetch failure (simulating invalid key result from server)
         globalThis.fetch = vi.fn().mockResolvedValue({
@@ -61,7 +61,7 @@ describe('login command', () => {
 
     it('should handle network errors gracefully', async () => {
         // Mock prompt
-        promptUtils.promptSecret.mockResolvedValue('some-key');
+        promptUtils.promptSecret.mockResolvedValue('lpd_some-key');
 
         // Mock network error
         globalThis.fetch = vi.fn().mockRejectedValue(new Error('Network error'));

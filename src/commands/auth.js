@@ -21,6 +21,9 @@ const REGISTER_URL = `https://${config.domain}/`;
  * Validate API key with the server
  */
 async function validateApiKey(apiKey) {
+    if (!apiKey || typeof apiKey !== 'string' || !apiKey.startsWith('lpd_')) {
+        return null;
+    }
     try {
         const response = await fetch(`${API_BASE_URL}/api/quota`, {
             headers: {
