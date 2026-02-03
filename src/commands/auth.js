@@ -103,10 +103,10 @@ async function loginWithEmailPassword() {
 
             if (data.two_factor_type === 'email') {
                 log('');
-                info('📧 A verification code has been sent to your email');
+                info('A verification code has been sent to your email');
             } else {
                 log('');
-                info('🔐 Two-factor authentication required');
+                info('Two-factor authentication required');
             }
 
             const twoFactorCode = await prompt(`Enter ${codeType}: `);
@@ -259,7 +259,7 @@ export async function login() {
     // Warn if email not verified
     if (result.user?.email && !result.user?.email_verified) {
         log('');
-        warning('⚠️  Your email is not verified');
+        warning('Your email is not verified');
         info(`Verify at: https://${config.domain}/auth/verify-pending`);
     }
 
@@ -408,7 +408,7 @@ export async function whoami() {
 
     // Show warnings
     if (result.warnings && result.warnings.length > 0) {
-        log('⚠️ Warnings:');
+        log('Warnings:');
         result.warnings.forEach(w => log(`  ${w}`));
         log('');
     }
@@ -421,7 +421,7 @@ export async function whoami() {
     // Email verification warning
     if (result.user?.email && !result.user?.email_verified) {
         log('');
-        warning('⚠️  Your email is not verified');
+        warning('Your email is not verified');
         info(`Verify at: https://${config.domain}/auth/verify-pending`);
         info('Some features may be limited until verified');
     }
@@ -429,7 +429,7 @@ export async function whoami() {
     // 2FA recommendation if not enabled
     if (!result.user?.is_2fa_enabled && !result.user?.is_email_2fa_enabled) {
         log('');
-        info('💡 Tip: Enable 2FA for better security');
+        info('Tip: Enable 2FA for better security');
         const securityUrl = `https://${config.domain}/settings/security`;
         log(`   ${chalk.gray('Visit: ' + securityUrl)}`);
     }
