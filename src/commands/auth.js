@@ -20,19 +20,16 @@ const REGISTER_URL = `https://${config.domain}/`;
 /**
  * Validate API key with the server
  */
-async function validateApiKey(apiKey) {
-    // Validate API key format before sending to network
-    // This ensures we only send properly formatted keys, not arbitrary file data
-    if (!apiKey || typeof apiKey !== 'string' || !apiKey.startsWith('lpd_')) {
-        return null;
-    }
-
-    try {
-        const response = await fetch(`${API_BASE_URL}/api/quota`, {
-            headers: {
-                'X-API-Key': apiKey,
-            },
-        });
+async function validateApiKey (apiKey) {
+  if (!apiKey || typeof apiKey !== 'string' || !apiKey.startsWith('lpd_')) {
+    return null
+  }
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/quota`, {
+      headers: {
+        'X-API-Key': apiKey
+      }
+    })
 
         if (!response.ok) {
             return null;
