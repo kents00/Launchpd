@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.3] - 2026-02-03
+
+### Added
+- **2FA Support**: Added support for email-based Two-Factor Authentication status reporting.
+- **Quota Visibility**: Included "site(s) remaining" information in deployment warnings to help users track usage.
+
+### Fixed
+- **Password Management**: Resolved integration issues with the password change API and route mismatches.
+- **Config Robustness**: Improved configuration loading to handle missing files and test environment edge cases.
+- **Quota Accuracy**: Fixed inaccurate site count reporting and improved data flow from the backend.
+- **Test Stability**: Refactored test mocks to eliminate redundant async wrappers and improve reliability across environments.
+
+### Security
+- Enhanced validation for 2FA status checks.
+
 ## [1.0.2] - 2026-01-24
 
 ### Added
