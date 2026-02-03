@@ -46,19 +46,10 @@ export async function checkQuota (subdomain, estimatedBytes = 0, options = {}) {
         headers: {
           'X-API-Key': apiKey
         }
-      })
+    }
 
-      if (!response.ok) {
-        if (options.verbose || process.env.DEBUG) {
-          raw(
-            `Quota check failed: ${response.status} ${response.statusText}`,
-            'error'
-          )
-          const text = await response.text()
-          raw(`Response: ${text}`, 'error')
-        }
-        return null
-      }
+    // Determine if deployment is allowed based on API flags or local calculations
+    const allowed = quotaData.canDeploy ?? true;
 
       return await response.json()
     } catch (err) {
@@ -73,45 +64,46 @@ export async function checkQuota (subdomain, estimatedBytes = 0, options = {}) {
   }
   // ... skipped ...
 
-  if (!quotaData) {
-    // API unavailable, allow deployment (fail-open for MVP)
-    return {
-      allowed: true,
-      isNewSite: true,
-      quota: null,
-      warnings: ['Could not verify quota (API unavailable)']
+    // Check site limit for new sites
+    if (isNewSite) {
+        const canCreate = quotaData.canCreateNewSite !== undefined ? quotaData.canCreateNewSite : (remaining > 0);
+        if (!canCreate) {
+            error(`Site limit reached (${quotaData.limits?.maxSites || 'unknown'} sites)`);
+            if (creds?.apiKey) {
+                info('Upgrade to Pro for more sites, or delete an existing site');
+                info('Check your quota status: launchpd whoami');
+            } else {
+                showUpgradePrompt();
+            }
+            return {
+                allowed: false,
+                isNewSite,
+                quota: quotaData,
+                warnings,
+            };
+        }
     }
-  }
 
-  // DEBUG: Write input options to file
-  try {
-    const { appendFileSync } = await import('node:fs')
-    appendFileSync(
-      'quota_debug_trace.txt',
-      `\n[${new Date().toISOString()}] Check: ${subdomain}, isUpdate: ${options.isUpdate}, type: ${typeof options.isUpdate}`
-    )
-  } catch {
-    // Ignore trace errors
-  }
+    // Check storage limit
+    const maxStorage = quotaData.limits?.maxStorageBytes || (quotaData.limits?.maxStorageMB * 1024 * 1024);
+    const storageUsed = quotaData.usage?.storageUsed || (quotaData.usage?.storageUsedMB * 1024 * 1024) || 0;
+    const storageAfter = storageUsed + estimatedBytes;
 
-  // Check if this is an existing site the user owns
-  // If explicitly marked as update, assume user owns it
-  let isNewSite = true
-  if (options.isUpdate) {
-    isNewSite = false
-  } else if (subdomain) {
-    isNewSite = !(await userOwnsSite(creds?.apiKey, subdomain))
-  }
-
-  const warnings = [...(quotaData.warnings || [])]
-
-  // Add quota warning (de-duplicated) - early so it shows even if blocked later
-  const remaining = quotaData.usage?.sitesRemaining
-  if (typeof remaining === 'number') {
-    const warningMsg = `You have ${remaining} site(s) remaining`
-    // Only push if not already present in warnings from backend
-    if (!warnings.some((w) => w.toLowerCase().includes('site(s) remaining'))) {
-      warnings.push(warningMsg)
+    if (maxStorage && storageAfter > maxStorage) {
+        const overBy = storageAfter - quotaData.limits.maxStorageBytes;
+        error(`Storage limit exceeded by ${formatBytes(overBy)}`);
+        error(`Current: ${formatBytes(quotaData.usage.storageUsed)} / ${formatBytes(quotaData.limits.maxStorageBytes)}`);
+        if (creds?.apiKey) {
+            info('Upgrade to Pro for more storage, or delete old deployments');
+        } else {
+            showUpgradePrompt();
+        }
+        return {
+            allowed: false,
+            isNewSite,
+            quota: quotaData,
+            warnings,
+        };
     }
   }
 

@@ -6,13 +6,14 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url))
 
 let packageJson = { version: '1.0.0' } // Default fallback
 try {
-  const content = readFileSync(join(__dirname, '../package.json'), 'utf8')
-  if (content) {
-    packageJson = JSON.parse(content)
-  }
-} catch {
-  // In some test environments or if package.json is missing,
-  // we use the fallback version
+    const content = readFileSync(join(__dirname, '../package.json'), 'utf8');
+    if (content) {
+        packageJson = JSON.parse(content);
+    }
+} catch (err) {
+    if (err.code !== 'ENOENT') {
+        console.warn('Warning: Could not read package.json:', err.message);
+    }
 }
 
 /**
