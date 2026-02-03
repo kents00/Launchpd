@@ -187,6 +187,13 @@ async function checkAnonymousQuota() {
   try {
     const clientToken = await getClientToken();
 
+    // Validate client token format before sending to network
+    // This ensures we only send properly formatted tokens, not arbitrary file data
+    // Expected format: cli_ followed by 32 hex characters
+    if (!clientToken || typeof clientToken !== 'string' || !/^cli_[a-f0-9]{32}$/.test(clientToken)) {
+      return null;
+    }
+
     const response = await fetch(`${API_BASE_URL}/api/quota/anonymous`, {
       method: 'POST',
       headers: {
