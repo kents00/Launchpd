@@ -1,5 +1,5 @@
 import { existsSync, statSync } from 'node:fs';
-import { exec } from 'node:child_process';
+import { exec, spawn } from 'node:child_process';
 import chalk from 'chalk';
 import { readdir } from 'node:fs/promises';
 import { resolve, basename, join, relative, sep } from 'node:path';
@@ -312,12 +312,24 @@ export async function deploy(folder, options) {
 
         if (options.open) {
             const platform = process.platform;
-            let cmd;
-            if (platform === 'darwin') cmd = `open "${url}"`;
-            else if (platform === 'win32') cmd = `start "" "${url}"`;
-            else cmd = `xdg-open "${url}"`;
+            let command;
+            let args;
 
-            exec(cmd);
+            if (platform === 'darwin') {
+                command = 'open';
+                args = [url];
+            } else if (platform === 'win32') {
+                // Use "start" via cmd to mimic existing behavior, but pass URL as a separate argument
+                command = 'cmd';
+                args = ['/c', 'start', '', url];
+            } else {
+                command = 'xdg-open';
+                args = [url];
+            }
+
+            // Use spawn with arguments to avoid invoking a shell with a constructed command string
+            const child = spawn(command, args, { stdio: 'ignore', detached: true });
+            child.unref();
         }
 
 
