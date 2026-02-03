@@ -1,19 +1,19 @@
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-const __dirname = fileURLToPath(new URL('.', import.meta.url));
+const __dirname = fileURLToPath(new URL('.', import.meta.url))
 
-let packageJson = { version: '1.0.0' }; // Default fallback
+let packageJson = { version: '1.0.0' } // Default fallback
 try {
-    const content = readFileSync(join(__dirname, '../package.json'), 'utf8');
-    if (content) {
-        packageJson = JSON.parse(content);
-    }
+  const content = readFileSync(join(__dirname, '../package.json'), 'utf8')
+  if (content) {
+    packageJson = JSON.parse(content)
+  }
 } catch (err) {
-    if (err.code !== 'ENOENT') {
-        console.warn('Warning: Could not read package.json:', err.message);
-    }
+  if (err.code !== 'ENOENT') {
+    console.warn('Warning: Could not read package.json:', err.message)
+  }
 }
 
 /**
@@ -21,12 +21,12 @@ try {
  * No credentials needed - uploads go through the API proxy
  */
 export const config = {
-    // Base domain for deployments
-    domain: 'launchpd.cloud',
+  // Base domain for deployments
+  domain: 'launchpd.cloud',
 
-    // API endpoint
-    apiUrl: 'https://api.launchpd.cloud',
+  // API endpoint
+  apiUrl: 'https://api.launchpd.cloud',
 
-    // CLI version
-    version: packageJson.version,
-};
+  // CLI version
+  version: packageJson.version
+}
