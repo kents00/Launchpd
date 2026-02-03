@@ -1,5 +1,6 @@
 node_modules/
-tests
+tests/
 .claude/
 quota_debug_trace.txt
 docs/
+.github/

@@ -36,7 +36,8 @@ describe('checkQuota', () => {
         vi.clearAllMocks();
         // Default anonymous user
         mocks.getCredentials.mockResolvedValue({ apiKey: null });
-        mocks.getClientToken.mockResolvedValue('test-token');
+        // Use valid client token format (cli_ + 32 hex chars) to pass validation
+        mocks.getClientToken.mockResolvedValue('cli_0123456789abcdef0123456789abcdef');
     });
 
     afterEach(() => {
