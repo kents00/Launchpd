@@ -223,7 +223,7 @@ export async function finalizeUpload (
   expiresAt = null,
   message = null
 ) {
-  return await completeUpload(
+  return completeUpload(
     subdomain,
     version,
     fileCount,

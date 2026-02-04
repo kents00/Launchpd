@@ -69,7 +69,7 @@ export async function recordDeploymentInMetadata (
 ) {
   const folderName = folderPath.split(/[\\/]/).pop() || 'unknown'
 
-  return await apiRequest('/api/deployments', {
+  return apiRequest('/api/deployments', {
     method: 'POST',
     body: JSON.stringify({
       subdomain,
@@ -124,7 +124,7 @@ export async function getVersionsForSubdomain (subdomain) {
  * @param {number} version - Version to make active
  */
 export async function setActiveVersion (subdomain, version) {
-  return await apiRequest(`/api/versions/${subdomain}/rollback`, {
+  return apiRequest(`/api/versions/${subdomain}/rollback`, {
     method: 'PUT',
     body: JSON.stringify({ version })
   })

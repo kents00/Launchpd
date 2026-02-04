@@ -149,7 +149,7 @@ export async function recordDeployment (deploymentData) {
     message
   } = deploymentData
 
-  return await apiRequest('/api/deployments', {
+  return apiRequest('/api/deployments', {
     method: 'POST',
     body: JSON.stringify({
       subdomain,
@@ -168,28 +168,28 @@ export async function recordDeployment (deploymentData) {
  * Get list of user's deployments
  */
 export async function listDeployments (limit = 50, offset = 0) {
-  return await apiRequest(`/api/deployments?limit=${limit}&offset=${offset}`)
+  return apiRequest(`/api/deployments?limit=${limit}&offset=${offset}`)
 }
 
 /**
  * Get deployment details for a subdomain
  */
 export async function getDeployment (subdomain) {
-  return await apiRequest(`/api/deployments/${subdomain}`)
+  return apiRequest(`/api/deployments/${subdomain}`)
 }
 
 /**
  * Get version history for a subdomain
  */
 export async function getVersions (subdomain) {
-  return await apiRequest(`/api/versions/${subdomain}`)
+  return apiRequest(`/api/versions/${subdomain}`)
 }
 
 /**
  * Rollback to a specific version
  */
 export async function rollbackVersion (subdomain, version) {
-  return await apiRequest(`/api/versions/${subdomain}/rollback`, {
+  return apiRequest(`/api/versions/${subdomain}/rollback`, {
     method: 'PUT',
     body: JSON.stringify({ version })
   })
@@ -207,7 +207,7 @@ export async function checkSubdomainAvailable (subdomain) {
  * Reserve a subdomain
  */
 export async function reserveSubdomain (subdomain) {
-  return await apiRequest('/api/subdomains/reserve', {
+  return apiRequest('/api/subdomains/reserve', {
     method: 'POST',
     body: JSON.stringify({ subdomain })
   })
@@ -218,7 +218,7 @@ export async function reserveSubdomain (subdomain) {
  */
 export async function unreserveSubdomain (subdomain) {
   // Note: Admin only, but good to have in client client lib
-  return await apiRequest(`/api/admin/reserve-subdomain/${subdomain}`, {
+  return apiRequest(`/api/admin/reserve-subdomain/${subdomain}`, {
     method: 'DELETE'
   })
 }
@@ -227,28 +227,28 @@ export async function unreserveSubdomain (subdomain) {
  * Get user's subdomains
  */
 export async function listSubdomains () {
-  return await apiRequest('/api/subdomains')
+  return apiRequest('/api/subdomains')
 }
 
 /**
  * Get current user info
  */
 export async function getCurrentUser () {
-  return await apiRequest('/api/users/me')
+  return apiRequest('/api/users/me')
 }
 
 /**
  * Health check
  */
 export async function healthCheck () {
-  return await apiRequest('/api/health')
+  return apiRequest('/api/health')
 }
 
 /**
  * Resend email verification
  */
 export async function resendVerification () {
-  return await apiRequest('/api/auth/resend-verification', {
+  return apiRequest('/api/auth/resend-verification', {
     method: 'POST'
   })
 }
@@ -257,7 +257,7 @@ export async function resendVerification () {
  * Regenerate API key
  */
 export async function regenerateApiKey () {
-  return await apiRequest('/api/api-key/regenerate', {
+  return apiRequest('/api/api-key/regenerate', {
     method: 'POST',
     body: JSON.stringify({ confirm: 'yes' })
   })
@@ -271,7 +271,7 @@ export async function changePassword (
   newPassword,
   confirmPassword
 ) {
-  return await apiRequest('/api/settings/change-password', {
+  return apiRequest('/api/settings/change-password', {
     method: 'POST',
     body: JSON.stringify({
       current_password: currentPassword,
@@ -285,7 +285,7 @@ export async function changePassword (
  * Server-side logout
  */
 export async function serverLogout () {
-  return await apiRequest('/api/auth/logout', {
+  return apiRequest('/api/auth/logout', {
     method: 'POST'
   })
 }
