@@ -40,10 +40,7 @@ export async function status (_options) {
     const deploymentData = await getDeployment(config.subdomain)
     statusSpinner.stop()
 
-    if (
-      deploymentData?.versions &&
-      deploymentData.versions.length > 0
-    ) {
+    if (deploymentData?.versions && deploymentData.versions.length > 0) {
       const active =
         deploymentData.versions.find(
           (v) => v.version === deploymentData.activeVersion
