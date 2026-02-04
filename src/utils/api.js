@@ -120,9 +120,7 @@ async function apiRequest(endpoint, options = {}) {
  */
 export async function getNextVersionFromAPI(subdomain) {
     const result = await apiRequest("/api/versions/"+subdomain);
-    if (!result || !result.versions || result.versions.length === 0) {
-        return 1;
-    }
+    if (!result?.versions?.length) return 1;
     const maxVersion = Math.max(...result.versions.map(function(v) { return v.version }));
     return maxVersion + 1;
 }
