@@ -57,7 +57,7 @@ export async function getClientToken() {
     }
 
     // Generate new token
-    const token = `cli_${randomBytes(16).toString('hex')}`;
+    const token = "cli_"+randomBytes(16).toString('hex');
     await writeFile(tokenPath, token, 'utf-8');
     return token;
 }

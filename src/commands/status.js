@@ -23,8 +23,8 @@ export async function status(_options) {
         return;
     }
 
-    info(`Project root: ${chalk.cyan(projectRoot)}`);
-    info(`Linked subdomain: ${chalk.bold.green(config.subdomain)}.launchpd.cloud`);
+    info("Project root: "+chalk.cyan(projectRoot));
+    info("Linked subdomain: "+chalk.bold.green(config.subdomain)+".launchpd.cloud");
 
     const statusSpinner = spinner('Fetching latest deployment info...');
     try {
@@ -32,25 +32,25 @@ export async function status(_options) {
         statusSpinner.stop();
 
         if (deploymentData && deploymentData.versions && deploymentData.versions.length > 0) {
-            const active = deploymentData.versions.find(v => v.version === deploymentData.activeVersion) || deploymentData.versions[0];
+            const active = deploymentData.versions.find(function(v) { return v.version === deploymentData.activeVersion }) || deploymentData.versions[0];
 
             log('\nDeployment Status:');
-            log(`  Active Version:  ${chalk.cyan(`v${active.version}`)}`);
-            log(`  Deployed At:     ${new Date(active.created_at || active.timestamp).toLocaleString()}`);
+            log("  Active Version:  "+chalk.cyan(`v${active.version}`));
+            log("  Deployed At:     "+new Date(active.created_at || active.timestamp).toLocaleString());
             if (active.message) {
-                log(`  Message:         ${chalk.italic(active.message)}`);
+                log("  Message:         "+chalk.italic(active.message));
             }
-            log(`  File Count:      ${active.file_count || active.fileCount}`);
-            log(`  Total Size:      ${formatSize(active.total_bytes || active.totalBytes)}`);
+            log("  File Count:      "+active.file_count || active.fileCount);
+            log("  Total Size:      "+formatSize(active.total_bytes || active.totalBytes));
 
             // Show expiration if set
             if (active.expires_at || active.expiresAt) {
                 const expiryStr = formatTimeRemaining(active.expires_at || active.expiresAt);
                 const expiryColor = expiryStr === 'expired' ? chalk.red : chalk.yellow;
-                log(`  Expires:         ${expiryColor(expiryStr)}`);
+                log("  Expires:         "+expiryColor(expiryStr));
             }
 
-            log(`  URL:             ${chalk.underline.blue(`https://${config.subdomain}.launchpd.cloud`)}`);
+            log("  URL:             "+chalk.underline.blue(`https://${config.subdomain}.launchpd.cloud`));
             log('');
         } else {
             warning('\nNo deployments found for this project yet.');
@@ -58,7 +58,7 @@ export async function status(_options) {
         }
     } catch {
         statusSpinner.fail('Failed to fetch deployment status');
-        info(`Subdomain: ${config.subdomain}`);
+        info("Subdomain: "+config.subdomain);
         // Don't exit, just show what we have
     }
 }

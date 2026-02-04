@@ -114,11 +114,11 @@ export function handleCommonError(err, logger) {
 }
 
 export default {
-    APIError,
-    MaintenanceError,
-    AuthError,
-    QuotaError,
-    NetworkError,
-    TwoFactorRequiredError,
-    handleCommonError,
+    APIError: APIError,
+    MaintenanceError: MaintenanceError,
+    AuthError: AuthError,
+    QuotaError: QuotaError,
+    NetworkError: NetworkError,
+    TwoFactorRequiredError: TwoFactorRequiredError,
+    handleCommonError: handleCommonError,
 };

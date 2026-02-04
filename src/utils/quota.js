@@ -7,7 +7,7 @@ import { config } from '../config.js'
 import { getCredentials, getClientToken } from './credentials.js'
 import { warning, error, info, log, raw } from './logger.js'
 
-const API_BASE_URL = `https://api.${config.domain}`
+const API_BASE_URL = "https://api."+config.domain
 
 /**
  * Check quota before deployment
@@ -37,7 +37,7 @@ export async function checkQuota (subdomain, estimatedBytes = 0, options = {}) {
    */
   async function checkAuthenticatedQuota (apiKey, isUpdate = false) {
     try {
-      const url = new URL(`${API_BASE_URL}/api/quota`)
+      const url = new URL(""+API_BASE_URL+"/api/quota")
       if (isUpdate) {
         url.searchParams.append('is_update', 'true')
       }
@@ -51,11 +51,11 @@ export async function checkQuota (subdomain, estimatedBytes = 0, options = {}) {
       if (!response.ok) {
         if (options.verbose || process.env.DEBUG) {
           raw(
-            `Quota check failed: ${response.status} ${response.statusText}`,
+            "Quota check failed: "+response.status+" "+response.statusText,
             'error'
           )
           const text = await response.text()
-          raw(`Response: ${text}`, 'error')
+          raw("Response: "+text, 'error')
         }
         return null
       }
@@ -88,7 +88,7 @@ export async function checkQuota (subdomain, estimatedBytes = 0, options = {}) {
     const { appendFileSync } = await import('node:fs')
     appendFileSync(
       'quota_debug_trace.txt',
-      `\n[${new Date().toISOString()}] Check: ${subdomain}, isUpdate: ${options.isUpdate}, type: ${typeof options.isUpdate}`
+      "\n["+new Date().toISOString()+"] Check: "+subdomain+", isUpdate: "+options.isUpdate+", type: "+typeof options.isUpdate
     )
   } catch {
     // Ignore trace errors

@@ -58,7 +58,7 @@ export async function updateProjectConfig(updates, projectDir = findProjectRoot(
         ...updates,
         updatedAt: new Date().toISOString()
     };
-    return await saveProjectConfig(newConfig, projectDir);
+    return saveProjectConfig(newConfig, projectDir);
 }
 
 /**

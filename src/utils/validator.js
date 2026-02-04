@@ -15,7 +15,7 @@ const ALLOWED_EXTENSIONS = new Set([
 ]);
 
 // Forbidden indicators (frameworks, build tools, backend code)
-const FORBIDDEN_INDICATORS = [
+const FORBIDDEN_INDICATORS = new Set([
     // Build systems & Frameworks
     'package.json',
     'package-lock.json',
@@ -43,7 +43,7 @@ const FORBIDDEN_INDICATORS = [
 
     // Hidden/System
     '.git', '.svn', '.hg'
-];
+]);
 
 /**
  * Validates that a folder contains ONLY static files.
@@ -61,7 +61,7 @@ export async function validateStaticOnly(folderPath) {
             const ext = extname(fileName);
 
             // 1. Check if the file/dir itself is a forbidden indicator
-            if (FORBIDDEN_INDICATORS.includes(fileName) || FORBIDDEN_INDICATORS.includes(ext)) {
+            if (FORBIDDEN_INDICATORS.has(fileName) || FORBIDDEN_INDICATORS.has(ext)) {
                 violations.push(file.name);
                 continue;
             }
@@ -85,6 +85,6 @@ export async function validateStaticOnly(folderPath) {
             violations: [...new Set(violations)] // Deduplicate
         };
     } catch (err) {
-        throw new Error(`Failed to validate folder: ${err.message}`);
+        throw new Error("Failed to validate folder: " + err.message);
     }
 }

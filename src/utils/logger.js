@@ -23,7 +23,7 @@ export function error(message, options = {}) {
     console.error(chalk.red.bold('✗'), chalk.red(message)); // skipcq: JS-0002
     if (options.verbose && options.cause) {
         console.error(chalk.gray('  Stack trace:')); // skipcq: JS-0002
-        console.error(chalk.gray(`  ${options.cause.stack || options.cause.message}`)); // skipcq: JS-0002
+        console.error(chalk.gray("  "+options.cause.stack || options.cause.message)); // skipcq: JS-0002
     }
 }
 
@@ -67,7 +67,7 @@ export function raw(data, method = 'log') {
  */
 export function spinner(text) {
     activeSpinner = ora({
-        text,
+        text: text,
         color: 'cyan',
         spinner: 'dots',
     }).start();

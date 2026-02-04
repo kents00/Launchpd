@@ -18,7 +18,7 @@ function getApiKey() {
  * Make an authenticated API request
  */
 async function apiRequest(endpoint, options = {}) {
-    const url = `${API_BASE_URL}${endpoint}`;
+    const url = ""+API_BASE_URL+endpoint;
 
     const headers = {
         'Content-Type': 'application/json',
@@ -29,13 +29,13 @@ async function apiRequest(endpoint, options = {}) {
     try {
         const response = await fetch(url, {
             ...options,
-            headers,
+            headers: headers,
         });
 
         const data = await response.json();
 
         if (!response.ok) {
-            throw new Error(data.error || `API error: ${response.status}`);
+            throw new Error(data.error || "API error: "+response.status);
         }
 
         return data;
@@ -62,11 +62,11 @@ export async function recordDeploymentInMetadata(subdomain, folderPath, fileCoun
     return await apiRequest('/api/deployments', {
         method: 'POST',
         body: JSON.stringify({
-            subdomain,
-            folderName,
-            fileCount,
-            totalBytes,
-            version,
+            subdomain: subdomain,
+            folderName: folderName,
+            fileCount: fileCount,
+            totalBytes: totalBytes,
+            version: version,
             cliVersion: config.version,
             expiresAt: expiresAt?.toISOString() || null,
         }),
@@ -88,7 +88,7 @@ export async function listDeploymentsFromR2() {
  * @returns {Promise<number>} Next version number
  */
 export async function getNextVersion(subdomain) {
-    const result = await apiRequest(`/api/versions/${subdomain}`);
+    const result = await apiRequest("/api/versions/"+subdomain);
 
     if (!result || !result.versions || result.versions.length === 0) {
         return 1;

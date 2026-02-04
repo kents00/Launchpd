@@ -16,7 +16,7 @@ export function prompt(question) {
             rl.close();
             // Small delay to allow Windows handles to cleanup before process.exit might be called
             // Increased to 100ms to be safer against UV_HANDLE_CLOSING assertion on Windows
-            setTimeout(() => resolve(answer.trim()), 100);
+            setTimeout(function() { return resolve(answer.trim()) }, 100);
         });
     });
 }
@@ -71,7 +71,7 @@ export function promptSecret(question) {
             }
 
             // Printable characters (exclude control keys)
-            if (str && str.length === 1 && str.match(/[ -~]/) && !key.ctrl && !key.meta) {
+            if (str && str.length === 1 && /[ -~]/.test(str) && !key.ctrl && !key.meta) {
                 secret += str;
                 stdout.write('*');
             }
@@ -95,6 +95,6 @@ export function promptSecret(question) {
  * @returns {Promise<boolean>}
  */
 export async function confirm(question) {
-    const answer = await prompt(`${question} (y/N): `);
+    const answer = await prompt(""+question+" (y/N): ");
     return answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes';
 }
