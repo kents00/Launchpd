@@ -10,13 +10,13 @@
 
 ## Features
 
-* **Blazing Fast**: Deploy folders in seconds with a single command.
-* **Project-Based**: Link local folders to subdomains once and deploy without re-typing names.
-* **Zero Config**: No complex setup; optionally use `.launchpd.json` for project persistence.
-* **Version Control**: Every deployment is versioned with messages. Roll back instantly.
-* **Static-Only Security**: Strict validation ensures only high-performance static assets are deployed.
-* **Secure**: Private uploads with API key authentication or safe anonymous testing.
-* **Auto-Expiration**: Set temporary deployments that delete themselves automatically.
+- **Blazing Fast**: Deploy folders in seconds with a single command.
+- **Project-Based**: Link local folders to subdomains once and deploy without re-typing names.
+- **Zero Config**: No complex setup; optionally use `.launchpd.json` for project persistence.
+- **Version Control**: Every deployment is versioned with messages. Roll back instantly.
+- **Static-Only Security**: Strict validation ensures only high-performance static assets are deployed.
+- **Secure**: Private uploads with API key authentication or safe anonymous testing.
+- **Auto-Expiration**: Set temporary deployments that delete themselves automatically.
 
 ## Quick Start
 

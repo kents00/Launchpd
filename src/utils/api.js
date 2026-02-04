@@ -29,8 +29,8 @@ export {
 /**
  * Make an authenticated API request
  */
-async function apiRequest(endpoint, options = {}) {
-  const url = `${API_BASE_URL}${endpoint}`;
+async function apiRequest (endpoint, options = {}) {
+  const url = `${API_BASE_URL}${endpoint}`
 
   const apiKey = await getApiKey()
   const apiSecret = await getApiSecret()
@@ -67,16 +67,18 @@ async function apiRequest(endpoint, options = {}) {
   try {
     const response = await fetch(url, {
       ...options,
-      headers,
-    });
+      headers
+    })
 
     // Handle maintenance mode (503 with maintenance_mode flag)
     if (response.status === 503) {
-      const data = await response.json().catch(() => ({}));
+      const data = await response.json().catch(() => ({}))
       if (data.maintenance_mode) {
-        throw new MaintenanceError(data.message || 'LaunchPd is under maintenance');
+        throw new MaintenanceError(
+          data.message || 'LaunchPd is under maintenance'
+        )
       }
-      throw new APIError(data.message || 'Service unavailable', 503, data);
+      throw new APIError(data.message || 'Service unavailable', 503, data)
     }
 
     // Handle authentication errors
@@ -98,7 +100,11 @@ async function apiRequest(endpoint, options = {}) {
     const data = await response.json()
 
     if (!response.ok) {
-      throw new APIError(data.error || data.message || `API error: ${response.status}`, response.status, data);
+      throw new APIError(
+        data.error || data.message || `API error: ${response.status}`,
+        response.status,
+        data
+      )
     }
 
     return data
@@ -122,17 +128,17 @@ async function apiRequest(endpoint, options = {}) {
 /**
  * Get the next version number for a subdomain
  */
-export async function getNextVersionFromAPI(subdomain) {
-  const result = await apiRequest(`/api/versions/${subdomain}`);
-  if (!result?.versions?.length) return 1;
-  const maxVersion = Math.max(...result.versions.map(v => v.version));
-  return maxVersion + 1;
+export async function getNextVersionFromAPI (subdomain) {
+  const result = await apiRequest(`/api/versions/${subdomain}`)
+  if (!result?.versions?.length) return 1
+  const maxVersion = Math.max(...result.versions.map((v) => v.version))
+  return maxVersion + 1
 }
 
 /**
  * Record a new deployment in the API
  */
-export async function recordDeployment(deploymentData) {
+export async function recordDeployment (deploymentData) {
   const {
     subdomain,
     folderName,
@@ -161,28 +167,28 @@ export async function recordDeployment(deploymentData) {
 /**
  * Get list of user's deployments
  */
-export async function listDeployments(limit = 50, offset = 0) {
+export async function listDeployments (limit = 50, offset = 0) {
   return await apiRequest(`/api/deployments?limit=${limit}&offset=${offset}`)
 }
 
 /**
  * Get deployment details for a subdomain
  */
-export async function getDeployment(subdomain) {
+export async function getDeployment (subdomain) {
   return await apiRequest(`/api/deployments/${subdomain}`)
 }
 
 /**
  * Get version history for a subdomain
  */
-export async function getVersions(subdomain) {
+export async function getVersions (subdomain) {
   return await apiRequest(`/api/versions/${subdomain}`)
 }
 
 /**
  * Rollback to a specific version
  */
-export async function rollbackVersion(subdomain, version) {
+export async function rollbackVersion (subdomain, version) {
   return await apiRequest(`/api/versions/${subdomain}/rollback`, {
     method: 'PUT',
     body: JSON.stringify({ version })
@@ -192,7 +198,7 @@ export async function rollbackVersion(subdomain, version) {
 /**
  * Check if a subdomain is available
  */
-export async function checkSubdomainAvailable(subdomain) {
+export async function checkSubdomainAvailable (subdomain) {
   const result = await apiRequest(`/api/public/check/${subdomain}`)
   return result?.available ?? true
 }
@@ -200,7 +206,7 @@ export async function checkSubdomainAvailable(subdomain) {
 /**
  * Reserve a subdomain
  */
-export async function reserveSubdomain(subdomain) {
+export async function reserveSubdomain (subdomain) {
   return await apiRequest('/api/subdomains/reserve', {
     method: 'POST',
     body: JSON.stringify({ subdomain })
@@ -210,7 +216,7 @@ export async function reserveSubdomain(subdomain) {
 /**
  * Unreserve a subdomain
  */
-export async function unreserveSubdomain(subdomain) {
+export async function unreserveSubdomain (subdomain) {
   // Note: Admin only, but good to have in client client lib
   return await apiRequest(`/api/admin/reserve-subdomain/${subdomain}`, {
     method: 'DELETE'
@@ -220,28 +226,28 @@ export async function unreserveSubdomain(subdomain) {
 /**
  * Get user's subdomains
  */
-export async function listSubdomains() {
+export async function listSubdomains () {
   return await apiRequest('/api/subdomains')
 }
 
 /**
  * Get current user info
  */
-export async function getCurrentUser() {
+export async function getCurrentUser () {
   return await apiRequest('/api/users/me')
 }
 
 /**
  * Health check
  */
-export async function healthCheck() {
+export async function healthCheck () {
   return await apiRequest('/api/health')
 }
 
 /**
  * Resend email verification
  */
-export async function resendVerification() {
+export async function resendVerification () {
   return await apiRequest('/api/auth/resend-verification', {
     method: 'POST'
   })
@@ -250,7 +256,7 @@ export async function resendVerification() {
 /**
  * Regenerate API key
  */
-export async function regenerateApiKey() {
+export async function regenerateApiKey () {
   return await apiRequest('/api/api-key/regenerate', {
     method: 'POST',
     body: JSON.stringify({ confirm: 'yes' })
@@ -260,7 +266,7 @@ export async function regenerateApiKey() {
 /**
  * Change password
  */
-export async function changePassword(
+export async function changePassword (
   currentPassword,
   newPassword,
   confirmPassword
@@ -278,7 +284,7 @@ export async function changePassword(
 /**
  * Server-side logout
  */
-export async function serverLogout() {
+export async function serverLogout () {
   return await apiRequest('/api/auth/logout', {
     method: 'POST'
   })
