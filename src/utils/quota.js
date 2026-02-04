@@ -60,7 +60,7 @@ export async function checkQuota (subdomain, estimatedBytes = 0, options = {}) {
         return null
       }
 
-      return response.json()
+      return await response.json()
     } catch (err) {
       if (options.verbose || process.env.DEBUG) {
         raw('Quota check error:', 'error')
@@ -230,7 +230,7 @@ async function checkAnonymousQuota () {
       return null
     }
 
-    return response.json()
+    return await response.json()
   } catch {
     return null
   }

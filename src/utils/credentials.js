@@ -50,7 +50,7 @@ export async function getClientToken () {
 
   try {
     if (existsSync(tokenPath)) {
-      return readFile(tokenPath, 'utf-8')
+      return await readFile(tokenPath, 'utf-8')
     }
   } catch {
     // Token file corrupted, regenerate
