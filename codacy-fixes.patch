@@ -1,0 +1,426 @@
+diff --git a/README.md b/README.md
+--- a/README.md
++++ b/README.md
+@@ -13,1 +13,1 @@
+-*   **Blazing Fast**: Deploy folders in seconds with a single command.
++* **Blazing Fast**: Deploy folders in seconds with a single command.
+@@ -14,1 +14,1 @@
+-*   **Project-Based**: Link local folders to subdomains once and deploy without re-typing names.
++* **Project-Based**: Link local folders to subdomains once and deploy without re-typing names.
+@@ -15,1 +15,1 @@
+-*   **Zero Config**: No complex setup; optionally use `.launchpd.json` for project persistence.
++* **Zero Config**: No complex setup; optionally use `.launchpd.json` for project persistence.
+@@ -16,1 +16,1 @@
+-*   **Version Control**: Every deployment is versioned with messages. Roll back instantly.
++* **Version Control**: Every deployment is versioned with messages. Roll back instantly.
+@@ -17,1 +17,1 @@
+-*   **Static-Only Security**: Strict validation ensures only high-performance static assets are deployed.
++* **Static-Only Security**: Strict validation ensures only high-performance static assets are deployed.
+@@ -18,1 +18,1 @@
+-*   **Secure**: Private uploads with API key authentication or safe anonymous testing.
++* **Secure**: Private uploads with API key authentication or safe anonymous testing.
+@@ -19,1 +19,1 @@
+-*   **Auto-Expiration**: Set temporary deployments that delete themselves automatically.
++* **Auto-Expiration**: Set temporary deployments that delete themselves automatically.
+@@ -44,1 +44,1 @@
+-### Deployment
++### Deployment
+
+@@ -54,1 +54,1 @@
+-### Management
++### Management
+
+@@ -63,1 +63,1 @@
+-### Identity & Auth
++### Identity & Auth
+
+@@ -94,1 +94,1 @@
+-*   **Bugs & Feedback**: [GitHub Issues](https://github.com/kents00/launchpd/issues)
++* **Bugs & Feedback**: [GitHub Issues](https://github.com/kents00/launchpd/issues)
+@@ -95,1 +95,1 @@
+-*   **Website**: [launchpd.cloud](https://launchpd.cloud)
++* **Website**: [launchpd.cloud](https://launchpd.cloud)
+@@ -96,1 +96,1 @@
+-*   **Docs**: [launchpd.cloud/docs](https://launchpd.cloud/docs)
++* **Docs**: [launchpd.cloud/docs](https://launchpd.cloud/docs)
+diff --git a/src/commands/list.js b/src/commands/list.js
+--- a/src/commands/list.js
++++ b/src/commands/list.js
+@@ -54,1 +54,1 @@
+-        fetchSpinner.succeed(`Found ${deployments.length} deployment(s)`);
++        fetchSpinner.succeed("Found "+deployments.length+" deployment(s)");
+@@ -83,1 +83,1 @@
+-            const url = `https://${dep.subdomain}.launchpd.cloud`;
++            const url = "https://"+dep.subdomain+".launchpd.cloud";
+@@ -94,1 +94,1 @@
+-                status = chalk.yellow(`â± ${formatTimeRemaining(dep.expiresAt)}`);
++                status = chalk.yellow("â± "+formatTimeRemaining(dep.expiresAt));
+@@ -100,1 +100,1 @@
+-            const versionStr = `v${dep.version || 1}`;
++            const versionStr = "v"+dep.version || 1;
+diff --git a/src/commands/deploy.js b/src/commands/deploy.js
+--- a/src/commands/deploy.js
++++ b/src/commands/deploy.js
+@@ -35,1 +35,1 @@
+-        if (pathParts.some(part => isIgnored(part, file.isDirectory()))) {
++        if (pathParts.some(function(part) { return isIgnored(part, file.isDirectory()) })) {
+diff --git a/src/utils/errors.js b/src/utils/errors.js
+--- a/src/utils/errors.js
++++ b/src/utils/errors.js
+@@ -117,1 +117,1 @@
+-    APIError,
++    APIError: APIError,
+@@ -118,1 +118,1 @@
+-    MaintenanceError,
++    MaintenanceError: MaintenanceError,
+@@ -119,1 +119,1 @@
+-    AuthError,
++    AuthError: AuthError,
+@@ -120,1 +120,1 @@
+-    QuotaError,
++    QuotaError: QuotaError,
+@@ -121,1 +121,1 @@
+-    NetworkError,
++    NetworkError: NetworkError,
+@@ -122,1 +122,1 @@
+-    TwoFactorRequiredError,
++    TwoFactorRequiredError: TwoFactorRequiredError,
+@@ -123,1 +123,1 @@
+-    handleCommonError,
++    handleCommonError: handleCommonError,
+diff --git a/src/utils/upload.js b/src/utils/upload.js
+--- a/src/utils/upload.js
++++ b/src/utils/upload.js
+@@ -53,1 +53,1 @@
+-    const response = await fetch(`${API_BASE_URL}/api/upload/file`, {
++    const response = await fetch(""+API_BASE_URL+"/api/upload/file", {
+@@ -55,1 +55,1 @@
+-        headers,
++        headers: headers,
+@@ -60,1 +60,1 @@
+-        const error = await response.json().catch(() => ({ error: 'Upload failed' }));
++        const error = await response.json().catch(function() { return ({ error: 'Upload failed' }) });
+@@ -61,1 +61,1 @@
+-        throw new Error(error.error || `Upload failed: ${response.status}`);
++        throw new Error(error.error || "Upload failed: "+response.status);
+@@ -85,1 +85,1 @@
+-        subdomain,
++        subdomain: subdomain,
+@@ -86,1 +86,1 @@
+-        version,
++        version: version,
+@@ -87,1 +87,1 @@
+-        fileCount,
++        fileCount: fileCount,
+@@ -88,1 +88,1 @@
+-        totalBytes,
++        totalBytes: totalBytes,
+@@ -89,1 +89,1 @@
+-        folderName,
++        folderName: folderName,
+@@ -90,1 +90,1 @@
+-        expiresAt,
++        expiresAt: expiresAt,
+@@ -91,1 +91,1 @@
+-        message,
++        message: message,
+@@ -108,1 +108,1 @@
+-    const response = await fetch(`${API_BASE_URL}/api/upload/complete`, {
++    const response = await fetch(""+API_BASE_URL+"/api/upload/complete", {
+diff --git a/src/utils/logger.js b/src/utils/logger.js
+--- a/src/utils/logger.js
++++ b/src/utils/logger.js
+@@ -26,1 +26,1 @@
+-        console.error(chalk.gray(`  ${options.cause.stack || options.cause.message}`)); // skipcq: JS-0002
++        console.error(chalk.gray("  "+options.cause.stack || options.cause.message)); // skipcq: JS-0002
+@@ -70,1 +70,1 @@
+-        text,
++        text: text,
+diff --git a/src/utils/quota.js b/src/utils/quota.js
+--- a/src/utils/quota.js
++++ b/src/utils/quota.js
+@@ -10,1 +10,1 @@
+-const API_BASE_URL = `https://api.${config.domain}`
++const API_BASE_URL = "https://api."+config.domain
+@@ -40,1 +40,1 @@
+-      const url = new URL(`${API_BASE_URL}/api/quota`)
++      const url = new URL(""+API_BASE_URL+"/api/quota")
+@@ -54,1 +54,1 @@
+-            `Quota check failed: ${response.status} ${response.statusText}`,
++            "Quota check failed: "+response.status+" "+response.statusText,
+@@ -58,1 +58,1 @@
+-          raw(`Response: ${text}`, 'error')
++          raw("Response: "+text, 'error')
+@@ -91,1 +91,1 @@
+-      `\n[${new Date().toISOString()}] Check: ${subdomain}, isUpdate: ${options.isUpdate}, type: ${typeof options.isUpdate}`
++      "\n["+new Date().toISOString()+"] Check: "+subdomain+", isUpdate: "+options.isUpdate+", type: "+typeof options.isUpdate
+diff --git a/src/commands/rollback.js b/src/commands/rollback.js
+--- a/src/commands/rollback.js
++++ b/src/commands/rollback.js
+@@ -18,1 +18,1 @@
+-        const fetchSpinner = spinner(`Checking versions for ${subdomain}...`);
++        const fetchSpinner = spinner("Checking versions for "+subdomain+"...");
+@@ -43,1 +43,1 @@
+-            errorWithSuggestions(`No deployments found for subdomain: ${subdomain}`, [
++            errorWithSuggestions("No deployments found for subdomain: "+subdomain, [
+@@ -46,1 +46,1 @@
+-            ], { verbose });
++            ], { verbose: verbose });
+@@ -56,1 +56,1 @@
+-        fetchSpinner.succeed(`Found ${versions.length} versions`);
++        fetchSpinner.succeed("Found "+versions.length+" versions");
+@@ -57,1 +57,1 @@
+-        info(`Current active version: ${chalk.cyan(`v${currentActive}`)}`);
++        info("Current active version: "+chalk.cyan(`v${currentActive}`));
+@@ -63,1 +63,1 @@
+-            const versionExists = versions.some(v => v.version === targetVersion);
++            const versionExists = versions.some(function(v) { return v.version === targetVersion });
+@@ -65,1 +65,1 @@
+-                error(`Version ${targetVersion} does not exist.`);
++                error("Version "+targetVersion+" does not exist.");
+@@ -68,1 +68,1 @@
+-                versions.forEach(v => {
++                for (const v of versions) {
+@@ -71,1 +71,1 @@
+-                    const message = v.message ? ` - "${v.message}"` : '';
++                    const message = v.message ? " - \""+v.message+"\"" : '';
+@@ -72,1 +72,1 @@
+-                    log(`  ${chalk.cyan(`v${v.version}`)}${message} - ${chalk.gray(v.timestamp)}${marker}`);
++                    log("  "+chalk.cyan(`v${v.version}`)+message+" - "+chalk.gray(v.timestamp)+marker);
+@@ -78,1 +78,1 @@
+-            const sortedVersions = versions.map(v => v.version).sort((a, b) => b - a);
++            const sortedVersions = versions.map(function(v) { return v.version }).sort((a, b) => b - a);
+@@ -88,1 +88,1 @@
+-            warning(`Version ${chalk.cyan(`v${targetVersion}`)} is already active.`);
++            warning("Version "+chalk.cyan(`v${targetVersion}`)+" is already active.");
+diff --git a/src/commands/status.js b/src/commands/status.js
+--- a/src/commands/status.js
++++ b/src/commands/status.js
+@@ -26,1 +26,1 @@
+-    info(`Project root: ${chalk.cyan(projectRoot)}`);
++    info("Project root: "+chalk.cyan(projectRoot));
+@@ -27,1 +27,1 @@
+-    info(`Linked subdomain: ${chalk.bold.green(config.subdomain)}.launchpd.cloud`);
++    info("Linked subdomain: "+chalk.bold.green(config.subdomain)+".launchpd.cloud");
+@@ -35,1 +35,1 @@
+-            const active = deploymentData.versions.find(v => v.version === deploymentData.activeVersion) || deploymentData.versions[0];
++            const active = deploymentData.versions.find(function(v) { return v.version === deploymentData.activeVersion }) || deploymentData.versions[0];
+@@ -38,1 +38,1 @@
+-            log(`  Active Version:  ${chalk.cyan(`v${active.version}`)}`);
++            log("  Active Version:  "+chalk.cyan(`v${active.version}`));
+@@ -39,1 +39,1 @@
+-            log(`  Deployed At:     ${new Date(active.created_at || active.timestamp).toLocaleString()}`);
++            log("  Deployed At:     "+new Date(active.created_at || active.timestamp).toLocaleString());
+@@ -41,1 +41,1 @@
+-                log(`  Message:         ${chalk.italic(active.message)}`);
++                log("  Message:         "+chalk.italic(active.message));
+@@ -43,1 +43,1 @@
+-            log(`  File Count:      ${active.file_count || active.fileCount}`);
++            log("  File Count:      "+active.file_count || active.fileCount);
+@@ -44,1 +44,1 @@
+-            log(`  Total Size:      ${formatSize(active.total_bytes || active.totalBytes)}`);
++            log("  Total Size:      "+formatSize(active.total_bytes || active.totalBytes));
+@@ -50,1 +50,1 @@
+-                log(`  Expires:         ${expiryColor(expiryStr)}`);
++                log("  Expires:         "+expiryColor(expiryStr));
+@@ -53,1 +53,1 @@
+-            log(`  URL:             ${chalk.underline.blue(`https://${config.subdomain}.launchpd.cloud`)}`);
++            log("  URL:             "+chalk.underline.blue(`https://${config.subdomain}.launchpd.cloud`));
+@@ -61,1 +61,1 @@
+-        info(`Subdomain: ${config.subdomain}`);
++        info("Subdomain: "+config.subdomain);
+diff --git a/src/utils/validator.js b/src/utils/validator.js
+--- a/src/utils/validator.js
++++ b/src/utils/validator.js
+@@ -18,1 +18,1 @@
+-const FORBIDDEN_INDICATORS = [
++const FORBIDDEN_INDICATORS = new Set([
+@@ -88,1 +88,1 @@
+-        throw new Error(`Failed to validate folder: ${err.message}`);
++        throw new Error("Failed to validate folder: "+err.message);
+diff --git a/src/utils/projectConfig.js b/src/utils/projectConfig.js
+--- a/src/utils/projectConfig.js
++++ b/src/utils/projectConfig.js
+@@ -61,1 +61,1 @@
+-    return await saveProjectConfig(newConfig, projectDir);
++    return saveProjectConfig(newConfig, projectDir);
+diff --git a/src/utils/expiration.js b/src/utils/expiration.js
+--- a/src/utils/expiration.js
++++ b/src/utils/expiration.js
+@@ -13,1 +13,1 @@
+-        throw new Error(`Invalid time format: "${timeStr}". Use format like 30m, 2h, 1d`);
++        throw new Error("Invalid time format: \""+timeStr+"\". Use format like 30m, 2h, 1d");
+@@ -31,1 +31,1 @@
+-            throw new Error(`Unknown time unit: ${unit}`);
++            throw new Error("Unknown time unit: "+unit);
+@@ -71,1 +71,1 @@
+-        return `${days}d ${hours % 24}h remaining`;
++        return ""+days+"d "+hours % 24+"h remaining";
+@@ -73,1 +73,1 @@
+-        return `${hours}h ${minutes % 60}m remaining`;
++        return ""+hours+"h "+minutes % 60+"m remaining";
+@@ -75,1 +75,1 @@
+-        return `${minutes}m remaining`;
++        return ""+minutes+"m remaining";
+diff --git a/src/commands/auth.js b/src/commands/auth.js
+--- a/src/commands/auth.js
++++ b/src/commands/auth.js
+@@ -30,1 +30,1 @@
+-const REGISTER_URL = `https://${config.domain}/`
++const REGISTER_URL = "https://"+config.domain+"/"
+@@ -56,1 +56,1 @@
+-    const response = await fetch(`${API_BASE_URL}/api/quota`, {
++    const response = await fetch(""+API_BASE_URL+"/api/quota", {
+@@ -110,1 +110,1 @@
+-    let response = await fetch(`${API_BASE_URL}/api/auth/login`, {
++    let response = await fetch(""+API_BASE_URL+"/api/auth/login", {
+@@ -113,1 +113,1 @@
+-      body: JSON.stringify({ email, password })
++      body: JSON.stringify({ email: email, password })
+@@ -118,1 +118,1 @@
+-      const data = await response.json().catch(() => ({}))
++      const data = await response.json().catch(function() { return ({}) })
+@@ -144,1 +144,1 @@
+-      const twoFactorCode = await prompt(`Enter ${codeType}: `)
++      const twoFactorCode = await prompt("Enter "+codeType+": ")
+diff --git a/src/utils/api.js b/src/utils/api.js
+--- a/src/utils/api.js
++++ b/src/utils/api.js
+@@ -33,1 +33,1 @@
+-    const url = `${API_BASE_URL}${endpoint}`;
++    const url = ""+API_BASE_URL+endpoint;
+@@ -66,1 +66,1 @@
+-            headers,
++            headers: headers,
+@@ -71,1 +71,1 @@
+-            const data = await response.json().catch(() => ({}));
++            const data = await response.json().catch(function() { return ({}) });
+@@ -97,1 +97,1 @@
+-            throw new APIError(data.error || data.message || `API error: ${response.status}`, response.status, data);
++            throw new APIError(data.error || data.message || "API error: "+response.status, response.status, data);
+@@ -118,1 +118,1 @@
+-    const result = await apiRequest(`/api/versions/${subdomain}`);
++    const result = await apiRequest("/api/versions/"+subdomain);
+@@ -122,1 +122,1 @@
+-    const maxVersion = Math.max(...result.versions.map(v => v.version));
++    const maxVersion = Math.max(...result.versions.map(function(v) { return v.version }));
+diff --git a/src/commands/init.js b/src/commands/init.js
+--- a/src/commands/init.js
++++ b/src/commands/init.js
+@@ -17,1 +17,1 @@
+-        warning(`This directory is already part of a Launchpd project linked to: ${chalk.bold(config?.subdomain)}`);
++        warning("This directory is already part of a Launchpd project linked to: "+chalk.bold(config?.subdomain));
+@@ -48,1 +48,1 @@
+-    const checkSpinner = spinner(`Checking if "${subdomain}" is available...`);
++    const checkSpinner = spinner("Checking if \""+subdomain+"\" is available...");
+@@ -57,1 +57,1 @@
+-            owned = ownedSubdomains.some(s => s.subdomain === subdomain);
++            owned = ownedSubdomains.some(function(s) { return s.subdomain === subdomain });
+@@ -60,1 +60,1 @@
+-                checkSpinner.fail(`Subdomain "${subdomain}" is already taken.`);
++                checkSpinner.fail("Subdomain \""+subdomain+"\" is already taken.");
+@@ -63,1 +63,1 @@
+-            checkSpinner.info(`Subdomain "${subdomain}" is already yours.`);
++            checkSpinner.info("Subdomain \""+subdomain+"\" is already yours.");
+@@ -65,1 +65,1 @@
+-            checkSpinner.succeed(`Subdomain "${subdomain}" is available!`);
++            checkSpinner.succeed("Subdomain \""+subdomain+"\" is available!");
+@@ -76,1 +76,1 @@
+-                success(`Project re-linked! New subdomain: ${subdomain}.launchpd.cloud`);
++                success("Project re-linked! New subdomain: "+subdomain+".launchpd.cloud");
+@@ -79,1 +79,1 @@
+-                success(`Project initialized! Linked to: ${subdomain}.launchpd.cloud`);
++                success("Project initialized! Linked to: "+subdomain+".launchpd.cloud");
+diff --git a/src/utils/credentials.js b/src/utils/credentials.js
+--- a/src/utils/credentials.js
++++ b/src/utils/credentials.js
+@@ -60,1 +60,1 @@
+-    const token = `cli_${randomBytes(16).toString('hex')}`;
++    const token = "cli_"+randomBytes(16).toString('hex');
+diff --git a/src/commands/versions.js b/src/commands/versions.js
+--- a/src/commands/versions.js
++++ b/src/commands/versions.js
+@@ -22,1 +22,1 @@
+-        ], { verbose });
++        ], { verbose: verbose });
+@@ -27,1 +27,1 @@
+-        warning(`The --to option is for the ${chalk.bold('rollback')} command.`);
++        warning("The --to option is for the "+chalk.bold('rollback')+" command.");
+@@ -28,1 +28,1 @@
+-        info(`Try: ${chalk.cyan(`launchpd rollback ${subdomain} --to ${options.to}`)}`);
++        info("Try: "+chalk.cyan(`launchpd rollback ${subdomain} --to ${options.to}`));
+@@ -33,1 +33,1 @@
+-        const fetchSpinner = spinner(`Fetching versions for ${subdomain}...`);
++        const fetchSpinner = spinner("Fetching versions for "+subdomain+"...");
+@@ -56,1 +56,1 @@
+-            fetchSpinner.fail(`No deployments found for: ${subdomain}`);
++            fetchSpinner.fail("No deployments found for: "+subdomain);
+@@ -57,1 +57,1 @@
+-            errorWithSuggestions(`No deployments found for subdomain: ${subdomain}`, [
++            errorWithSuggestions("No deployments found for subdomain: "+subdomain, [
+@@ -65,1 +65,1 @@
+-        fetchSpinner.succeed(`Found ${versionList.length} version(s)`);
++        fetchSpinner.succeed("Found "+versionList.length+" version(s)");
+@@ -69,1 +69,1 @@
+-                subdomain,
++                subdomain: subdomain,
+@@ -70,1 +70,1 @@
+-                activeVersion,
++                activeVersion: activeVersion,
+@@ -84,1 +84,1 @@
+-        success(`Versions for ${chalk.cyan(subdomain)}.launchpd.cloud:`);
++        success("Versions for "+chalk.cyan(subdomain)+".launchpd.cloud:");
+@@ -95,1 +95,1 @@
+-            const versionRaw = `v${v.version}`;
++            const versionRaw = "v"+v.version;
+@@ -97,1 +97,1 @@
+-            const filesRaw = `${v.fileCount} files`;
++            const filesRaw = ""+v.fileCount+" files";
+diff --git a/src/utils/prompt.js b/src/utils/prompt.js
+--- a/src/utils/prompt.js
++++ b/src/utils/prompt.js
+@@ -19,1 +19,1 @@
+-            setTimeout(() => resolve(answer.trim()), 100);
++            setTimeout(function() { return resolve(answer.trim()) }, 100);
+@@ -74,1 +74,1 @@
+-            if (str && str.length === 1 && str.match(/[ -~]/) && !key.ctrl && !key.meta) {
++            if (str && str.length === 1 && /[ -~]/.test(str) && !key.ctrl && !key.meta) {
+@@ -98,1 +98,1 @@
+-    const answer = await prompt(`${question} (y/N): `);
++    const answer = await prompt(""+question+" (y/N): ");
+diff --git a/src/utils/metadata.js b/src/utils/metadata.js
+--- a/src/utils/metadata.js
++++ b/src/utils/metadata.js
+@@ -21,1 +21,1 @@
+-    const url = `${API_BASE_URL}${endpoint}`;
++    const url = ""+API_BASE_URL+endpoint;
+@@ -32,1 +32,1 @@
+-            headers,
++            headers: headers,
+@@ -38,1 +38,1 @@
+-            throw new Error(data.error || `API error: ${response.status}`);
++            throw new Error(data.error || "API error: "+response.status);
+@@ -65,1 +65,1 @@
+-            subdomain,
++            subdomain: subdomain,
+@@ -66,1 +66,1 @@
+-            folderName,
++            folderName: folderName,
+@@ -67,1 +67,1 @@
+-            fileCount,
++            fileCount: fileCount,
+@@ -68,1 +68,1 @@
+-            totalBytes,
++            totalBytes: totalBytes,
+@@ -69,1 +69,1 @@
+-            version,
++            version: version,
+@@ -91,1 +91,1 @@
+-    const result = await apiRequest(`/api/versions/${subdomain}`);
++    const result = await apiRequest("/api/versions/"+subdomain);
+diff --git a/src/utils/machineId.js b/src/utils/machineId.js
+--- a/src/utils/machineId.js
++++ b/src/utils/machineId.js
+@@ -26,1 +26,1 @@
+-        warning(`Could not generate stable machine ID: ${err.message}`);
++        warning("Could not generate stable machine ID: "+err.message);
