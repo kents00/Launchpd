@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.4] - 2026-02-04
+
+### Added
+
+- **Release Publishing**: Automated npm publishing via GitHub Releases.
+
+### Fixed
+
+- **Test Fixtures**: Updated mock API keys and client tokens to match strict validation formats.
+
+### Security
+
+- **Input Validation**: Added strict API key and client token format checks before network requests.
+
 ## [1.0.3] - 2026-02-03
 
 ### Added

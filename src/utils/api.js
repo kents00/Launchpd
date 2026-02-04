@@ -47,12 +47,12 @@ async function apiRequest(endpoint, options = {}) {
         const method = (options.method || 'GET').toUpperCase();
         const body = options.body || '';
 
-        // HMAC-SHA256(secret, method + path + timestamp + body)
+        // HMAC-SHA256 for REQUEST SIGNING (not password hashing)
         const hmac = createHmac('sha256', apiSecret);
         hmac.update(method);
         hmac.update(endpoint);
         hmac.update(timestamp);
-        hmac.update(body);
+        hmac.update(body); // nosec: request signing, not password storage
 
         const signature = hmac.digest('hex');
 
