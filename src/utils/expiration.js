@@ -70,11 +70,11 @@ export function formatTimeRemaining (expiresAt) {
   const days = Math.floor(remaining / (24 * 60 * 60 * 1000))
 
   if (days > 0) {
-    return '' + days + 'd ' + (hours % 24) + 'h remaining'
+    return String(days) + 'd ' + (hours % 24) + 'h remaining'
   } else if (hours > 0) {
-    return '' + hours + 'h ' + (minutes % 60) + 'm remaining'
+    return String(hours) + 'h ' + (minutes % 60) + 'm remaining'
   } else {
-    return '' + minutes + 'm remaining'
+    return String(minutes) + 'm remaining'
   }
 }
 

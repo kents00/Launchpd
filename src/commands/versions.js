@@ -56,7 +56,7 @@ export async function versions (subdomainInput, options) {
 
     // Try API first
     const apiResult = await getVersionsFromAPI(subdomain)
-    if (apiResult && apiResult.versions) {
+    if (apiResult?.versions) {
       versionList = apiResult.versions.map((v) => ({
         version: v.version,
         timestamp: v.created_at || v.timestamp,
@@ -127,7 +127,7 @@ export async function versions (subdomainInput, options) {
       // Format raw strings for correct padding calculation
       const versionRaw = 'v' + v.version
       const dateRaw = new Date(v.timestamp).toLocaleString()
-      const filesRaw = '' + v.fileCount + ' files'
+      const filesRaw = String(v.fileCount) + ' files'
       const sizeRaw = v.totalBytes ? formatSize(v.totalBytes) : 'unknown'
 
       // Apply colors and padding separately

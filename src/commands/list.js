@@ -29,7 +29,7 @@ export async function list (options) {
     // Try API first unless --local flag is set
     if (!options.local) {
       const apiResult = await listFromAPI()
-      if (apiResult && apiResult.deployments) {
+      if (apiResult?.deployments) {
         deployments = apiResult.deployments.map((d) => ({
           subdomain: d.subdomain,
           folderName: d.folder_name,

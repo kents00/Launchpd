@@ -53,7 +53,7 @@ async function validateApiKey (apiKey) {
   }
 
   try {
-    const response = await fetch('' + API_BASE_URL + '/api/quota', {
+    const response = await fetch(String(API_BASE_URL) + '/api/quota', {
       headers: {
         'X-API-Key': apiKey
       }
@@ -107,7 +107,7 @@ async function loginWithEmailPassword () {
 
   try {
     // First login attempt
-    let response = await fetch('' + API_BASE_URL + '/api/auth/login', {
+    let response = await fetch(String(API_BASE_URL) + '/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password })

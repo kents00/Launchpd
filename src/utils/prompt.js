@@ -102,6 +102,6 @@ export function promptSecret (question) {
  * @returns {Promise<boolean>}
  */
 export async function confirm (question) {
-  const answer = await prompt('' + question + ' (y/N): ')
+  const answer = await prompt(String(question) + ' (y/N): ')
   return answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes'
 }
