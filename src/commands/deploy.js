@@ -32,7 +32,7 @@ async function calculateFolderSize(folderPath) {
         const pathParts = relativePath.split(sep);
 
         // Skip ignored directories/files in the path
-        if (pathParts.some(function(part) { return isIgnored(part, file.isDirectory()) })) {
+        if (pathParts.some(part => isIgnored(part, file.isDirectory()))) {
             continue;
         }
 

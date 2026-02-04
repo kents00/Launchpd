@@ -51,7 +51,7 @@ export async function list(options) {
             return;
         }
 
-        fetchSpinner.succeed("Found "+deployments.length+" deployment(s)");
+        fetchSpinner.succeed(`Found ${deployments.length} deployment(s)`);
 
         if (options.json) {
             log(JSON.stringify(deployments, null, 2));
@@ -80,7 +80,7 @@ export async function list(options) {
         // Rows (most recent first)
         const sorted = [...deployments].reverse();
         for (const dep of sorted) {
-            const url = "https://"+dep.subdomain+".launchpd.cloud";
+            const url = `https://${dep.subdomain}.launchpd.cloud`;
             const date = new Date(dep.timestamp).toLocaleDateString();
             const size = dep.totalBytes ? formatSize(dep.totalBytes) : '-';
 
@@ -97,7 +97,7 @@ export async function list(options) {
             }
 
             // Version info
-            const versionStr = "v"+dep.version || 1;
+            const versionStr = "v" + (dep.version || 1);
 
             log(
                 chalk.cyan(padRight(url, 35)) +

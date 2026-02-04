@@ -22,18 +22,6 @@ diff --git a/README.md b/README.md
 @@ -19,1 +19,1 @@
 -*   **Auto-Expiration**: Set temporary deployments that delete themselves automatically.
 +* **Auto-Expiration**: Set temporary deployments that delete themselves automatically.
-@@ -44,1 +44,1 @@
--### Deployment
-+### Deployment
-
-@@ -54,1 +54,1 @@
--### Management
-+### Management
-
-@@ -63,1 +63,1 @@
--### Identity & Auth
-+### Identity & Auth
-
 @@ -94,1 +94,1 @@
 -*   **Bugs & Feedback**: [GitHub Issues](https://github.com/kents00/launchpd/issues)
 +* **Bugs & Feedback**: [GitHub Issues](https://github.com/kents00/launchpd/issues)
@@ -58,6 +46,9 @@ diff --git a/src/commands/list.js b/src/commands/list.js
 @@ -100,1 +100,1 @@
 -            const versionStr = `v${dep.version || 1}`;
 +            const versionStr = "v"+dep.version || 1;
+@@ -102,1 +102,1 @@
+-        status = chalk.yellow(`â± ${formatTimeRemaining(dep.expiresAt)}`)
++        status = chalk.yellow("â± "+formatTimeRemaining(dep.expiresAt))
 diff --git a/src/commands/deploy.js b/src/commands/deploy.js
 --- a/src/commands/deploy.js
 +++ b/src/commands/deploy.js
@@ -67,63 +58,24 @@ diff --git a/src/commands/deploy.js b/src/commands/deploy.js
 diff --git a/src/utils/errors.js b/src/utils/errors.js
 --- a/src/utils/errors.js
 +++ b/src/utils/errors.js
-@@ -117,1 +117,1 @@
--    APIError,
-+    APIError: APIError,
-@@ -118,1 +118,1 @@
--    MaintenanceError,
-+    MaintenanceError: MaintenanceError,
-@@ -119,1 +119,1 @@
--    AuthError,
-+    AuthError: AuthError,
-@@ -120,1 +120,1 @@
--    QuotaError,
-+    QuotaError: QuotaError,
-@@ -121,1 +121,1 @@
--    NetworkError,
-+    NetworkError: NetworkError,
-@@ -122,1 +122,1 @@
--    TwoFactorRequiredError,
-+    TwoFactorRequiredError: TwoFactorRequiredError,
 @@ -123,1 +123,1 @@
 -    handleCommonError,
 +    handleCommonError: handleCommonError,
+@@ -126,1 +126,1 @@
+-  handleCommonError
++  handleCommonError: handleCommonError
 diff --git a/src/utils/upload.js b/src/utils/upload.js
 --- a/src/utils/upload.js
 +++ b/src/utils/upload.js
 @@ -53,1 +53,1 @@
 -    const response = await fetch(`${API_BASE_URL}/api/upload/file`, {
 +    const response = await fetch(""+API_BASE_URL+"/api/upload/file", {
-@@ -55,1 +55,1 @@
--        headers,
-+        headers: headers,
 @@ -60,1 +60,1 @@
 -        const error = await response.json().catch(() => ({ error: 'Upload failed' }));
 +        const error = await response.json().catch(function() { return ({ error: 'Upload failed' }) });
 @@ -61,1 +61,1 @@
 -        throw new Error(error.error || `Upload failed: ${response.status}`);
 +        throw new Error(error.error || "Upload failed: "+response.status);
-@@ -85,1 +85,1 @@
--        subdomain,
-+        subdomain: subdomain,
-@@ -86,1 +86,1 @@
--        version,
-+        version: version,
-@@ -87,1 +87,1 @@
--        fileCount,
-+        fileCount: fileCount,
-@@ -88,1 +88,1 @@
--        totalBytes,
-+        totalBytes: totalBytes,
-@@ -89,1 +89,1 @@
--        folderName,
-+        folderName: folderName,
-@@ -90,1 +90,1 @@
--        expiresAt,
-+        expiresAt: expiresAt,
-@@ -91,1 +91,1 @@
--        message,
-+        message: message,
 @@ -108,1 +108,1 @@
 -    const response = await fetch(`${API_BASE_URL}/api/upload/complete`, {
 +    const response = await fetch(""+API_BASE_URL+"/api/upload/complete", {
@@ -133,9 +85,6 @@ diff --git a/src/utils/logger.js b/src/utils/logger.js
 @@ -26,1 +26,1 @@
 -        console.error(chalk.gray(`  ${options.cause.stack || options.cause.message}`)); // skipcq: JS-0002
 +        console.error(chalk.gray("  "+options.cause.stack || options.cause.message)); // skipcq: JS-0002
-@@ -70,1 +70,1 @@
--        text,
-+        text: text,
 diff --git a/src/utils/quota.js b/src/utils/quota.js
 --- a/src/utils/quota.js
 +++ b/src/utils/quota.js
@@ -173,8 +122,8 @@ diff --git a/src/commands/rollback.js b/src/commands/rollback.js
 -        info(`Current active version: ${chalk.cyan(`v${currentActive}`)}`);
 +        info("Current active version: "+chalk.cyan(`v${currentActive}`));
 @@ -63,1 +63,1 @@
--            const versionExists = versions.some(v => v.version === targetVersion);
-+            const versionExists = versions.some(function(v) { return v.version === targetVersion });
+-        { verbose }
++        { verbose: verbose }
 @@ -65,1 +65,1 @@
 -                error(`Version ${targetVersion} does not exist.`);
 +                error("Version "+targetVersion+" does not exist.");
@@ -187,12 +136,51 @@ diff --git a/src/commands/rollback.js b/src/commands/rollback.js
 @@ -72,1 +72,1 @@
 -                    log(`  ${chalk.cyan(`v${v.version}`)}${message} - ${chalk.gray(v.timestamp)}${marker}`);
 +                    log("  "+chalk.cyan(`v${v.version}`)+message+" - "+chalk.gray(v.timestamp)+marker);
+@@ -75,1 +75,1 @@
+-    info('Current active version: ' + chalk.cyan(`v${currentActive}`))
++    info('Current active version: ' + chalk.cyan("v"+currentActive))
 @@ -78,1 +78,1 @@
 -            const sortedVersions = versions.map(v => v.version).sort((a, b) => b - a);
 +            const sortedVersions = versions.map(function(v) { return v.version }).sort((a, b) => b - a);
 @@ -88,1 +88,1 @@
 -            warning(`Version ${chalk.cyan(`v${targetVersion}`)} is already active.`);
 +            warning("Version "+chalk.cyan(`v${targetVersion}`)+" is already active.");
+@@ -94,1 +94,1 @@
+-              chalk.cyan(`v${v.version}`) +
++              chalk.cyan("v"+v.version) +
+@@ -109,1 +109,1 @@
+-        .sort((a, b) => b - a)
++        .sort(function(a, b) { return b - a })
+@@ -120,1 +120,1 @@
+-        'Version ' + chalk.cyan(`v${targetVersion}`) + ' is already active.'
++        'Version ' + chalk.cyan("v"+targetVersion) + ' is already active.'
+@@ -126,1 +126,1 @@
+-      `Rolling back from v${currentActive} to v${targetVersion}...`
++      "Rolling back from v"+currentActive+" to v"+targetVersion+"..."
+@@ -142,1 +142,1 @@
+-    const targetDeployment = versions.find((v) => v.version === targetVersion)
++    const targetDeployment = versions.find(function(v) { return v.version === targetVersion })
+@@ -145,1 +145,1 @@
+-      `Rolled back to ${chalk.cyan(`v${targetVersion}`)}`
++      "Rolled back to "+chalk.cyan(`v${targetVersion}`)
+@@ -147,1 +147,1 @@
+-    log(`\n  ð https://${subdomain}.launchpd.cloud\n`)
++    log("\n  ð https://"+subdomain+".launchpd.cloud\n")
+@@ -149,1 +149,1 @@
+-      info(`Version message: "${chalk.italic(targetDeployment.message)}"`)
++      info("Version message: \""+chalk.italic(targetDeployment.message)+"\"")
+diff --git a/src/utils/metadata.js b/src/utils/metadata.js
+--- a/src/utils/metadata.js
++++ b/src/utils/metadata.js
+@@ -21,1 +21,1 @@
+-    const url = `${API_BASE_URL}${endpoint}`;
++    const url = ""+API_BASE_URL+endpoint;
+@@ -38,1 +38,1 @@
+-            throw new Error(data.error || `API error: ${response.status}`);
++            throw new Error(data.error || "API error: "+response.status);
+@@ -91,1 +91,1 @@
+-    const result = await apiRequest(`/api/versions/${subdomain}`);
++    const result = await apiRequest("/api/versions/"+subdomain);
 diff --git a/src/commands/status.js b/src/commands/status.js
 --- a/src/commands/status.js
 +++ b/src/commands/status.js
@@ -226,9 +214,15 @@ diff --git a/src/commands/status.js b/src/commands/status.js
 @@ -53,1 +53,1 @@
 -            log(`  URL:             ${chalk.underline.blue(`https://${config.subdomain}.launchpd.cloud`)}`);
 +            log("  URL:             "+chalk.underline.blue(`https://${config.subdomain}.launchpd.cloud`));
+@@ -56,1 +56,1 @@
+-      log('  Active Version:  ' + chalk.cyan(`v${active.version}`))
++      log('  Active Version:  ' + chalk.cyan("v"+active.version))
 @@ -61,1 +61,1 @@
 -        info(`Subdomain: ${config.subdomain}`);
 +        info("Subdomain: "+config.subdomain);
+@@ -81,1 +81,1 @@
+-          chalk.underline.blue(`https://${config.subdomain}.launchpd.cloud`)
++          chalk.underline.blue("https://"+config.subdomain+".launchpd.cloud")
 diff --git a/src/utils/validator.js b/src/utils/validator.js
 --- a/src/utils/validator.js
 +++ b/src/utils/validator.js
@@ -274,9 +268,6 @@ diff --git a/src/commands/auth.js b/src/commands/auth.js
 @@ -110,1 +110,1 @@
 -    let response = await fetch(`${API_BASE_URL}/api/auth/login`, {
 +    let response = await fetch(""+API_BASE_URL+"/api/auth/login", {
-@@ -113,1 +113,1 @@
--      body: JSON.stringify({ email, password })
-+      body: JSON.stringify({ email: email, password })
 @@ -118,1 +118,1 @@
 -      const data = await response.json().catch(() => ({}))
 +      const data = await response.json().catch(function() { return ({}) })
@@ -292,9 +283,15 @@ diff --git a/src/utils/api.js b/src/utils/api.js
 @@ -66,1 +66,1 @@
 -            headers,
 +            headers: headers,
+@@ -70,1 +70,1 @@
+-      headers
++      headers: headers
 @@ -71,1 +71,1 @@
 -            const data = await response.json().catch(() => ({}));
 +            const data = await response.json().catch(function() { return ({}) });
+@@ -88,1 +88,1 @@
+-      const data = await response.json().catch(() => ({}))
++      const data = await response.json().catch(function() { return ({}) })
 @@ -97,1 +97,1 @@
 -            throw new APIError(data.error || data.message || `API error: ${response.status}`, response.status, data);
 +            throw new APIError(data.error || data.message || "API error: "+response.status, response.status, data);
@@ -352,6 +349,12 @@ diff --git a/src/commands/versions.js b/src/commands/versions.js
 @@ -33,1 +33,1 @@
 -        const fetchSpinner = spinner(`Fetching versions for ${subdomain}...`);
 +        const fetchSpinner = spinner("Fetching versions for "+subdomain+"...");
+@@ -36,1 +36,1 @@
+-      { verbose }
++      { verbose: verbose }
+@@ -46,1 +46,1 @@
+-      'Try: ' + chalk.cyan(`launchpd rollback ${subdomain} --to ${options.to}`)
++      'Try: ' + chalk.cyan("launchpd rollback "+subdomain+" --to "+options.to)
 @@ -56,1 +56,1 @@
 -            fetchSpinner.fail(`No deployments found for: ${subdomain}`);
 +            fetchSpinner.fail("No deployments found for: "+subdomain);
@@ -361,12 +364,6 @@ diff --git a/src/commands/versions.js b/src/commands/versions.js
 @@ -65,1 +65,1 @@
 -        fetchSpinner.succeed(`Found ${versionList.length} version(s)`);
 +        fetchSpinner.succeed("Found "+versionList.length+" version(s)");
-@@ -69,1 +69,1 @@
--                subdomain,
-+                subdomain: subdomain,
-@@ -70,1 +70,1 @@
--                activeVersion,
-+                activeVersion: activeVersion,
 @@ -84,1 +84,1 @@
 -        success(`Versions for ${chalk.cyan(subdomain)}.launchpd.cloud:`);
 +        success("Versions for "+chalk.cyan(subdomain)+".launchpd.cloud:");
@@ -376,6 +373,15 @@ diff --git a/src/commands/versions.js b/src/commands/versions.js
 @@ -97,1 +97,1 @@
 -            const filesRaw = `${v.fileCount} files`;
 +            const filesRaw = ""+v.fileCount+" files";
+@@ -145,1 +145,1 @@
+-        `  ${versionStr}${dateStr}${filesStr}${sizeStr}${statusStr}${messageStr}`
++        "  "+versionStr+dateStr+filesStr+sizeStr+statusStr+messageStr
+@@ -152,1 +152,1 @@
+-      `Use ${chalk.cyan(`launchpd rollback ${subdomain} --to <n>`)} to restore a version.`
++      "Use "+chalk.cyan(`launchpd rollback ${subdomain} --to <n>`)+" to restore a version."
+@@ -157,1 +157,1 @@
+-      `Failed to list versions: ${err.message}`,
++      "Failed to list versions: "+err.message,
 diff --git a/src/utils/prompt.js b/src/utils/prompt.js
 --- a/src/utils/prompt.js
 +++ b/src/utils/prompt.js
@@ -388,39 +394,3 @@ diff --git a/src/utils/prompt.js b/src/utils/prompt.js
 @@ -98,1 +98,1 @@
 -    const answer = await prompt(`${question} (y/N): `);
 +    const answer = await prompt(""+question+" (y/N): ");
-diff --git a/src/utils/metadata.js b/src/utils/metadata.js
---- a/src/utils/metadata.js
-+++ b/src/utils/metadata.js
-@@ -21,1 +21,1 @@
--    const url = `${API_BASE_URL}${endpoint}`;
-+    const url = ""+API_BASE_URL+endpoint;
-@@ -32,1 +32,1 @@
--            headers,
-+            headers: headers,
-@@ -38,1 +38,1 @@
--            throw new Error(data.error || `API error: ${response.status}`);
-+            throw new Error(data.error || "API error: "+response.status);
-@@ -65,1 +65,1 @@
--            subdomain,
-+            subdomain: subdomain,
-@@ -66,1 +66,1 @@
--            folderName,
-+            folderName: folderName,
-@@ -67,1 +67,1 @@
--            fileCount,
-+            fileCount: fileCount,
-@@ -68,1 +68,1 @@
--            totalBytes,
-+            totalBytes: totalBytes,
-@@ -69,1 +69,1 @@
--            version,
-+            version: version,
-@@ -91,1 +91,1 @@
--    const result = await apiRequest(`/api/versions/${subdomain}`);
-+    const result = await apiRequest("/api/versions/"+subdomain);
-diff --git a/src/utils/machineId.js b/src/utils/machineId.js
---- a/src/utils/machineId.js
-+++ b/src/utils/machineId.js
-@@ -26,1 +26,1 @@
--        warning(`Could not generate stable machine ID: ${err.message}`);
-+        warning("Could not generate stable machine ID: "+err.message);

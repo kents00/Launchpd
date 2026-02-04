@@ -15,7 +15,7 @@ export async function rollback(subdomainInput, options) {
     const verbose = options.verbose || false;
 
     try {
-        const fetchSpinner = spinner("Checking versions for "+subdomain+"...");
+        const fetchSpinner = spinner(`Checking versions for ${subdomain}...`);
 
         // Get all versions for this subdomain (try API first)
         let versions = [];
@@ -40,10 +40,10 @@ export async function rollback(subdomainInput, options) {
 
         if (versions.length === 0) {
             fetchSpinner.fail('No deployments found');
-            errorWithSuggestions("No deployments found for subdomain: "+subdomain, [
+            errorWithSuggestions(`No deployments found for subdomain: ${subdomain}`, [
                 'Check the subdomain name is correct',
                 'Run "launchpd list" to see your deployments',
-            ], { verbose: verbose });
+            ], { verbose });
             process.exit(1);
         }
 
@@ -53,29 +53,29 @@ export async function rollback(subdomainInput, options) {
             process.exit(1);
         }
 
-        fetchSpinner.succeed("Found "+versions.length+" versions");
-        info("Current active version: "+chalk.cyan(`v${currentActive}`));
+        fetchSpinner.succeed(`Found ${versions.length} versions`);
+        info(`Current active version: ${chalk.cyan(`v${currentActive}`)}`);
 
         // Determine target version
         let targetVersion;
         if (options.to) {
             targetVersion = Number.parseInt(options.to, 10);
-            const versionExists = versions.some(function(v) { return v.version === targetVersion });
+            const versionExists = versions.some(v => v.version === targetVersion);
             if (!versionExists) {
-                error("Version "+targetVersion+" does not exist.");
+                error(`Version ${targetVersion} does not exist.`);
                 log('');
                 info('Available versions:');
-                for (const v of versions) {
+                versions.forEach(v => {
                     const isActive = v.version === currentActive;
                     const marker = isActive ? chalk.green(' (active)') : '';
-                    const message = v.message ? " - \""+v.message+"\"" : '';
-                    log("  "+chalk.cyan(`v${v.version}`)+message+" - "+chalk.gray(v.timestamp)+marker);
-                };
+                    const message = v.message ? ` - "${v.message}"` : '';
+                    log(`  ${chalk.cyan(`v${v.version}`)}${message} - ${chalk.gray(v.timestamp)}${marker}`);
+                });
                 process.exit(1);
             }
         } else {
             // Default: rollback to previous version
-            const sortedVersions = versions.map(function(v) { return v.version }).sort((a, b) => b - a);
+            const sortedVersions = versions.map(v => v.version).sort((a, b) => b - a);
             const currentIndex = sortedVersions.indexOf(currentActive);
             if (currentIndex === sortedVersions.length - 1) {
                 warning('Already at the oldest version. Cannot rollback further.');
@@ -85,7 +85,7 @@ export async function rollback(subdomainInput, options) {
         }
 
         if (targetVersion === currentActive) {
-            warning("Version "+chalk.cyan(`v${targetVersion}`)+" is already active.");
+            warning(`Version ${chalk.cyan(`v${targetVersion}`)} is already active.`);
             process.exit(0);
         }
 

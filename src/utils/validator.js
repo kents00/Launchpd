@@ -15,7 +15,7 @@ const ALLOWED_EXTENSIONS = new Set([
 ]);
 
 // Forbidden indicators (frameworks, build tools, backend code)
-const FORBIDDEN_INDICATORS = new Set([
+const FORBIDDEN_INDICATORS = [
     // Build systems & Frameworks
     'package.json',
     'package-lock.json',
@@ -43,7 +43,7 @@ const FORBIDDEN_INDICATORS = new Set([
 
     // Hidden/System
     '.git', '.svn', '.hg'
-]);
+];
 
 /**
  * Validates that a folder contains ONLY static files.

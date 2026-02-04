@@ -50,15 +50,15 @@ async function uploadFile(content, subdomain, version, filePath, contentType) {
         headers['X-Signature'] = hmac.digest('hex');
     }
 
-    const response = await fetch(""+API_BASE_URL+"/api/upload/file", {
+    const response = await fetch(`${API_BASE_URL}/api/upload/file`, {
         method: 'POST',
         headers: headers,
         body: content,
     });
 
     if (!response.ok) {
-        const error = await response.json().catch(function() { return ({ error: 'Upload failed' }) });
-        throw new Error(error.error || "Upload failed: "+response.status);
+        const error = await response.json().catch(() => ({ error: 'Upload failed' }));
+        throw new Error(error.error || `Upload failed: ${response.status}`);
     }
 
     return response.json();
@@ -105,7 +105,7 @@ async function completeUpload(subdomain, version, fileCount, totalBytes, folderN
         headers['X-Signature'] = hmac.digest('hex');
     }
 
-    const response = await fetch(""+API_BASE_URL+"/api/upload/complete", {
+    const response = await fetch(`${API_BASE_URL}/api/upload/complete`, {
         method: 'POST',
         headers,
         body,

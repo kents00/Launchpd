@@ -10,7 +10,7 @@ export function parseTimeString(timeStr) {
     const match = regex.exec(timeStr);
 
     if (!match) {
-        throw new Error("Invalid time format: \""+timeStr+"\". Use format like 30m, 2h, 1d");
+        throw new Error("Invalid time format: \"" + timeStr + "\". Use format like 30m, 2h, 1d");
     }
 
     const value = Number.parseInt(match[1], 10);
@@ -28,7 +28,7 @@ export function parseTimeString(timeStr) {
             ms = value * 24 * 60 * 60 * 1000;
             break;
         default:
-            throw new Error("Unknown time unit: "+unit);
+            throw new Error("Unknown time unit: " + unit);
     }
 
     // Minimum 30 minutes
@@ -68,11 +68,11 @@ export function formatTimeRemaining(expiresAt) {
     const days = Math.floor(remaining / (24 * 60 * 60 * 1000));
 
     if (days > 0) {
-        return ""+days+"d "+hours % 24+"h remaining";
+        return "" + days + "d " + (hours % 24) + "h remaining";
     } else if (hours > 0) {
-        return ""+hours+"h "+minutes % 60+"m remaining";
+        return "" + hours + "h " + (minutes % 60) + "m remaining";
     } else {
-        return ""+minutes+"m remaining";
+        return "" + minutes + "m remaining";
     }
 }
 

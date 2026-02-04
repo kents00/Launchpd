@@ -30,7 +30,7 @@ export {
  * Make an authenticated API request
  */
 async function apiRequest(endpoint, options = {}) {
-    const url = ""+API_BASE_URL+endpoint;
+    const url = `${API_BASE_URL}${endpoint}`;
 
     const apiKey = await getApiKey();
     const apiSecret = await getApiSecret();
@@ -67,12 +67,12 @@ async function apiRequest(endpoint, options = {}) {
     try {
         const response = await fetch(url, {
             ...options,
-            headers: headers,
+            headers,
         });
 
         // Handle maintenance mode (503 with maintenance_mode flag)
         if (response.status === 503) {
-            const data = await response.json().catch(function() { return ({}) });
+            const data = await response.json().catch(() => ({}));
             if (data.maintenance_mode) {
                 throw new MaintenanceError(data.message || 'LaunchPd is under maintenance');
             }
@@ -98,7 +98,7 @@ async function apiRequest(endpoint, options = {}) {
         const data = await response.json();
 
         if (!response.ok) {
-            throw new APIError(data.error || data.message || "API error: "+response.status, response.status, data);
+            throw new APIError(data.error || data.message || `API error: ${response.status}`, response.status, data);
         }
 
         return data;
@@ -119,9 +119,9 @@ async function apiRequest(endpoint, options = {}) {
  * Get the next version number for a subdomain
  */
 export async function getNextVersionFromAPI(subdomain) {
-    const result = await apiRequest("/api/versions/"+subdomain);
+    const result = await apiRequest(`/api/versions/${subdomain}`);
     if (!result?.versions?.length) return 1;
-    const maxVersion = Math.max(...result.versions.map(function(v) { return v.version }));
+    const maxVersion = Math.max(...result.versions.map(v => v.version));
     return maxVersion + 1;
 }
 

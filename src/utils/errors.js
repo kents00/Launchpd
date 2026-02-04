@@ -120,5 +120,5 @@ export default {
     QuotaError: QuotaError,
     NetworkError: NetworkError,
     TwoFactorRequiredError: TwoFactorRequiredError,
-    handleCommonError: handleCommonError,
+    handleCommonError,
 };

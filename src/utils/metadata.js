@@ -104,7 +104,7 @@ export async function getNextVersion(subdomain) {
  * @returns {Promise<Array>} Array of deployment versions
  */
 export async function getVersionsForSubdomain(subdomain) {
-    const result = await apiRequest(`/api/versions/${subdomain}`);
+    const result = await apiRequest("/api/versions/"+subdomain);
     return result?.versions || [];
 }
 
