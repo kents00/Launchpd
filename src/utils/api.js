@@ -47,12 +47,16 @@ async function apiRequest(endpoint, options = {}) {
         const method = (options.method || 'GET').toUpperCase();
         const body = options.body || '';
 
-        // HMAC-SHA256 for REQUEST SIGNING (not password hashing)
+        // HMAC-SHA256 for REQUEST SIGNING - this is NOT password hashing.
+        // The request body (which may contain passwords) is signed to authenticate
+        // the API request. Password hashing happens server-side using bcrypt/argon2.
+        // skipcq: JS-D003 - HMAC-SHA256 is appropriate for request signing
         const hmac = createHmac('sha256', apiSecret);
         hmac.update(method);
         hmac.update(endpoint);
         hmac.update(timestamp);
-        hmac.update(body); // nosec: request signing, not password storage
+        // skipcq: JS-D003 - Request body signing, not password storage
+        hmac.update(body);
 
         const signature = hmac.digest('hex');
 
