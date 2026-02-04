@@ -1,8 +1,19 @@
-import { getVersionsForSubdomain, getActiveVersion } from '../utils/metadata.js';
-import { getVersions as getVersionsFromAPI } from '../utils/api.js';
-import { isLoggedIn } from '../utils/credentials.js';
-import { success, errorWithSuggestions, info, spinner, warning, formatSize, log } from '../utils/logger.js';
-import chalk from 'chalk';
+import {
+    getVersionsForSubdomain,
+    getActiveVersion
+} from '../utils/metadata.js'
+import { getVersions as getVersionsFromAPI } from '../utils/api.js'
+import { isLoggedIn } from '../utils/credentials.js'
+import {
+    success,
+    errorWithSuggestions,
+    info,
+    spinner,
+    warning,
+    formatSize,
+    log
+} from '../utils/logger.js'
+import chalk from 'chalk'
 
 /**
  * List all versions for a subdomain
@@ -12,116 +23,145 @@ import chalk from 'chalk';
  * @param {boolean} options.verbose - Show verbose error details
  */
 export async function versions(subdomainInput, options) {
-    const subdomain = subdomainInput.toLowerCase();
-    const verbose = options.verbose || false;
+    const subdomain = subdomainInput.toLowerCase()
+    const verbose = options.verbose || false
 
-    if (!await isLoggedIn()) {
-        errorWithSuggestions('The versions feature is only available for authenticated users.', [
-            'Run "launchpd login" to log in to your account',
-            'Run "launchpd register" to create a new account',
-        ], { verbose });
-        process.exit(1);
+    if (!(await isLoggedIn())) {
+        errorWithSuggestions(
+            'The versions feature is only available for authenticated users.',
+            [
+                'Run "launchpd login" to log in to your account',
+                'Run "launchpd register" to create a new account'
+            ],
+            { verbose }
+        )
+        process.exit(1)
     }
 
     if (options.to) {
-        warning(`The --to option is for the ${chalk.bold('rollback')} command.`);
-        info(`Try: ${chalk.cyan(`launchpd rollback ${subdomain} --to ${options.to}`)}`);
-        log('');
+        warning(
+            'The --to option is for the ' + chalk.bold('rollback') + ' command.'
+        )
+        info(
+            'Try: ' + chalk.cyan(`launchpd rollback ${subdomain} --to ${options.to}`)
+        )
+        log('')
     }
 
     try {
-        const fetchSpinner = spinner(`Fetching versions for ${subdomain}...`);
+        const fetchSpinner = spinner('Fetching versions for ' + subdomain + '...')
 
-        let versionList = [];
-        let activeVersion = 1;
+        let versionList = []
+        let activeVersion = 1
 
         // Try API first
-        const apiResult = await getVersionsFromAPI(subdomain);
+        const apiResult = await getVersionsFromAPI(subdomain)
         if (apiResult && apiResult.versions) {
-            versionList = apiResult.versions.map(v => ({
+            versionList = apiResult.versions.map((v) => ({
                 version: v.version,
                 timestamp: v.created_at || v.timestamp,
                 fileCount: v.file_count || v.fileCount,
                 totalBytes: v.total_bytes || v.totalBytes,
-                message: v.message || '',
-            }));
-            activeVersion = apiResult.activeVersion || 1;
+                message: v.message || ''
+            }))
+            activeVersion = apiResult.activeVersion || 1
         } else {
             // Fallback to R2 metadata
-            versionList = await getVersionsForSubdomain(subdomain);
-            activeVersion = await getActiveVersion(subdomain);
+            versionList = await getVersionsForSubdomain(subdomain)
+            activeVersion = await getActiveVersion(subdomain)
         }
 
         if (versionList.length === 0) {
-            fetchSpinner.fail(`No deployments found for: ${subdomain}`);
-            errorWithSuggestions(`No deployments found for subdomain: ${subdomain}`, [
-                'Check the subdomain name is correct',
-                'Run "launchpd list" to see your deployments',
-                'Deploy a new site with "launchpd deploy ./folder"',
-            ], { verbose });
-            process.exit(1);
+            fetchSpinner.fail('No deployments found for: ' + subdomain)
+            errorWithSuggestions(
+                'No deployments found for subdomain: ' + subdomain,
+                [
+                    'Check the subdomain name is correct',
+                    'Run "launchpd list" to see your deployments',
+                    'Deploy a new site with "launchpd deploy ./folder"'
+                ],
+                { verbose }
+            )
+            process.exit(1)
         }
 
-        fetchSpinner.succeed(`Found ${versionList.length} version(s)`);
+        fetchSpinner.succeed('Found ' + versionList.length + ' version(s)')
 
         if (options.json) {
-            log(JSON.stringify({
-                subdomain: subdomain,
-                activeVersion: activeVersion,
-                versions: versionList.map(v => ({
-                    version: v.version,
-                    timestamp: v.timestamp,
-                    fileCount: v.fileCount,
-                    totalBytes: v.totalBytes,
-                    isActive: v.version === activeVersion,
-                    message: v.message,
-                })),
-            }, null, 2));
-            return;
+            log(
+                JSON.stringify(
+                    {
+                        subdomain,
+                        activeVersion,
+                        versions: versionList.map((v) => ({
+                            version: v.version,
+                            timestamp: v.timestamp,
+                            fileCount: v.fileCount,
+                            totalBytes: v.totalBytes,
+                            isActive: v.version === activeVersion,
+                            message: v.message
+                        }))
+                    },
+                    null,
+                    2
+                )
+            )
+            return
         }
 
-        log('');
-        success(`Versions for ${chalk.cyan(subdomain)}.launchpd.cloud:`);
-        log('');
+        log('')
+        success('Versions for ' + chalk.cyan(subdomain) + '.launchpd.cloud:')
+        log('')
 
         // Table header
-        log(chalk.gray('  Version   Date                     Files    Size         Status       Message'));
-        log(chalk.gray('  ' + '─'.repeat(100)));
+        log(
+            chalk.gray(
+                '  Version   Date                     Files    Size         Status       Message'
+            )
+        )
+        log(chalk.gray('  ' + '─'.repeat(100)))
 
         for (const v of versionList) {
-            const isActive = v.version === activeVersion;
+            const isActive = v.version === activeVersion
 
             // Format raw strings for correct padding calculation
-            const versionRaw = `v${v.version}`;
-            const dateRaw = new Date(v.timestamp).toLocaleString();
-            const filesRaw = `${v.fileCount} files`;
-            const sizeRaw = v.totalBytes ? formatSize(v.totalBytes) : 'unknown';
+            const versionRaw = 'v' + v.version
+            const dateRaw = new Date(v.timestamp).toLocaleString()
+            const filesRaw = '' + v.fileCount + ' files'
+            const sizeRaw = v.totalBytes ? formatSize(v.totalBytes) : 'unknown'
 
             // Apply colors and padding separately
-            const versionStr = chalk.bold.cyan(versionRaw.padEnd(12));
-            const dateStr = chalk.gray(dateRaw.padEnd(25));
-            const filesStr = chalk.white(filesRaw.padEnd(10));
-            const sizeStr = chalk.white(sizeRaw.padEnd(12));
+            const versionStr = chalk.bold.cyan(versionRaw.padEnd(12))
+            const dateStr = chalk.gray(dateRaw.padEnd(25))
+            const filesStr = chalk.white(filesRaw.padEnd(10))
+            const sizeStr = chalk.white(sizeRaw.padEnd(12))
             const statusStr = isActive
                 ? chalk.green.bold('● active'.padEnd(12))
-                : chalk.gray('○ inactive'.padEnd(12));
+                : chalk.gray('○ inactive'.padEnd(12))
 
-            const messageStr = chalk.italic.gray(v.message || '');
+            const messageStr = chalk.italic.gray(v.message || '')
 
-            log(`  ${versionStr}${dateStr}${filesStr}${sizeStr}${statusStr}${messageStr}`);
+            log(
+                `  ${versionStr}${dateStr}${filesStr}${sizeStr}${statusStr}${messageStr}`
+            )
         }
 
-        log(chalk.gray('  ' + '─'.repeat(100)));
-        log('');
-        info(`Use ${chalk.cyan(`launchpd rollback ${subdomain} --to <n>`)} to restore a version.`);
-        log('');
-
+        log(chalk.gray('  ' + '─'.repeat(100)))
+        log('')
+        info(
+            `Use ${chalk.cyan(`launchpd rollback ${subdomain} --to <n>`)} to restore a version.`
+        )
+        log('')
     } catch (err) {
-        errorWithSuggestions(`Failed to list versions: ${err.message}`, [
-            'Check your internet connection',
-            'Verify the subdomain exists',
-            'Try running with --verbose for more details',
-        ], { verbose, cause: err });
-        process.exit(1);
+        errorWithSuggestions(
+            `Failed to list versions: ${err.message}`,
+            [
+                'Check your internet connection',
+                'Verify the subdomain exists',
+                'Try running with --verbose for more details'
+            ],
+            { verbose, cause: err }
+        )
+        process.exit(1)
     }
 }

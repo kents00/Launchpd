@@ -3,48 +3,51 @@
  * All operations now go through the API proxy
  */
 
-import { config } from '../config.js';
+import { config } from '../config.js'
 
-const API_BASE_URL = config.apiUrl;
+const API_BASE_URL = config.apiUrl
 
 /**
  * Get API key for requests
  */
 function getApiKey() {
-    return process.env.STATICLAUNCH_API_KEY || 'public-beta-key';
+  return process.env.STATICLAUNCH_API_KEY || 'public-beta-key'
 }
 
 /**
  * Make an authenticated API request
  */
 async function apiRequest(endpoint, options = {}) {
-    const url = ""+API_BASE_URL+endpoint;
+  const url = '' + API_BASE_URL + endpoint
 
-    const headers = {
-        'Content-Type': 'application/json',
-        'X-API-Key': getApiKey(),
-        ...options.headers,
-    };
+  const headers = {
+    'Content-Type': 'application/json',
+    'X-API-Key': getApiKey(),
+    ...options.headers
+  }
 
-    try {
-        const response = await fetch(url, {
-            ...options,
-            headers: headers,
-        });
+  try {
+    const response = await fetch(url, {
+      ...options,
+      headers
+    })
 
-        const data = await response.json();
+    const data = await response.json()
 
-        if (!response.ok) {
-            throw new Error(data.error || "API error: "+response.status);
-        }
-
-        return data;
-    } catch (err) {
-        if (err.message.includes('fetch failed') || err.message.includes('ENOTFOUND')) {
-            return null;
-        }
-        throw err;
+    if (!response.ok) {
+      throw new Error(data.error || 'API error: ' + response.status)
     }
+
+    return data
+  } catch (err) {
+    if (
+      err.message.includes('fetch failed') ||
+      err.message.includes('ENOTFOUND')
+    ) {
+      return null
+    }
+    throw err
+  }
 }
 
 /**
@@ -56,21 +59,28 @@ async function apiRequest(endpoint, options = {}) {
  * @param {number} version - Version number for this deployment
  * @param {Date|null} expiresAt - Expiration date, or null for no expiration
  */
-export async function recordDeploymentInMetadata(subdomain, folderPath, fileCount, totalBytes = 0, version = 1, expiresAt = null) {
-    const folderName = folderPath.split(/[\\/]/).pop() || 'unknown';
+export async function recordDeploymentInMetadata(
+  subdomain,
+  folderPath,
+  fileCount,
+  totalBytes = 0,
+  version = 1,
+  expiresAt = null
+) {
+  const folderName = folderPath.split(/[\\/]/).pop() || 'unknown'
 
-    return await apiRequest('/api/deployments', {
-        method: 'POST',
-        body: JSON.stringify({
-            subdomain: subdomain,
-            folderName: folderName,
-            fileCount: fileCount,
-            totalBytes: totalBytes,
-            version: version,
-            cliVersion: config.version,
-            expiresAt: expiresAt?.toISOString() || null,
-        }),
-    });
+  return await apiRequest('/api/deployments', {
+    method: 'POST',
+    body: JSON.stringify({
+      subdomain,
+      folderName,
+      fileCount,
+      totalBytes,
+      version,
+      cliVersion: config.version,
+      expiresAt: expiresAt?.toISOString() || null
+    })
+  })
 }
 
 /**
@@ -78,8 +88,8 @@ export async function recordDeploymentInMetadata(subdomain, folderPath, fileCoun
  * @returns {Promise<Array>} Array of deployment records
  */
 export async function listDeploymentsFromR2() {
-    const result = await apiRequest('/api/deployments');
-    return result?.deployments || [];
+  const result = await apiRequest('/api/deployments')
+  return result?.deployments || []
 }
 
 /**
@@ -88,14 +98,14 @@ export async function listDeploymentsFromR2() {
  * @returns {Promise<number>} Next version number
  */
 export async function getNextVersion(subdomain) {
-    const result = await apiRequest("/api/versions/"+subdomain);
+  const result = await apiRequest('/api/versions/' + subdomain)
 
-    if (!result || !result.versions || result.versions.length === 0) {
-        return 1;
-    }
+  if (!result || !result.versions || result.versions.length === 0) {
+    return 1
+  }
 
-    const maxVersion = Math.max(...result.versions.map(v => v.version));
-    return maxVersion + 1;
+  const maxVersion = Math.max(...result.versions.map((v) => v.version))
+  return maxVersion + 1
 }
 
 /**
@@ -104,8 +114,8 @@ export async function getNextVersion(subdomain) {
  * @returns {Promise<Array>} Array of deployment versions
  */
 export async function getVersionsForSubdomain(subdomain) {
-    const result = await apiRequest("/api/versions/"+subdomain);
-    return result?.versions || [];
+  const result = await apiRequest(`/api/versions/${subdomain}`)
+  return result?.versions || []
 }
 
 /**
@@ -114,10 +124,10 @@ export async function getVersionsForSubdomain(subdomain) {
  * @param {number} version - Version to make active
  */
 export async function setActiveVersion(subdomain, version) {
-    return await apiRequest(`/api/versions/${subdomain}/rollback`, {
-        method: 'PUT',
-        body: JSON.stringify({ version }),
-    });
+  return await apiRequest(`/api/versions/${subdomain}/rollback`, {
+    method: 'PUT',
+    body: JSON.stringify({ version })
+  })
 }
 
 /**
@@ -126,8 +136,8 @@ export async function setActiveVersion(subdomain, version) {
  * @returns {Promise<number>} Active version number
  */
 export async function getActiveVersion(subdomain) {
-    const result = await apiRequest(`/api/versions/${subdomain}`);
-    return result?.activeVersion || 1;
+  const result = await apiRequest(`/api/versions/${subdomain}`)
+  return result?.activeVersion || 1
 }
 
 /**
@@ -138,9 +148,9 @@ export async function getActiveVersion(subdomain) {
  * @param {number} toVersion - Target version
  */
 export function copyVersionFiles(subdomain, fromVersion, toVersion) {
-    // Rollback is now handled by setActiveVersion - no need to copy files
-    // The worker serves files from the specified version directly
-    return Promise.resolve({ fromVersion, toVersion, note: 'Handled by API' });
+  // Rollback is now handled by setActiveVersion - no need to copy files
+  // The worker serves files from the specified version directly
+  return Promise.resolve({ fromVersion, toVersion, note: 'Handled by API' })
 }
 
 /**
@@ -150,14 +160,22 @@ export function copyVersionFiles(subdomain, fromVersion, toVersion) {
  * @returns {Promise<Array>} Array of file info
  */
 export async function listVersionFiles(subdomain, version) {
-    const result = await apiRequest(`/api/deployments/${subdomain}`);
+  const result = await apiRequest(`/api/deployments/${subdomain}`)
 
-    if (!result || !result.versions) {
-        return [];
-    }
+  if (!result || !result.versions) {
+    return []
+  }
 
-    const versionInfo = result.versions.find(v => v.version === version);
-    return versionInfo ? [{ version, fileCount: versionInfo.file_count, totalBytes: versionInfo.total_bytes }] : [];
+  const versionInfo = result.versions.find((v) => v.version === version)
+  return versionInfo
+    ? [
+      {
+        version,
+        fileCount: versionInfo.file_count,
+        totalBytes: versionInfo.total_bytes
+      }
+    ]
+    : []
 }
 
 /**
@@ -166,9 +184,11 @@ export async function listVersionFiles(subdomain, version) {
  * @param {string} _subdomain - The subdomain to delete
  */
 export async function deleteSubdomain(_subdomain) {
-    // This operation is not available in the consumer CLI
-    // It should be handled through the admin dashboard or worker
-    throw new Error('Subdomain deletion is not available in the CLI. Contact support.');
+  // This operation is not available in the consumer CLI
+  // It should be handled through the admin dashboard or worker
+  throw new Error(
+    'Subdomain deletion is not available in the CLI. Contact support.'
+  )
 }
 
 /**
@@ -177,8 +197,8 @@ export async function deleteSubdomain(_subdomain) {
  * @returns {Promise<Array>} Array of expired deployment records
  */
 export function getExpiredDeployments() {
-    // Expiration cleanup is handled server-side
-    return Promise.resolve([]);
+  // Expiration cleanup is handled server-side
+  return Promise.resolve([])
 }
 
 /**
@@ -187,7 +207,9 @@ export function getExpiredDeployments() {
  * @param {string} _subdomain - The subdomain to remove
  */
 export async function removeDeploymentRecords(_subdomain) {
-    throw new Error('Deployment record removal is not available in the CLI. Contact support.');
+  throw new Error(
+    'Deployment record removal is not available in the CLI. Contact support.'
+  )
 }
 
 /**
@@ -196,6 +218,10 @@ export async function removeDeploymentRecords(_subdomain) {
  * @returns {Promise<{cleaned: string[], errors: string[]}>}
  */
 export function cleanupExpiredDeployments() {
-    // Cleanup is handled server-side automatically
-    return Promise.resolve({ cleaned: [], errors: [], note: 'Handled automatically by server' });
+  // Cleanup is handled server-side automatically
+  return Promise.resolve({
+    cleaned: [],
+    errors: [],
+    note: 'Handled automatically by server'
+  })
 }

@@ -4,17 +4,17 @@
  * Minimum: 30 minutes
  */
 
-export const MIN_EXPIRATION_MS = 30 * 60 * 1000;
+export const MIN_EXPIRATION_MS = 30 * 60 * 1000
 export function parseTimeString(timeStr) {
-    const regex = /^(\d+)([mhd])$/i;
-    const match = regex.exec(timeStr);
+    const regex = /^(\d+)([mhd])$/i
+    const match = regex.exec(timeStr)
 
     if (!match) {
         throw new Error("Invalid time format: \"" + timeStr + "\". Use format like 30m, 2h, 1d");
     }
 
-    const value = Number.parseInt(match[1], 10);
-    const unit = match[2].toLowerCase();
+    const value = Number.parseInt(match[1], 10)
+    const unit = match[2].toLowerCase()
 
     let ms;
     switch (unit) {
@@ -33,10 +33,10 @@ export function parseTimeString(timeStr) {
 
     // Minimum 30 minutes
     if (ms < MIN_EXPIRATION_MS) {
-        throw new Error('Minimum expiration time is 30 minutes (30m)');
+        throw new Error('Minimum expiration time is 30 minutes (30m)')
     }
 
-    return ms;
+    return ms
 }
 
 /**
@@ -45,8 +45,8 @@ export function parseTimeString(timeStr) {
  * @returns {Date} Date object of expiration
  */
 export function calculateExpiresAt(timeStr) {
-    const ms = parseTimeString(timeStr);
-    return new Date(Date.now() + ms);
+    const ms = parseTimeString(timeStr)
+    return new Date(Date.now() + ms)
 }
 
 /**
@@ -55,17 +55,17 @@ export function calculateExpiresAt(timeStr) {
  * @returns {string} Human-readable time remaining
  */
 export function formatTimeRemaining(expiresAt) {
-    const now = Date.now();
-    const expiry = new Date(expiresAt).getTime();
-    const remaining = expiry - now;
+    const now = Date.now()
+    const expiry = new Date(expiresAt).getTime()
+    const remaining = expiry - now
 
     if (remaining <= 0) {
-        return 'expired';
+        return 'expired'
     }
 
-    const minutes = Math.floor(remaining / (60 * 1000));
-    const hours = Math.floor(remaining / (60 * 60 * 1000));
-    const days = Math.floor(remaining / (24 * 60 * 60 * 1000));
+    const minutes = Math.floor(remaining / (60 * 1000))
+    const hours = Math.floor(remaining / (60 * 60 * 1000))
+    const days = Math.floor(remaining / (24 * 60 * 60 * 1000))
 
     if (days > 0) {
         return "" + days + "d " + (hours % 24) + "h remaining";
@@ -82,6 +82,6 @@ export function formatTimeRemaining(expiresAt) {
  * @returns {boolean}
  */
 export function isExpired(expiresAt) {
-    if (!expiresAt) return false;
-    return new Date(expiresAt).getTime() < Date.now();
+    if (!expiresAt) return false
+    return new Date(expiresAt).getTime() < Date.now()
 }

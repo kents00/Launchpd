@@ -1,27 +1,34 @@
-import { getProjectConfig, findProjectRoot } from '../utils/projectConfig.js';
-import { getDeployment } from '../utils/api.js';
-import { errorWithSuggestions, info, spinner, warning, formatSize, log } from '../utils/logger.js';
-import { formatTimeRemaining } from '../utils/expiration.js';
-import chalk from 'chalk';
+import { getProjectConfig, findProjectRoot } from '../utils/projectConfig.js'
+import { getDeployment } from '../utils/api.js'
+import {
+  errorWithSuggestions,
+  info,
+  spinner,
+  warning,
+  formatSize,
+  log
+} from '../utils/logger.js'
+import { formatTimeRemaining } from '../utils/expiration.js'
+import chalk from 'chalk'
 
 /**
  * Show current project status
  */
-export async function status(_options) {
-    const projectRoot = findProjectRoot();
-    if (!projectRoot) {
-        warning('Not a Launchpd project (no .launchpd.json found)');
-        info('Run "launchpd init" to link this directory to a subdomain.');
-        return;
-    }
+export async function status (_options) {
+  const projectRoot = findProjectRoot()
+  if (!projectRoot) {
+    warning('Not a Launchpd project (no .launchpd.json found)')
+    info('Run "launchpd init" to link this directory to a subdomain.')
+    return
+  }
 
-    const config = await getProjectConfig(projectRoot);
-    if (!config || !config.subdomain) {
-        errorWithSuggestions('Invalid project configuration.', [
-            'Try deleting .launchpd.json and running "launchpd init" again'
-        ]);
-        return;
-    }
+  const config = await getProjectConfig(projectRoot)
+  if (!config || !config.subdomain) {
+    errorWithSuggestions('Invalid project configuration.', [
+      'Try deleting .launchpd.json and running "launchpd init" again'
+    ])
+    return
+  }
 
     info(`Project root: ${chalk.cyan(projectRoot)}`);
     info(`Linked subdomain: ${chalk.bold.green(config.subdomain)}.launchpd.cloud`);
