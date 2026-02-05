@@ -1,5 +1,5 @@
 import { existsSync, statSync } from 'node:fs'
-import { execFile } from 'node:child_process'
+import { exec } from 'node:child_process'
 import chalk from 'chalk'
 import { readdir } from 'node:fs/promises'
 import { resolve, basename, join, relative, sep } from 'node:path'
@@ -59,7 +59,11 @@ async function calculateFolderSize (folderPath) {
     const pathParts = relativePath.split(sep)
 
     // Skip ignored directories/files in the path
-    if (pathParts.some((part) => isIgnored(part, file.isDirectory()))) {
+    if (
+      pathParts.some(function (part) {
+        return isIgnored(part, file.isDirectory())
+      })
+    ) {
       continue
     }
 
@@ -403,14 +407,12 @@ export async function deploy (folder, options) {
 
     if (options.open) {
       const platform = process.platform
-      if (platform === 'darwin') {
-        execFile('open', [url])
-      } else if (platform === 'win32') {
-        // Use cmd /c start "" "<url>" to open the default browser on Windows
-        execFile('cmd', ['/c', 'start', '', url])
-      } else {
-        execFile('xdg-open', [url])
-      }
+      let cmd
+      if (platform === 'darwin') cmd = `open "${url}"`
+      else if (platform === 'win32') cmd = `start "" "${url}"`
+      else cmd = `xdg-open "${url}"`
+
+      exec(cmd)
     }
 
     if (expiresAt) {
