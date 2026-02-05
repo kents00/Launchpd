@@ -249,7 +249,7 @@ export async function healthCheck () {
 /**
  * Resend email verification
  */
-export async function resendVerification() {
+export async function resendVerification () {
   return apiRequest('/api/auth/resend-verification', {
     method: 'POST'
   })
