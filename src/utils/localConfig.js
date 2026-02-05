@@ -1,21 +1,21 @@
-import { existsSync } from 'node:fs'
-import { readFile, writeFile, mkdir } from 'node:fs/promises'
-import { join } from 'node:path'
-import { homedir } from 'node:os'
+import fs from 'node:fs';
+import fsp from 'node:fs/promises';
+import path from 'node:path';
+import os from 'node:os';
 
 /**
  * Get the local config directory path
  * ~/.staticlaunch/ on Unix, %USERPROFILE%\.staticlaunch\ on Windows
  */
 function getConfigDir() {
-    return join(homedir(), '.staticlaunch');
+    return path.join(os.homedir(), '.staticlaunch');
 }
 
 /**
  * Get the local deployments file path
  */
 function getDeploymentsPath() {
-    return join(getConfigDir(), 'deployments.json');
+    return path.join(getConfigDir(), 'deployments.json');
 }
 
 /**
@@ -23,8 +23,8 @@ function getDeploymentsPath() {
  */
 async function ensureConfigDir() {
     const dir = getConfigDir();
-    if (!existsSync(dir)) {
-        await mkdir(dir, { recursive: true });
+    if (!fs.existsSync(dir)) {
+        await fsp.mkdir(dir, { recursive: true });
     }
 }
 
@@ -35,8 +35,8 @@ async function ensureConfigDir() {
 async function getLocalData() {
     const filePath = getDeploymentsPath();
     try {
-        if (existsSync(filePath)) {
-            const text = await readFile(filePath, 'utf-8');
+        if (fs.existsSync(filePath)) {
+            const text = await fsp.readFile(filePath, 'utf-8');
             return JSON.parse(text);
         }
     } catch {
@@ -56,9 +56,11 @@ export async function saveLocalDeployment(deployment) {
     const data = await getLocalData();
     data.deployments.push(deployment);
 
-    await writeFile(
-        getDeploymentsPath(),
-        JSON.stringify(data, null, 2),
+    const filePath = getDeploymentsPath();
+    const content = JSON.stringify(data, undefined, 2);
+    await fsp.writeFile(
+        filePath,
+        content,
         'utf-8'
     );
 }
@@ -77,9 +79,11 @@ export async function getLocalDeployments() {
  */
 export async function clearLocalDeployments() {
     await ensureConfigDir();
-    await writeFile(
-        getDeploymentsPath(),
-        JSON.stringify({ version: 1, deployments: [] }, null, 2),
+    const filePath = getDeploymentsPath();
+    const content = JSON.stringify({ version: 1, deployments: [] }, undefined, 2);
+    await fsp.writeFile(
+        filePath,
+        content,
         'utf-8'
     );
 }
