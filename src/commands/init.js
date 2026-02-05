@@ -30,7 +30,8 @@ export async function init (options) {
   if (projectRoot) {
     const config = await getProjectConfig(projectRoot)
     warning(
-      `This directory is already part of a Launchpd project linked to: ${chalk.bold(config?.subdomain)}`
+      'This directory is already part of a Launchpd project linked to: ' +
+        chalk.bold(config?.subdomain)
     )
 
     const confirm = await prompt(
@@ -64,7 +65,9 @@ export async function init (options) {
     return
   }
 
-  const checkSpinner = spinner(`Checking if "${subdomain}" is available...`)
+  const checkSpinner = spinner(
+    'Checking if "' + subdomain + '" is available...'
+  )
   try {
     const isAvailable = await checkSubdomainAvailable(subdomain)
     let owned = false
@@ -73,15 +76,17 @@ export async function init (options) {
       // Check if user owns it
       const apiResult = await listSubdomains()
       const ownedSubdomains = apiResult?.subdomains || []
-      owned = ownedSubdomains.some((s) => s.subdomain === subdomain)
+      owned = ownedSubdomains.some(function (s) {
+        return s.subdomain === subdomain
+      })
 
       if (!owned) {
-        checkSpinner.fail(`Subdomain "${subdomain}" is already taken.`)
+        checkSpinner.fail('Subdomain "' + subdomain + '" is already taken.')
         return
       }
-      checkSpinner.info(`Subdomain "${subdomain}" is already yours.`)
+      checkSpinner.info('Subdomain "' + subdomain + '" is already yours.')
     } else {
-      checkSpinner.succeed(`Subdomain "${subdomain}" is available!`)
+      checkSpinner.succeed('Subdomain "' + subdomain + '" is available!')
     }
 
     const reserveStatus = owned ? true : await reserveSubdomain(subdomain)
@@ -93,11 +98,13 @@ export async function init (options) {
         config.updatedAt = new Date().toISOString()
         await saveProjectConfig(config, projectRoot)
         success(
-          `Project re-linked! New subdomain: ${subdomain}.launchpd.cloud`
+          'Project re-linked! New subdomain: ' + subdomain + '.launchpd.cloud'
         )
       } else {
         await initProjectConfig(subdomain)
-        success(`Project initialized! Linked to: ${subdomain}.launchpd.cloud`)
+        success(
+          'Project initialized! Linked to: ' + subdomain + '.launchpd.cloud'
+        )
       }
       info('Now you can run "launchpd deploy" without specifying a name.')
     }

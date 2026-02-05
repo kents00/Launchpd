@@ -105,7 +105,7 @@ export async function list (options) {
       }
 
       // Version info
-      const versionStr = `v${dep.version || 1}`
+      const versionStr = 'v' + (dep.version || 1)
 
       log(
         chalk.cyan(padRight(url, 35)) +

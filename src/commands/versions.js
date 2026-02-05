@@ -39,15 +39,17 @@ export async function versions (subdomainInput, options) {
   }
 
   if (options.to) {
-    warning(`The --to option is for the ${chalk.bold('rollback')} command.`)
+    warning(
+      'The --to option is for the ' + chalk.bold('rollback') + ' command.'
+    )
     info(
-      `Try: ${chalk.cyan(`launchpd rollback ${subdomain} --to ${options.to}`)}`
+      'Try: ' + chalk.cyan(`launchpd rollback ${subdomain} --to ${options.to}`)
     )
     log('')
   }
 
   try {
-    const fetchSpinner = spinner(`Fetching versions for ${subdomain}...`)
+    const fetchSpinner = spinner('Fetching versions for ' + subdomain + '...')
 
     let versionList = []
     let activeVersion = 1
@@ -70,9 +72,9 @@ export async function versions (subdomainInput, options) {
     }
 
     if (versionList.length === 0) {
-      fetchSpinner.fail(`No deployments found for: ${subdomain}`)
+      fetchSpinner.fail('No deployments found for: ' + subdomain)
       errorWithSuggestions(
-        `No deployments found for subdomain: ${subdomain}`,
+        'No deployments found for subdomain: ' + subdomain,
         [
           'Check the subdomain name is correct',
           'Run "launchpd list" to see your deployments',
@@ -83,7 +85,7 @@ export async function versions (subdomainInput, options) {
       process.exit(1)
     }
 
-    fetchSpinner.succeed(`Found ${versionList.length} version(s)`)
+    fetchSpinner.succeed('Found ' + versionList.length + ' version(s)')
 
     if (options.json) {
       log(
@@ -108,7 +110,7 @@ export async function versions (subdomainInput, options) {
     }
 
     log('')
-    success(`Versions for ${chalk.cyan(subdomain)}.launchpd.cloud:`)
+    success('Versions for ' + chalk.cyan(subdomain) + '.launchpd.cloud:')
     log('')
 
     // Table header
@@ -123,9 +125,9 @@ export async function versions (subdomainInput, options) {
       const isActive = v.version === activeVersion
 
       // Format raw strings for correct padding calculation
-      const versionRaw = `v${v.version}`
+      const versionRaw = 'v' + v.version
       const dateRaw = new Date(v.timestamp).toLocaleString()
-      const filesRaw = `${v.fileCount} files`
+      const filesRaw = String(v.fileCount) + ' files'
       const sizeRaw = v.totalBytes ? formatSize(v.totalBytes) : 'unknown'
 
       // Apply colors and padding separately

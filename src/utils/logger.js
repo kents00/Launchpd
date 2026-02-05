@@ -24,7 +24,7 @@ export function error (message, options = {}) {
   if (options.verbose && options.cause) {
     console.error(chalk.gray('  Stack trace:')) // skipcq: JS-0002
     console.error(
-      chalk.gray(`  ${options.cause.stack || options.cause.message}`)
+      chalk.gray('  ' + options.cause.stack || options.cause.message)
     ) // skipcq: JS-0002
   }
 }

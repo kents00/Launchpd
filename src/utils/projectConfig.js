@@ -61,7 +61,7 @@ export async function updateProjectConfig (
     ...updates,
     updatedAt: new Date().toISOString()
   }
-  return await saveProjectConfig(newConfig, projectDir)
+  return saveProjectConfig(newConfig, projectDir)
 }
 
 /**
@@ -73,5 +73,5 @@ export async function initProjectConfig (subdomain, projectDir = process.cwd()) 
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   }
-  return await saveProjectConfig(config, projectDir)
+  return saveProjectConfig(config, projectDir)
 }

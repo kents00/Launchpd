@@ -54,7 +54,7 @@ export async function status (_options) {
       if (active.message) {
         log(`  Message:         ${chalk.italic(active.message)}`)
       }
-      log(`  File Count:      ${active.file_count || active.fileCount}`)
+      log('  File Count:      ' + (active.file_count || active.fileCount))
       log(
         `  Total Size:      ${formatSize(active.total_bytes || active.totalBytes)}`
       )

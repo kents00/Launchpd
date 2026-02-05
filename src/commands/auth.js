@@ -27,7 +27,7 @@ import { serverLogout, resendVerification } from '../utils/api.js'
 import chalk from 'chalk'
 
 const API_BASE_URL = config.apiUrl
-const REGISTER_URL = `https://${config.domain}/`
+const REGISTER_URL = 'https://' + config.domain + '/'
 
 /**
  * Validate API key format
@@ -53,7 +53,7 @@ async function validateApiKey (apiKey) {
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}/api/quota`, {
+    const response = await fetch(String(API_BASE_URL) + '/api/quota', {
       headers: {
         'X-API-Key': apiKey
       }
@@ -107,7 +107,7 @@ async function loginWithEmailPassword () {
 
   try {
     // First login attempt
-    let response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+    let response = await fetch(String(API_BASE_URL) + '/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password })
@@ -115,7 +115,9 @@ async function loginWithEmailPassword () {
 
     // Handle maintenance mode
     if (response.status === 503) {
-      const data = await response.json().catch(() => ({}))
+      const data = await response.json().catch(function () {
+        return {}
+      })
       if (data.maintenance_mode) {
         loginSpinner.fail('Service unavailable')
         throw new MaintenanceError(data.message)
@@ -141,7 +143,7 @@ async function loginWithEmailPassword () {
         info('Two-factor authentication required')
       }
 
-      const twoFactorCode = await prompt(`Enter ${codeType}: `)
+      const twoFactorCode = await prompt('Enter ' + codeType + ': ')
 
       if (!twoFactorCode) {
         error('Verification code is required')

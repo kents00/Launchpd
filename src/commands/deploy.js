@@ -1,5 +1,5 @@
 import { existsSync, statSync } from 'node:fs'
-import { exec, spawn } from 'node:child_process'
+import { exec } from 'node:child_process'
 import chalk from 'chalk'
 import { readdir } from 'node:fs/promises'
 import { resolve, basename, join, relative, sep } from 'node:path'
@@ -59,7 +59,11 @@ async function calculateFolderSize (folderPath) {
     const pathParts = relativePath.split(sep)
 
     // Skip ignored directories/files in the path
-    if (pathParts.some((part) => isIgnored(part, file.isDirectory()))) {
+    if (
+      pathParts.some(function (part) {
+        return isIgnored(part, file.isDirectory())
+      })
+    ) {
       continue
     }
 
@@ -403,36 +407,12 @@ export async function deploy (folder, options) {
 
     if (options.open) {
       const platform = process.platform
-      if (platform === 'darwin') {
-        // macOS: use 'open' with arguments to avoid shell interpolation
-        const child = spawn('open', [url], {
-          stdio: 'ignore',
-          detached: true
-        })
-        child.unref()
-      } else if (platform === 'win32') {
-        // Windows: 'start' is a cmd built-in, so invoke via 'cmd' with arguments
-        const child = spawn('cmd', ['/c', 'start', '', url], {
-          stdio: 'ignore',
-          detached: true
-        })
-        child.unref()
-      } else {
-        // Linux/other: use 'xdg-open' with arguments
-        const child = spawn('xdg-open', [url], {
-          stdio: 'ignore',
-          detached: true
-        })
-        child.unref()
-      }
-        cmd = 'start'
-        args = ['', url]
-      } else {
-        cmd = 'xdg-open'
-        args = [url]
-      }
+      let cmd
+      if (platform === 'darwin') cmd = `open "${url}"`
+      else if (platform === 'win32') cmd = `start "" "${url}"`
+      else cmd = `xdg-open "${url}"`
 
-      execFile(cmd, args)
+      exec(cmd)
     }
 
     if (expiresAt) {
