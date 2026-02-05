@@ -19,6 +19,6 @@ export function getMachineId () {
     // Fallback if userInfo() fails (e.g. restricted environments)
     // Use a random ID for this session, better than crashing
     warning(`Could not generate stable machine ID: ${err.message}`)
-    return 'unknown-device-' + Math.random().toString(36).substring(2)
+    return `unknown-device-${Math.random().toString(36).substring(2)}`
   }
 }
