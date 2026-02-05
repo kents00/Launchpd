@@ -37,7 +37,7 @@ export async function rollback (subdomainInput, options) {
     let useAPI = false
 
     const apiResult = await getVersionsFromAPI(subdomain)
-    if (apiResult && apiResult.versions) {
+    if (apiResult?.versions) {
       versions = apiResult.versions.map((v) => ({
         version: v.version,
         timestamp: v.created_at,

@@ -54,7 +54,7 @@ export async function versions (subdomainInput, options) {
 
     // Try API first
     const apiResult = await getVersionsFromAPI(subdomain)
-    if (apiResult && apiResult.versions) {
+    if (apiResult?.versions) {
       versionList = apiResult.versions.map((v) => ({
         version: v.version,
         timestamp: v.created_at || v.timestamp,

@@ -41,8 +41,7 @@ export async function status (_options) {
     statusSpinner.stop()
 
     if (
-      deploymentData &&
-      deploymentData.versions &&
+      deploymentData?.versions &&
       deploymentData.versions.length > 0
     ) {
       const active =
