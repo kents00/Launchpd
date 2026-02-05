@@ -1,7 +1,7 @@
-import { existsSync } from 'node:fs';
-import { readFile, writeFile, mkdir } from 'node:fs/promises';
-import { join } from 'node:path';
-import { homedir } from 'node:os';
+import { existsSync } from 'node:fs'
+import { readFile, writeFile, mkdir } from 'node:fs/promises'
+import { join } from 'node:path'
+import { homedir } from 'node:os'
 
 /**
  * Get the local config directory path
