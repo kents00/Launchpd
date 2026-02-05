@@ -7,6 +7,7 @@ import { config } from '../config.js'
 import { getApiKey, getApiSecret } from './credentials.js'
 import { createHmac } from 'node:crypto'
 import { getMachineId } from './machineId.js'
+import { validateEndpoint } from './endpoint.js'
 import {
   APIError,
   MaintenanceError,
@@ -30,6 +31,7 @@ export {
  * Make an authenticated API request
  */
 async function apiRequest (endpoint, options = {}) {
+  validateEndpoint(endpoint)
   const url = `${API_BASE_URL}${endpoint}`
 
   const apiKey = await getApiKey()

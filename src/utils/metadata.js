@@ -18,7 +18,7 @@ function getApiKey() {
  * Make an authenticated API request
  */
 async function apiRequest(endpoint, options = {}) {
-  const url = String(API_BASE_URL) + endpoint
+  const url = new URL(endpoint, API_BASE_URL).toString();
 
   const headers = {
     'Content-Type': 'application/json',

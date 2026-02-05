@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { hostname, platform, arch, userInfo } from 'node:os';
 import { warning } from './logger.js';
 
@@ -24,6 +24,7 @@ export function getMachineId() {
         // Fallback if userInfo() fails (e.g. restricted environments)
         // Use a random ID for this session, better than crashing
         warning(`Could not generate stable machine ID: ${err.message}`);
-        return `unknown-device-${Math.random().toString(36).substring(2)}`;
+        const randomId = randomBytes(16).toString('hex');
+        return `unknown-device-${randomId}`;
     }
 }
