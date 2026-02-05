@@ -1,5 +1,5 @@
 import { existsSync, statSync } from 'node:fs'
-import { exec, execFile } from 'node:child_process'
+import { execFile } from 'node:child_process'
 import chalk from 'chalk'
 import { readdir } from 'node:fs/promises'
 import { resolve, basename, join, relative, sep } from 'node:path'
