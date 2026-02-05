@@ -34,15 +34,15 @@ async function ensureConfigDir() {
  */
 async function getLocalData() {
     const filePath = getDeploymentsPath();
-    try {
-        if (fs.existsSync(filePath)) {
-            const text = await fsp.readFile(filePath, 'utf-8');
-            return JSON.parse(text);
-        }
-    } catch {
-        // Corrupted or invalid JSON file, return empty structure
+    if (!fs.existsSync(filePath)) {
+        return { version: 1, deployments: [] };
     }
-    return { version: 1, deployments: [] };
+    try {
+        const text = await fsp.readFile(filePath, 'utf-8');
+        return JSON.parse(text);
+    } catch {
+        return { version: 1, deployments: [] };
+    }
 }
 
 /**
@@ -57,7 +57,7 @@ export async function saveLocalDeployment(deployment) {
     data.deployments.push(deployment);
 
     const filePath = getDeploymentsPath();
-    const content = JSON.stringify(data, undefined, 2);
+    const content = JSON.stringify(data, null, 2);
     await fsp.writeFile(
         filePath,
         content,
@@ -80,7 +80,7 @@ export async function getLocalDeployments() {
 export async function clearLocalDeployments() {
     await ensureConfigDir();
     const filePath = getDeploymentsPath();
-    const content = JSON.stringify({ version: 1, deployments: [] }, undefined, 2);
+    const content = JSON.stringify({ version: 1, deployments: [] }, null, 2);
     await fsp.writeFile(
         filePath,
         content,

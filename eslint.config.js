@@ -37,8 +37,6 @@ export default [
             'prefer-const': 'error',
             'no-var': 'error',
         },
-    },
-    {
         ignores: [
             'node_modules/',
             'coverage/',
