@@ -104,10 +104,83 @@ describe('versions command', () => {
 
     try {
       await versions('test-site', { to: 1 })
-    } catch {}
+    } catch { }
 
     expect(logger.warning).toHaveBeenCalledWith(
       expect.stringContaining('--to option is for the rollback')
+    )
+  })
+  it('should output versions as JSON when --json option is provided', async () => {
+    vi.mocked(credentials.isLoggedIn).mockResolvedValue(true)
+    vi.mocked(api.getVersions).mockResolvedValue({
+      versions: [
+        {
+          version: 1,
+          created_at: '2023-01-01T00:00:00.000Z',
+          file_count: 5,
+          total_bytes: 1024,
+          message: 'initial'
+        }
+      ],
+      activeVersion: 1
+    })
+
+    await versions('test-site', { json: true })
+
+    expect(logger.log).toHaveBeenCalledWith(
+      expect.stringContaining('"subdomain": "test-site"')
+    )
+    expect(logger.log).toHaveBeenCalledWith(
+      expect.stringContaining('"activeVersion": 1')
+    )
+    expect(logger.log).toHaveBeenCalledWith(
+      expect.stringContaining('"isActive": true')
+    )
+  })
+
+  it('should handle alternative property names and missing message in API response', async () => {
+    vi.mocked(credentials.isLoggedIn).mockResolvedValue(true)
+    vi.mocked(api.getVersions).mockResolvedValue({
+      versions: [
+        {
+          version: 1,
+          timestamp: '2023-01-01T00:00:00.000Z',
+          fileCount: 3,
+          totalBytes: 512
+          // message missing
+        }
+      ],
+      activeVersion: 1
+    })
+
+    await versions('test-site', { json: true })
+
+    const call = vi.mocked(logger.log).mock.calls.find(c => c[0].includes('{'))
+    const data = JSON.parse(call[0])
+    expect(data.versions[0].timestamp).toBe('2023-01-01T00:00:00.000Z')
+    expect(data.versions[0].fileCount).toBe(3)
+    expect(data.versions[0].totalBytes).toBe(512)
+    expect(data.versions[0].message).toBe('')
+  })
+
+  it('should display "unknown" for size if totalBytes is zero or missing', async () => {
+    vi.mocked(credentials.isLoggedIn).mockResolvedValue(true)
+    vi.mocked(api.getVersions).mockResolvedValue({
+      versions: [
+        {
+          version: 1,
+          created_at: '2023-01-01T00:00:00.000Z',
+          file_count: 5,
+          total_bytes: 0
+        }
+      ],
+      activeVersion: 1
+    })
+
+    await versions('test-site', {})
+
+    expect(logger.log).toHaveBeenCalledWith(
+      expect.stringContaining('unknown')
     )
   })
 })

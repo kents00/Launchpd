@@ -78,4 +78,34 @@ describe('validateStaticOnly', () => {
     expect(result.success).toBe(false)
     expect(result.violations).toContain('node_modules')
   })
+
+  it('should skip ignored files and directories', async () => {
+    vi.mocked(readdir).mockResolvedValue([
+      { isFile: () => true, isDirectory: () => false, name: 'index.html' },
+      { isFile: () => true, isDirectory: () => false, name: '.DS_Store' },
+      { isFile: () => false, isDirectory: () => true, name: 'dist' }
+    ])
+
+    const result = await validateStaticOnly('/fake/path')
+    expect(result.success).toBe(true)
+    expect(result.violations).toHaveLength(0)
+  })
+
+  it('should fail for files with non-allowed extensions', async () => {
+    vi.mocked(readdir).mockResolvedValue([
+      { isFile: () => true, isDirectory: () => false, name: 'setup.exe' },
+      { isFile: () => true, isDirectory: () => false, name: 'document.pdf' }
+    ])
+
+    const result = await validateStaticOnly('/fake/path')
+    expect(result.success).toBe(false)
+    expect(result.violations).toContain('setup.exe')
+    expect(result.violations).not.toContain('document.pdf')
+  })
+
+  it('should throw an error if readdir fails', async () => {
+    vi.mocked(readdir).mockRejectedValue(new Error('Permission denied'))
+
+    await expect(validateStaticOnly('/fake/path')).rejects.toThrow('Failed to validate folder: Permission denied')
+  })
 })

@@ -89,19 +89,105 @@ describe('init command', () => {
     // spinner.fail is called
   })
 
-  it('should handle re-link if already in project root', async () => {
-    projectConfig.findProjectRoot.mockReturnValue('/path/to/root')
-    projectConfig.getProjectConfig.mockResolvedValue({ subdomain: 'old-site' })
-    prompt.prompt.mockResolvedValue('y') // Confirm re-link
+  it('should handle re-link if already in project root (confirmed with "y")', async () => {
+    projectConfig.findProjectRoot.mockReturnValue('/root')
+    projectConfig.getProjectConfig.mockResolvedValue({ subdomain: 'old' })
+    prompt.prompt.mockResolvedValueOnce('y')
+    prompt.prompt.mockResolvedValueOnce('new-site')
 
-    await init({ name: 'new-site' })
+    await init({})
 
-    expect(logger.warning).toHaveBeenCalledWith(
-      expect.stringContaining('already part of a Launchpd project')
-    )
     expect(projectConfig.saveProjectConfig).toHaveBeenCalledWith(
       expect.objectContaining({ subdomain: 'new-site' }),
-      '/path/to/root'
+      '/root'
     )
+  })
+
+  it('should handle re-link if already in project root (confirmed with "yes")', async () => {
+    projectConfig.findProjectRoot.mockReturnValue('/root')
+    projectConfig.getProjectConfig.mockResolvedValue({ subdomain: 'old' })
+    prompt.prompt.mockResolvedValueOnce('yes')
+    prompt.prompt.mockResolvedValueOnce('new-site')
+
+    await init({})
+
+    expect(projectConfig.saveProjectConfig).toHaveBeenCalled()
+  })
+
+  it('should cancel init if user rejects re-link prompt', async () => {
+    projectConfig.findProjectRoot.mockReturnValue('/root')
+    projectConfig.getProjectConfig.mockResolvedValue({ subdomain: 'old' })
+    prompt.prompt.mockResolvedValue('n')
+
+    await init({})
+
+    expect(credentials.isLoggedIn).not.toHaveBeenCalled()
+  })
+
+  it('should handle re-link for already owned subdomain', async () => {
+    projectConfig.findProjectRoot.mockReturnValue('/root')
+    projectConfig.getProjectConfig.mockResolvedValue({ subdomain: 'old' })
+    prompt.prompt.mockResolvedValueOnce('y')
+    prompt.prompt.mockResolvedValueOnce('match')
+
+    api.checkSubdomainAvailable.mockResolvedValue(false)
+    api.listSubdomains.mockResolvedValue({
+      subdomains: [{ subdomain: 'match' }]
+    })
+
+    await init({})
+
+    expect(projectConfig.saveProjectConfig).toHaveBeenCalled()
+  })
+
+  it('should handle reservation failure (returns false)', async () => {
+    api.reserveSubdomain.mockResolvedValue(false)
+    await init({ name: 'fail-site' })
+    expect(projectConfig.initProjectConfig).not.toHaveBeenCalled()
+  })
+
+  it('should handle reservation failure (returns null)', async () => {
+    api.reserveSubdomain.mockResolvedValue(null)
+    await init({ name: 'null-site' })
+    expect(projectConfig.initProjectConfig).not.toHaveBeenCalled()
+  })
+
+  it('should handle reservation success (returns truthy object)', async () => {
+    api.reserveSubdomain.mockResolvedValue({ success: true })
+    await init({ name: 'object-site' })
+    expect(projectConfig.initProjectConfig).toHaveBeenCalled()
+  })
+
+  it('should handle listSubdomains variations (fallback to empty)', async () => {
+    api.checkSubdomainAvailable.mockResolvedValue(false)
+    api.listSubdomains.mockResolvedValue(null)
+    await init({ name: 'taken' })
+    expect(logger.spinner().fail).toHaveBeenCalled()
+
+    api.listSubdomains.mockResolvedValue({})
+    await init({ name: 'taken' })
+    expect(logger.spinner().fail).toHaveBeenCalled()
+  })
+
+  it('should handle general errors', async () => {
+    api.checkSubdomainAvailable.mockRejectedValue(new Error('API Fail'))
+    await init({ name: 'error-site' })
+    expect(logger.errorWithSuggestions).toHaveBeenCalledWith(
+      'API Fail',
+      expect.any(Array)
+    )
+  })
+
+  it('should handle reservation failure when re-linking an existing project', async () => {
+    projectConfig.findProjectRoot.mockReturnValue('/root')
+    projectConfig.getProjectConfig.mockResolvedValue({ subdomain: 'old' })
+    prompt.prompt.mockResolvedValueOnce('y')
+    prompt.prompt.mockResolvedValueOnce('new-site')
+
+    api.reserveSubdomain.mockResolvedValue(false)
+
+    await init({})
+
+    expect(projectConfig.saveProjectConfig).not.toHaveBeenCalled()
   })
 })

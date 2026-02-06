@@ -1,14 +1,5 @@
-<<<<<<< HEAD
-
 
 import { getNextVersion, recordDeploymentInMetadata } from '../src/utils/metadata.js';
-=======
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import {
-  getNextVersion,
-  recordDeploymentInMetadata
-} from '../src/utils/metadata.js'
->>>>>>> e997300adc10b3ecfa47a3ff5cd0df3addff2d35
 
 // Mock Config
 vi.mock('../src/config.js', () => ({
@@ -109,6 +100,18 @@ describe('Metadata Utilities', () => {
       const body = JSON.parse(call[1].body)
       expect(body.version).toBe(2)
       expect(body.folderName).toBe('dist')
+    })
+
+    it('should use "unknown" if folder name cannot be determined', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ success: true })
+      })
+
+      await recordDeploymentInMetadata('test-site', '', 0)
+
+      const body = JSON.parse(mockFetch.mock.calls[0][1].body)
+      expect(body.folderName).toBe('unknown')
     })
   })
 
@@ -217,6 +220,17 @@ describe('Metadata Utilities', () => {
       )
       expect(result).toEqual([])
     })
+
+    it('should return empty array if API result is missing versions', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ versions: null })
+      })
+      const result = await import('../src/utils/metadata.js').then((m) =>
+        m.listVersionFiles('sub', 1)
+      )
+      expect(result).toEqual([])
+    })
   })
 
   describe('Admin Stubs', () => {
@@ -264,6 +278,46 @@ describe('Metadata Utilities', () => {
       // getVersionsForSubdomain returns result?.versions || []
       const result = await m.getVersionsForSubdomain('sub')
       expect(result).toEqual([])
+    })
+
+    it('should use public-beta-key if API key environment variable is missing', async () => {
+      delete process.env.STATICLAUNCH_API_KEY
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ deployments: [] })
+      })
+
+      const m = await import('../src/utils/metadata.js')
+      await m.listDeploymentsFromR2()
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            'X-API-Key': 'public-beta-key'
+          })
+        })
+      )
+    })
+
+    it('should use data.error in thrown error if available', async () => {
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 400,
+        json: () => Promise.resolve({ error: 'Custom error message' })
+      })
+      const m = await import('../src/utils/metadata.js')
+      await expect(m.listDeploymentsFromR2()).rejects.toThrow('Custom error message')
+    })
+
+    it('should use status code in thrown error if data.error is missing', async () => {
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 404,
+        json: () => Promise.resolve({})
+      })
+      const m = await import('../src/utils/metadata.js')
+      await expect(m.listDeploymentsFromR2()).rejects.toThrow('API error: 404')
     })
   })
 })

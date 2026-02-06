@@ -115,12 +115,50 @@ describe('api.js', () => {
       await expect(apiRequest('/test')).rejects.toThrow('Down for upgrades')
     })
 
+    it('should use default maintenance message if not provided by API', async () => {
+      mockFetch.mockResolvedValue({
+        status: 503,
+        json: () => Promise.resolve({ maintenance_mode: true })
+      })
+      await expect(apiRequest('/test')).rejects.toThrow(
+        'LaunchPd is under maintenance'
+      )
+    })
+
+    it('should handle 503 Service Unavailable without maintenance_mode flag', async () => {
+      mockFetch.mockResolvedValue({
+        status: 503,
+        json: () =>
+          Promise.resolve({
+            message: 'Server overloaded'
+          })
+      })
+
+      await expect(apiRequest('/test')).rejects.toThrow('Server overloaded')
+    })
+
+    it('should use default 503 message if not provided by API', async () => {
+      mockFetch.mockResolvedValue({
+        status: 503,
+        json: () => Promise.resolve({})
+      })
+      await expect(apiRequest('/test')).rejects.toThrow('Service unavailable')
+    })
+
     it('should handle 401 AuthError', async () => {
       mockFetch.mockResolvedValue({
         status: 401,
         json: () => Promise.resolve({ message: 'Bad token' })
       })
       await expect(apiRequest('/test')).rejects.toThrow('Bad token')
+    })
+
+    it('should use default 401 message if not provided by API', async () => {
+      mockFetch.mockResolvedValue({
+        status: 401,
+        json: () => Promise.resolve({})
+      })
+      await expect(apiRequest('/test')).rejects.toThrow('Authentication failed')
     })
 
     it('should handle 401 TwoFactorRequiredError', async () => {
@@ -144,6 +182,14 @@ describe('api.js', () => {
       await expect(apiRequest('/test')).rejects.toThrow('Too many requests')
     })
 
+    it('should use default 429 message if not provided by API', async () => {
+      mockFetch.mockResolvedValue({
+        status: 429,
+        json: () => Promise.resolve({})
+      })
+      await expect(apiRequest('/test')).rejects.toThrow('Rate limit exceeded')
+    })
+
     it('should handle non-ok generic errors', async () => {
       mockFetch.mockResolvedValue({
         ok: false,
@@ -153,11 +199,25 @@ describe('api.js', () => {
       await expect(apiRequest('/test')).rejects.toThrow('Server exploded')
     })
 
+    it('should use status code in message if both error and message are missing from API body', async () => {
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 500,
+        json: () => Promise.resolve({})
+      })
+      await expect(apiRequest('/test')).rejects.toThrow('API error: 500')
+    })
+
     it('should wrap fetch errors in NetworkError', async () => {
       mockFetch.mockRejectedValue(new Error('fetch failed'))
       await expect(apiRequest('/test')).rejects.toThrow(
         'Unable to connect to LaunchPd servers'
       )
+    })
+
+    it('should re-throw generic errors that are not network or API errors', async () => {
+      mockFetch.mockRejectedValue(new Error('Internal Logic Error'))
+      await expect(apiRequest('/test')).rejects.toThrow('Internal Logic Error')
     })
   })
 

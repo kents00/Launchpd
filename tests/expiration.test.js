@@ -28,6 +28,10 @@ describe('expiration utils', () => {
       expect(() => parseTimeString('m30')).toThrow()
     })
 
+    it('throws on unknown unit', () => {
+      expect(() => parseTimeString('1x')).toThrow('Unknown time unit: x')
+    })
+
     it('throws if less than 30 minutes', () => {
       expect(() => parseTimeString('29m')).toThrow(
         'Minimum expiration time is 30 minutes'

@@ -17,7 +17,7 @@ describe('list command', () => {
     })
     logger.formatSize.mockImplementation((bytes) => `${bytes} B`)
 
-    vi.spyOn(process, 'exit').mockImplementation(() => {})
+    vi.spyOn(process, 'exit').mockImplementation(() => { })
   })
 
   const mockDeployments = [
@@ -98,6 +98,83 @@ describe('list command', () => {
 
     expect(logger.log).toHaveBeenCalledWith(
       expect.stringContaining('"version": 2')
+    )
+  })
+
+  it('should show expired status for expired deployments', async () => {
+    const expiredDate = new Date()
+    expiredDate.setDate(expiredDate.getDate() - 1)
+
+    api.listDeployments.mockResolvedValue({
+      deployments: [
+        {
+          subdomain: 'expired-site',
+          version: 1,
+          created_at: new Date().toISOString(),
+          expires_at: expiredDate.toISOString()
+        }
+      ]
+    })
+
+    await list({})
+
+    expect(logger.log).toHaveBeenCalledWith(
+      expect.stringContaining('expired')
+    )
+  })
+
+  it('should show time remaining for deployments with future expiration', async () => {
+    const futureDate = new Date()
+    futureDate.setDate(futureDate.getDate() + 7)
+
+    api.listDeployments.mockResolvedValue({
+      deployments: [
+        {
+          subdomain: 'future-site',
+          version: 1,
+          created_at: new Date().toISOString(),
+          expires_at: futureDate.toISOString()
+        }
+      ]
+    })
+
+    await list({})
+
+    expect(logger.log).toHaveBeenCalledWith(
+      expect.stringContaining('⏱')
+    )
+  })
+
+  it('should handle errors and exit with code 1', async () => {
+    const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
+      throw new Error('Exit 1')
+    })
+    api.listDeployments.mockRejectedValue(new Error('API Failure'))
+
+    await expect(list({})).rejects.toThrow('Exit 1')
+    expect(logger.errorWithSuggestions).toHaveBeenCalledWith(
+      expect.stringContaining('Failed to list deployments'),
+      expect.anything(),
+      expect.anything()
+    )
+    exitSpy.mockRestore()
+  })
+
+  it('should default to v1 if version is missing in deployment info', async () => {
+    api.listDeployments.mockResolvedValue({
+      deployments: [
+        {
+          subdomain: 'no-version-site',
+          created_at: new Date().toISOString()
+          // version missing
+        }
+      ]
+    })
+
+    await list({})
+
+    expect(logger.log).toHaveBeenCalledWith(
+      expect.stringContaining('v1')
     )
   })
 })

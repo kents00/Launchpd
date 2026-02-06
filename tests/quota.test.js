@@ -199,64 +199,40 @@ describe('quota.js', () => {
         expect(logger.log).toHaveBeenCalledWith('Account suspended')
       })
 
-      it('should handle non-ok quota response', async () => {
-        mockFetch.mockResolvedValueOnce({ ok: false, status: 500 })
-        const result = await checkQuota('site', 0)
-        expect(result.warnings).toContain(
-          'Could not verify quota (API unavailable)'
-        )
-      })
-    })
-
-    describe('Anonymous User', () => {
-      beforeEach(() => {
-        vi.mocked(credentials.getCredentials).mockResolvedValue({})
-      })
-
-      it('should check anonymous quota and hit limit', async () => {
+      it('should log upgradeMessage if provided when blocked', async () => {
         mockFetch.mockResolvedValueOnce({
           ok: true,
           json: () =>
             Promise.resolve({
-              canDeploy: false,
-              canCreateNewSite: false,
-              usage: { sitesRemaining: 0, storageUsed: 0 },
-              limits: { maxSites: 3, maxStorageBytes: 50000000 }
+              blocked: true,
+              upgradeMessage: 'Please upgrade your account'
             })
         })
-
-        const result = await checkQuota('site', 0)
-        expect(result.allowed).toBe(false)
-        expect(logger.log).toHaveBeenCalledWith(
-          expect.stringContaining('Upgrade to Launchpd Free Tier')
-        )
+        await checkQuota('site', 0)
+        expect(logger.log).toHaveBeenCalledWith('Please upgrade your account')
       })
 
-      it('should handle invalid client token', async () => {
-        vi.mocked(credentials.getClientToken).mockResolvedValue('bad-token')
-        const result = await checkQuota('site', 0)
-        expect(result.allowed).toBe(true)
-        expect(result.warnings).toContain(
-          'Could not verify quota (API unavailable)'
-        )
+      it('should not log upgradeMessage if missing when blocked', async () => {
+        mockFetch.mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({ blocked: true })
+        })
+        mockFetch.mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({ subdomains: [] })
+        })
+        await checkQuota('site', 0)
+        expect(logger.log).not.toHaveBeenCalled()
       })
 
-      it('should handle anonymous quota error', async () => {
-        mockFetch.mockResolvedValueOnce({ ok: false })
-        const result = await checkQuota('site', 0)
-        expect(result.allowed).toBe(true)
-      })
-    })
-
-    describe('Storage Warnings', () => {
-      it('should warn when storage usage > 80%', async () => {
+      it('should use maxStorageMB fallback if maxStorageBytes is missing', async () => {
         mockFetch.mockResolvedValueOnce({
           ok: true,
           json: () =>
             Promise.resolve({
               canDeploy: true,
-              usage: { sitesRemaining: 1, storageUsed: 700 },
-              limits: { maxStorageBytes: 1000, maxSites: 3 }
+              usage: { storageUsed: 0, sitesRemaining: 1 },
+              limits: { maxStorageMB: 10, maxSites: 3 }
             })
         })
         mockFetch.mockResolvedValueOnce({
@@ -264,45 +240,286 @@ describe('quota.js', () => {
           json: () => Promise.resolve({ subdomains: [] })
         })
 
-        const result = await checkQuota('site', 150) // 850/1000 = 85%
-        expect(result.warnings.some((w) => w.includes('85% used'))).toBe(true)
+        const result = await checkQuota('site', 20 * 1024 * 1024) // 20MB > 10MB
+        expect(result.allowed).toBe(false)
+        expect(logger.error).toHaveBeenCalledWith(
+          expect.stringContaining('Storage limit exceeded')
+        )
       })
     })
 
-    describe('Ownership Check Edge Cases', () => {
-      it('should return false if subdomains fetch fails', async () => {
-        mockFetch.mockResolvedValueOnce({
-          ok: true,
-          json: () =>
-            Promise.resolve({
-              canDeploy: true,
-              usage: { sitesRemaining: 1, storageUsed: 0 },
-              limits: { maxSites: 3, maxStorageBytes: 1000 }
-            })
-        })
-        mockFetch.mockResolvedValueOnce({ ok: false, status: 401 })
-
-        const result = await checkQuota('mysite', 0)
-        expect(result.isNewSite).toBe(true) // userOwnsSite returns false on error
+    it('should log verbose details using DEBUG env var on fetch failure', async () => {
+      vi.stubEnv('DEBUG', 'true')
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        statusText: 'Internal Error',
+        text: () => Promise.resolve('System crash')
       })
 
-      it('should return false if subdomains fetch throws', async () => {
-        mockFetch.mockResolvedValueOnce({
-          ok: true,
-          json: () =>
-            Promise.resolve({
-              canDeploy: true,
-              usage: { sitesRemaining: 1, storageUsed: 0 },
-              limits: { maxSites: 3, maxStorageBytes: 1000 }
-            })
-        })
-        mockFetch.mockRejectedValueOnce(new Error('fail'))
+      await checkQuota('site', 0)
 
-        const result = await checkQuota('mysite', 0)
-        expect(result.isNewSite).toBe(true)
+      expect(logger.raw).toHaveBeenCalledWith(
+        expect.stringContaining('Quota check failed: 500'),
+        'error'
+      )
+      vi.stubEnv('DEBUG', '')
+    })
+
+    it('should log verbose details using options.verbose on fetch failure', async () => {
+      vi.stubEnv('DEBUG', '')
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 403,
+        statusText: 'Forbidden',
+        text: () => Promise.resolve('Access denied')
       })
+
+      await checkQuota('site', 0, { verbose: true })
+
+      expect(logger.raw).toHaveBeenCalledWith(
+        expect.stringContaining('Quota check failed: 403'),
+        'error'
+      )
+    })
+
+    it('should return null on authenticated quota fetch error without logging (non-ok response, non-verbose)', async () => {
+      vi.stubEnv('DEBUG', '')
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        statusText: 'Server Error'
+      })
+
+      const result = await checkQuota('site', 0, { verbose: false })
+
+      // checkQuota returns safe default on null
+      expect(result.allowed).toBe(true)
+      expect(logger.raw).not.toHaveBeenCalled()
+    })
+
+    it('should log verbose error details on failure', async () => {
+      mockFetch.mockResolvedValueOnce({ ok: false, status: 500, statusText: 'Server Error', text: () => Promise.resolve('Error details') })
+
+      await checkQuota('site', 0, { verbose: true })
+
+      expect(logger.raw).toHaveBeenCalledWith(expect.stringContaining('Quota check failed: 500'), 'error')
+      expect(logger.raw).toHaveBeenCalledWith(expect.stringContaining('Response: Error details'), 'error')
+    })
+
+    it('should log exception details in verbose mode', async () => {
+      const error = new Error('Network fail')
+      error.cause = new Error('DNS lookup failed')
+      mockFetch.mockRejectedValueOnce(error)
+
+      await checkQuota('site', 0, { verbose: true })
+
+      expect(logger.raw).toHaveBeenCalledWith('Quota check error:', 'error')
+      expect(logger.raw).toHaveBeenCalledWith(expect.stringContaining('Cause:'), 'error')
+      expect(logger.raw).toHaveBeenCalledWith(error.cause, 'error')
+    })
+
+    it('should log exception details in verbose mode without cause', async () => {
+      const error = new Error('Silent fail')
+      mockFetch.mockRejectedValueOnce(error)
+
+      await checkQuota('site', 0, { verbose: true })
+
+      expect(logger.raw).toHaveBeenCalledWith('Quota check error:', 'error')
+      expect(logger.raw).not.toHaveBeenCalledWith(expect.stringContaining('Cause:'), 'error')
+    })
+
+    it('should check ownership if subdomain provided but isUpdate is falsy', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ canDeploy: true, usage: {}, limits: { maxSites: 5 } })
+      })
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ subdomains: [{ subdomain: 'other' }] })
+      })
+
+      const result = await checkQuota('mysite', 0, { isUpdate: false })
+      expect(result.isNewSite).toBe(true)
+      // Verify second fetch (ownership check) was called
+      expect(mockFetch).toHaveBeenCalledTimes(2)
+    })
+
+    it('should skip ownership check if subdomain is null and isUpdate is false', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ canDeploy: true, usage: {}, limits: { maxSites: 5 } })
+      })
+
+      const result = await checkQuota(null, 0, { isUpdate: false })
+      expect(result.isNewSite).toBe(true)
+      expect(mockFetch).toHaveBeenCalledTimes(1)
     })
   })
+
+  describe('Anonymous User', () => {
+    beforeEach(() => {
+      vi.mocked(credentials.getCredentials).mockResolvedValue({})
+    })
+
+    it('should check anonymous quota and hit limit', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            canDeploy: false,
+            canCreateNewSite: false,
+            usage: { sitesRemaining: 0, storageUsed: 0 },
+            limits: { maxSites: 3, maxStorageBytes: 50000000 }
+          })
+      })
+
+      const result = await checkQuota('site', 0)
+      expect(result.allowed).toBe(false)
+      expect(logger.log).toHaveBeenCalledWith(
+        expect.stringContaining('Upgrade to Launchpd Free Tier')
+      )
+    })
+
+    it('should handle invalid client token', async () => {
+      vi.mocked(credentials.getClientToken).mockResolvedValue('bad-token')
+      const result = await checkQuota('site', 0)
+      expect(result.allowed).toBe(true)
+      expect(result.warnings).toContain(
+        'Could not verify quota (API unavailable)'
+      )
+    })
+
+
+
+    it('should show upgrade prompt if anonymous storage limit exceeded', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          canDeploy: true,
+          usage: { sitesRemaining: 1, storageUsed: 9999999 },
+          limits: { maxSites: 3, maxStorageBytes: 1000 }
+        })
+      })
+
+      await checkQuota('site', 500) // 9999999 + 500 > 1000
+
+      expect(logger.log).toHaveBeenCalledWith(expect.stringContaining('Upgrade to Launchpd Free Tier'))
+    })
+
+    it('should return null on anonymous quota network error', async () => {
+      mockFetch.mockRejectedValueOnce(new Error('fail'))
+      const result = await checkQuota('site', 0)
+      // checkQuota returns safe default on null
+      expect(result.allowed).toBe(true)
+    })
+    it('should return null on anonymous quota fetch error (non-ok response)', async () => {
+      mockFetch.mockResolvedValueOnce({ ok: false, status: 500 })
+      const result = await checkQuota('site', 0)
+      // checkQuota returns safe default on null
+      expect(result.allowed).toBe(true)
+      expect(result.warnings).toContain(
+        'Could not verify quota (API unavailable)'
+      )
+    })
+  })
+
+  describe('Storage Warnings', () => {
+    it('should warn when storage usage > 80%', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            canDeploy: true,
+            usage: { sitesRemaining: 1, storageUsed: 700 },
+            limits: { maxStorageBytes: 1000, maxSites: 3 }
+          })
+      })
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ subdomains: [] })
+      })
+
+      const result = await checkQuota('site', 150) // 850/1000 = 85%
+      expect(result.warnings.some((w) => w.includes('85% used'))).toBe(true)
+    })
+
+    it('should not duplicate site remaining warning if backend already provided it', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            canDeploy: true,
+            warnings: ['You have 1 site(s) remaining'],
+            usage: { sitesRemaining: 1, storageUsed: 0 },
+            limits: { maxSites: 3, maxStorageBytes: 1000 }
+          })
+      })
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ subdomains: [] })
+      })
+
+      const result = await checkQuota('site', 0)
+      const siteWarnings = result.warnings.filter(w => w.includes('site(s) remaining'))
+      expect(siteWarnings).toHaveLength(1)
+    })
+  })
+
+  describe('Ownership Check Edge Cases', () => {
+    it('should return false if subdomains fetch fails', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            canDeploy: true,
+            usage: { sitesRemaining: 1, storageUsed: 0 },
+            limits: { maxSites: 3, maxStorageBytes: 1000 }
+          })
+      })
+      mockFetch.mockResolvedValueOnce({ ok: false, status: 401 })
+
+      const result = await checkQuota('mysite', 0)
+      expect(result.isNewSite).toBe(true) // userOwnsSite returns false on error
+    })
+
+    it('should return false if subdomains fetch throws', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            canDeploy: true,
+            usage: { sitesRemaining: 1, storageUsed: 0 },
+            limits: { maxSites: 3, maxStorageBytes: 1000 }
+          })
+      })
+      mockFetch.mockRejectedValueOnce(new Error('fail'))
+
+      const result = await checkQuota('mysite', 0)
+      expect(result.isNewSite).toBe(true)
+    })
+
+    it('should log debug info during ownership check', async () => {
+      vi.stubEnv('DEBUG', 'true')
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ canDeploy: true })
+      })
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ subdomains: [{ subdomain: 'other' }] })
+      })
+
+      await checkQuota('mysite', 0)
+
+      expect(logger.log).toHaveBeenCalledWith(expect.stringContaining('User subdomains:'))
+      expect(logger.log).toHaveBeenCalledWith(expect.stringContaining('Owns site? false'))
+
+      vi.stubEnv('DEBUG', '')
+    })
+  })
+
 
   describe('Helpers', () => {
     it('formatBytes should format correctly', () => {

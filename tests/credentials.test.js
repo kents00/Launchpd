@@ -90,6 +90,17 @@ describe('credentials utils', () => {
       )
       expect(writeFile).toHaveBeenCalled()
     })
+
+    it('should use default values in saveCredentials if optional fields are missing', async () => {
+      existsSync.mockReturnValue(true)
+      await saveCredentials({ apiKey: 'some-key' })
+
+      const call = writeFile.mock.calls[0]
+      const data = JSON.parse(call[1])
+      expect(data.userId).toBeNull()
+      expect(data.email).toBeNull()
+      expect(data.tier).toBe('free')
+    })
   })
 
   describe('clearCredentials', () => {
@@ -101,6 +112,18 @@ describe('credentials utils', () => {
       expect(unlink).toHaveBeenCalledWith(
         expect.stringContaining('credentials.json')
       )
+    })
+
+    it('should handle case where credentials file does not exist during logout', async () => {
+      existsSync.mockReturnValue(false)
+      await clearCredentials()
+      expect(unlink).not.toHaveBeenCalled()
+    })
+
+    it('should suppress error if unlink fails during logout', async () => {
+      existsSync.mockReturnValue(true)
+      unlink.mockRejectedValue(new Error('Permission denied'))
+      await expect(clearCredentials()).resolves.toBeUndefined()
     })
   })
 
@@ -158,6 +181,13 @@ describe('credentials utils', () => {
 
       const result = await getApiSecret()
       expect(result).toBe('file-secret')
+    })
+
+    it('should return null for API secret if both env and file are missing', async () => {
+      existsSync.mockReturnValue(false)
+      delete process.env.STATICLAUNCH_API_SECRET
+      const result = await getApiSecret()
+      expect(result).toBeNull()
     })
   })
 

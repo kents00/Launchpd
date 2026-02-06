@@ -1,15 +1,4 @@
-<<<<<<< HEAD
 import { findProjectRoot, getProjectConfig, saveProjectConfig, initProjectConfig, updateProjectConfig } from '../src/utils/projectConfig.js'
-=======
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import {
-  findProjectRoot,
-  getProjectConfig,
-  saveProjectConfig,
-  initProjectConfig,
-  updateProjectConfig
-} from '../src/utils/projectConfig.js'
->>>>>>> e997300adc10b3ecfa47a3ff5cd0df3addff2d35
 import { existsSync } from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
@@ -76,6 +65,12 @@ describe('projectConfig', () => {
       expect(config).toBeNull()
     })
 
+    it('should return null if config file does not exist', async () => {
+      existsSync.mockReturnValue(false)
+      const config = await getProjectConfig('/app')
+      expect(config).toBeNull()
+    })
+
     it('should return null if file read fails', async () => {
       existsSync.mockReturnValue(true)
       readFile.mockRejectedValue(new Error('Fail'))
@@ -123,6 +118,11 @@ describe('projectConfig', () => {
         expect.stringContaining('"createdAt": "date"'),
         'utf8'
       )
+    })
+
+    it('should return null if no project root found', async () => {
+      const result = await updateProjectConfig({ subdomain: 'new' }, null)
+      expect(result).toBeNull()
     })
   })
 })

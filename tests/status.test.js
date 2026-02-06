@@ -4,7 +4,7 @@ import {
   getProjectConfig
 } from '../src/utils/projectConfig.js'
 import { getDeployment } from '../src/utils/api.js'
-import { spinner, log, warning, formatSize } from '../src/utils/logger.js'
+import { spinner, log, warning, formatSize, errorWithSuggestions } from '../src/utils/logger.js'
 
 vi.mock('../src/utils/projectConfig.js')
 vi.mock('../src/utils/api.js')
@@ -29,6 +29,16 @@ describe('status command', () => {
     await status({})
     expect(warning).toHaveBeenCalledWith(
       expect.stringContaining('Not a Launchpd project')
+    )
+  })
+
+  it('should handle invalid project configuration (missing subdomain)', async () => {
+    findProjectRoot.mockReturnValue('/root')
+    getProjectConfig.mockResolvedValue({})
+    await status({})
+    expect(errorWithSuggestions).toHaveBeenCalledWith(
+      'Invalid project configuration.',
+      expect.anything()
     )
   })
 
@@ -84,5 +94,109 @@ describe('status command', () => {
 
     expect(spinner().fail).toHaveBeenCalled()
     // Should not crash
+  })
+
+  it('should display expiration information if set', async () => {
+    findProjectRoot.mockReturnValue('/root')
+    getProjectConfig.mockResolvedValue({ subdomain: 'test-site' })
+
+    const futureDate = new Date()
+    futureDate.setDate(futureDate.getDate() + 7)
+
+    getDeployment.mockResolvedValue({
+      activeVersion: 1,
+      versions: [
+        {
+          version: 1,
+          created_at: new Date().toISOString(),
+          file_count: 5,
+          total_bytes: 1024,
+          expires_at: futureDate.toISOString()
+        }
+      ]
+    })
+
+    await status({})
+
+    expect(log).toHaveBeenCalledWith(
+      expect.stringContaining('Expires:')
+    )
+  })
+
+  it('should display "expired" in red if deployment has expired', async () => {
+    findProjectRoot.mockReturnValue('/root')
+    getProjectConfig.mockResolvedValue({ subdomain: 'test-site' })
+
+    const pastDate = new Date()
+    pastDate.setDate(pastDate.getDate() - 1)
+
+    getDeployment.mockResolvedValue({
+      activeVersion: 1,
+      versions: [
+        {
+          version: 1,
+          created_at: new Date().toISOString(),
+          file_count: 5,
+          total_bytes: 1024,
+          expires_at: pastDate.toISOString()
+        }
+      ]
+    })
+
+    await status({})
+
+    expect(log).toHaveBeenCalledWith(
+      expect.stringContaining('expired')
+    )
+  })
+
+  it('should use first version if activeVersion is not found in versions list', async () => {
+    findProjectRoot.mockReturnValue('/root')
+    getProjectConfig.mockResolvedValue({ subdomain: 'test-site' })
+
+    getDeployment.mockResolvedValue({
+      activeVersion: 99, // Non-existent
+      versions: [
+        {
+          version: 1,
+          created_at: new Date().toISOString(),
+          file_count: 5,
+          total_bytes: 1024
+        }
+      ]
+    })
+
+    await status({})
+
+    expect(log).toHaveBeenCalledWith(
+      expect.stringContaining('v1')
+    )
+  })
+
+  it('should handle camelCase property names in deployment info', async () => {
+    findProjectRoot.mockReturnValue('/root')
+    getProjectConfig.mockResolvedValue({ subdomain: 'test-site' })
+
+    const expiryDate = new Date()
+    expiryDate.setDate(expiryDate.getDate() + 7)
+
+    getDeployment.mockResolvedValue({
+      activeVersion: 1,
+      versions: [
+        {
+          version: 1,
+          timestamp: new Date().toISOString(), // camelCase
+          fileCount: 10, // camelCase
+          totalBytes: 2048, // camelCase
+          expiresAt: expiryDate.toISOString() // camelCase
+        }
+      ]
+    })
+
+    await status({})
+
+    expect(log).toHaveBeenCalledWith(expect.stringContaining('10'))
+    expect(log).toHaveBeenCalledWith(expect.stringContaining('2048 B'))
+    expect(log).toHaveBeenCalledWith(expect.stringContaining('Expires:'))
   })
 })
