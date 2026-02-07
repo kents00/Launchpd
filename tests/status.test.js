@@ -4,7 +4,13 @@ import {
   getProjectConfig
 } from '../src/utils/projectConfig.js'
 import { getDeployment } from '../src/utils/api.js'
-import { spinner, log, warning, formatSize, errorWithSuggestions } from '../src/utils/logger.js'
+import {
+  spinner,
+  log,
+  warning,
+  formatSize,
+  errorWithSuggestions
+} from '../src/utils/logger.js'
 
 vi.mock('../src/utils/projectConfig.js')
 vi.mock('../src/utils/api.js')
@@ -118,9 +124,7 @@ describe('status command', () => {
 
     await status({})
 
-    expect(log).toHaveBeenCalledWith(
-      expect.stringContaining('Expires:')
-    )
+    expect(log).toHaveBeenCalledWith(expect.stringContaining('Expires:'))
   })
 
   it('should display "expired" in red if deployment has expired', async () => {
@@ -145,9 +149,7 @@ describe('status command', () => {
 
     await status({})
 
-    expect(log).toHaveBeenCalledWith(
-      expect.stringContaining('expired')
-    )
+    expect(log).toHaveBeenCalledWith(expect.stringContaining('expired'))
   })
 
   it('should use first version if activeVersion is not found in versions list', async () => {
@@ -168,9 +170,7 @@ describe('status command', () => {
 
     await status({})
 
-    expect(log).toHaveBeenCalledWith(
-      expect.stringContaining('v1')
-    )
+    expect(log).toHaveBeenCalledWith(expect.stringContaining('v1'))
   })
 
   it('should handle camelCase property names in deployment info', async () => {

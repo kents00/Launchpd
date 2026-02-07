@@ -106,6 +106,8 @@ describe('validateStaticOnly', () => {
   it('should throw an error if readdir fails', async () => {
     vi.mocked(readdir).mockRejectedValue(new Error('Permission denied'))
 
-    await expect(validateStaticOnly('/fake/path')).rejects.toThrow('Failed to validate folder: Permission denied')
+    await expect(validateStaticOnly('/fake/path')).rejects.toThrow(
+      'Failed to validate folder: Permission denied'
+    )
   })
 })

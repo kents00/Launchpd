@@ -8,7 +8,15 @@ import {
 } from '../src/commands/auth.js'
 import * as credentials from '../src/utils/credentials.js'
 import { promptSecret } from '../src/utils/prompt.js'
-import { spinner, warning, success, log, info, errorWithSuggestions, error } from '../src/utils/logger.js'
+import {
+  spinner,
+  warning,
+  success,
+  log,
+  info,
+  errorWithSuggestions,
+  error
+} from '../src/utils/logger.js'
 import * as api from '../src/utils/api.js'
 import { execFile } from 'node:child_process'
 import { handleCommonError } from '../src/utils/errors.js'
@@ -61,9 +69,7 @@ describe('auth commands', () => {
 
       await login()
 
-      expect(warning).toHaveBeenCalledWith(
-        expect.stringContaining('123')
-      )
+      expect(warning).toHaveBeenCalledWith(expect.stringContaining('123'))
     })
 
     it('should login and show usage if available', async () => {
@@ -72,21 +78,30 @@ describe('auth commands', () => {
 
       fetch.mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve({
-          authenticated: true,
-          user: { email: 'test@example.com', id: '123', api_secret: 'secret' },
-          tier: 'pro',
-          usage: { siteCount: 2, storageUsedMB: 10 },
-          limits: { maxSites: 10, maxStorageMB: 100 }
-        })
+        json: () =>
+          Promise.resolve({
+            authenticated: true,
+            user: {
+              email: 'test@example.com',
+              id: '123',
+              api_secret: 'secret'
+            },
+            tier: 'pro',
+            usage: { siteCount: 2, storageUsedMB: 10 },
+            limits: { maxSites: 10, maxStorageMB: 100 }
+          })
       })
 
       await login()
-      expect(credentials.saveCredentials).toHaveBeenCalledWith(expect.objectContaining({
-        apiSecret: 'secret'
-      }))
+      expect(credentials.saveCredentials).toHaveBeenCalledWith(
+        expect.objectContaining({
+          apiSecret: 'secret'
+        })
+      )
       expect(log).toHaveBeenCalledWith(expect.stringContaining('Sites: 2/10'))
-      expect(log).toHaveBeenCalledWith(expect.stringContaining('Storage: 10 MB/100 MB'))
+      expect(log).toHaveBeenCalledWith(
+        expect.stringContaining('Storage: 10 MB/100 MB')
+      )
     })
 
     it('should login successfully with valid API key', async () => {
@@ -118,7 +133,7 @@ describe('auth commands', () => {
         json: () =>
           Promise.resolve({
             authenticated: true,
-            user: { id: 1 },
+            user: { id: 1 }
           })
       })
 
@@ -216,7 +231,9 @@ describe('auth commands', () => {
       await logout()
       expect(credentials.clearCredentials).toHaveBeenCalled()
       expect(success).toHaveBeenCalled()
-      expect(info).toHaveBeenCalledWith(expect.stringContaining('Was logged in as'))
+      expect(info).toHaveBeenCalledWith(
+        expect.stringContaining('Was logged in as')
+      )
     })
 
     it('should logout without email info', async () => {
@@ -225,7 +242,9 @@ describe('auth commands', () => {
         userId: '123'
       })
       await logout()
-      expect(info).not.toHaveBeenCalledWith(expect.stringContaining('Was logged in as'))
+      expect(info).not.toHaveBeenCalledWith(
+        expect.stringContaining('Was logged in as')
+      )
     })
   })
 
@@ -270,19 +289,26 @@ describe('auth commands', () => {
       })
       fetch.mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve({
-          authenticated: true,
-          user: { id: '123', email: 'test@example.com', api_secret: 'new_secret' },
-          tier: 'pro',
-          usage: {},
-          limits: {}
-        })
+        json: () =>
+          Promise.resolve({
+            authenticated: true,
+            user: {
+              id: '123',
+              email: 'test@example.com',
+              api_secret: 'new_secret'
+            },
+            tier: 'pro',
+            usage: {},
+            limits: {}
+          })
       })
 
       await whoami()
-      expect(credentials.saveCredentials).toHaveBeenCalledWith(expect.objectContaining({
-        apiSecret: 'new_secret'
-      }))
+      expect(credentials.saveCredentials).toHaveBeenCalledWith(
+        expect.objectContaining({
+          apiSecret: 'new_secret'
+        })
+      )
     })
 
     it('should fallback to creds.userId/email in updateCredentialsIfNeeded', async () => {
@@ -293,20 +319,23 @@ describe('auth commands', () => {
       })
       fetch.mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve({
-          authenticated: true,
-          user: { api_secret: 'new_secret' }, // missing id and email
-          tier: 'pro',
-          usage: {},
-          limits: {}
-        })
+        json: () =>
+          Promise.resolve({
+            authenticated: true,
+            user: { api_secret: 'new_secret' }, // missing id and email
+            tier: 'pro',
+            usage: {},
+            limits: {}
+          })
       })
 
       await whoami()
-      expect(credentials.saveCredentials).toHaveBeenCalledWith(expect.objectContaining({
-        userId: 'old_id',
-        email: 'old_email'
-      }))
+      expect(credentials.saveCredentials).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: 'old_id',
+          email: 'old_email'
+        })
+      )
     })
 
     it('should handle session expiry in whoami', async () => {
@@ -323,7 +352,9 @@ describe('auth commands', () => {
       })
       await expect(whoami()).rejects.toThrow('Process.exit(1)')
 
-      vi.mocked(credentials.getCredentials).mockResolvedValue({ apiKey: 'lpd_1234567890123456' })
+      vi.mocked(credentials.getCredentials).mockResolvedValue({
+        apiKey: 'lpd_1234567890123456'
+      })
       fetch.mockResolvedValueOnce({ ok: false, status: 500 })
       await expect(whoami()).rejects.toThrow('Process.exit(1)')
 
@@ -335,15 +366,18 @@ describe('auth commands', () => {
     })
 
     it('should show various 2FA states in whoami', async () => {
-      vi.mocked(credentials.getCredentials).mockResolvedValue({ apiKey: 'lpd_1234567890123456' })
+      vi.mocked(credentials.getCredentials).mockResolvedValue({
+        apiKey: 'lpd_1234567890123456'
+      })
 
       // Both enabled
       fetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          authenticated: true,
-          user: { is_2fa_enabled: true, is_email_2fa_enabled: true }
-        })
+        json: () =>
+          Promise.resolve({
+            authenticated: true,
+            user: { is_2fa_enabled: true, is_email_2fa_enabled: true }
+          })
       })
       await whoami()
       expect(log).toHaveBeenCalledWith(expect.stringContaining('App + Email'))
@@ -351,10 +385,11 @@ describe('auth commands', () => {
       // Email only
       fetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          authenticated: true,
-          user: { is_2fa_enabled: false, is_email_2fa_enabled: true }
-        })
+        json: () =>
+          Promise.resolve({
+            authenticated: true,
+            user: { is_2fa_enabled: false, is_email_2fa_enabled: true }
+          })
       })
       await whoami()
       expect(log).toHaveBeenCalledWith(expect.stringContaining('(Email)'))
@@ -362,46 +397,59 @@ describe('auth commands', () => {
       // None enabled (triggers recommendation)
       fetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          authenticated: true,
-          user: { is_2fa_enabled: false, is_email_2fa_enabled: false }
-        })
+        json: () =>
+          Promise.resolve({
+            authenticated: true,
+            user: { is_2fa_enabled: false, is_email_2fa_enabled: false }
+          })
       })
       await whoami()
       expect(info).toHaveBeenCalledWith(expect.stringContaining('Enable 2FA'))
     })
 
     it('should show warnings and verification status in whoami', async () => {
-      vi.mocked(credentials.getCredentials).mockResolvedValue({ apiKey: 'lpd_1234567890123456' })
+      vi.mocked(credentials.getCredentials).mockResolvedValue({
+        apiKey: 'lpd_1234567890123456'
+      })
       fetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          authenticated: true,
-          user: { email: 'test', email_verified: false },
-          warnings: ['Test Warning'],
-          canCreateNewSite: false
-        })
+        json: () =>
+          Promise.resolve({
+            authenticated: true,
+            user: { email: 'test', email_verified: false },
+            warnings: ['Test Warning'],
+            canCreateNewSite: false
+          })
       })
 
       await whoami()
       expect(log).toHaveBeenCalledWith(expect.stringContaining('Warnings:'))
-      expect(warning).toHaveBeenCalledWith(expect.stringContaining('email is not verified'))
-      expect(warning).toHaveBeenCalledWith(expect.stringContaining('limit reached'))
+      expect(warning).toHaveBeenCalledWith(
+        expect.stringContaining('email is not verified')
+      )
+      expect(warning).toHaveBeenCalledWith(
+        expect.stringContaining('limit reached')
+      )
     })
 
     it('should not show limit warning if canCreateNewSite is true', async () => {
-      vi.mocked(credentials.getCredentials).mockResolvedValue({ apiKey: 'lpd_1234567890123456' })
+      vi.mocked(credentials.getCredentials).mockResolvedValue({
+        apiKey: 'lpd_1234567890123456'
+      })
       fetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          authenticated: true,
-          user: { email: 'test', email_verified: true },
-          canCreateNewSite: true
-        })
+        json: () =>
+          Promise.resolve({
+            authenticated: true,
+            user: { email: 'test', email_verified: true },
+            canCreateNewSite: true
+          })
       })
 
       await whoami()
-      expect(warning).not.toHaveBeenCalledWith(expect.stringContaining('limit reached'))
+      expect(warning).not.toHaveBeenCalledWith(
+        expect.stringContaining('limit reached')
+      )
     })
   })
 
@@ -415,9 +463,13 @@ describe('auth commands', () => {
     })
 
     it('should handle browser opening failure', () => {
-      vi.mocked(execFile).mockImplementation((cmd, args, cb) => cb(new Error('Fail')))
+      vi.mocked(execFile).mockImplementation((cmd, args, cb) =>
+        cb(new Error('Fail'))
+      )
       register()
-      expect(log).toHaveBeenCalledWith(expect.stringContaining('Please open this URL'))
+      expect(log).toHaveBeenCalledWith(
+        expect.stringContaining('Please open this URL')
+      )
     })
 
     it('should use "open" command on macOS', () => {
@@ -425,7 +477,11 @@ describe('auth commands', () => {
       Object.defineProperty(process, 'platform', { value: 'darwin' })
 
       register()
-      expect(execFile).toHaveBeenCalledWith('open', expect.anything(), expect.anything())
+      expect(execFile).toHaveBeenCalledWith(
+        'open',
+        expect.anything(),
+        expect.anything()
+      )
 
       Object.defineProperty(process, 'platform', { value: originalPlatform })
     })
@@ -435,7 +491,11 @@ describe('auth commands', () => {
       Object.defineProperty(process, 'platform', { value: 'win32' })
 
       register()
-      expect(execFile).toHaveBeenCalledWith('cmd', expect.arrayContaining(['/c', 'start']), expect.anything())
+      expect(execFile).toHaveBeenCalledWith(
+        'cmd',
+        expect.arrayContaining(['/c', 'start']),
+        expect.anything()
+      )
 
       Object.defineProperty(process, 'platform', { value: originalPlatform })
     })
@@ -445,7 +505,11 @@ describe('auth commands', () => {
       Object.defineProperty(process, 'platform', { value: 'linux' })
 
       register()
-      expect(execFile).toHaveBeenCalledWith('xdg-open', expect.anything(), expect.anything())
+      expect(execFile).toHaveBeenCalledWith(
+        'xdg-open',
+        expect.anything(),
+        expect.anything()
+      )
 
       Object.defineProperty(process, 'platform', { value: originalPlatform })
     })
@@ -504,18 +568,26 @@ describe('auth commands', () => {
       })
 
       await resendEmailVerification()
-      expect(info).toHaveBeenCalledWith(expect.stringContaining('Please wait 60 seconds'))
+      expect(info).toHaveBeenCalledWith(
+        expect.stringContaining('Please wait 60 seconds')
+      )
     })
 
     it('should handle common errors and fallback in verification', async () => {
       vi.mocked(credentials.isLoggedIn).mockResolvedValue(true)
-      vi.mocked(api.resendVerification).mockRejectedValue(new Error('Unexpected'))
+      vi.mocked(api.resendVerification).mockRejectedValue(
+        new Error('Unexpected')
+      )
 
       vi.mocked(handleCommonError).mockReturnValueOnce(true)
-      await expect(resendEmailVerification()).rejects.toThrow('Process.exit(1)')
+      await expect(resendEmailVerification()).rejects.toThrow(
+        'Process.exit(1)'
+      )
 
       vi.mocked(handleCommonError).mockReturnValueOnce(false)
-      await expect(resendEmailVerification()).rejects.toThrow('Process.exit(1)')
+      await expect(resendEmailVerification()).rejects.toThrow(
+        'Process.exit(1)'
+      )
     })
 
     it('should handle error without message in resendVerification', async () => {
@@ -524,7 +596,9 @@ describe('auth commands', () => {
 
       vi.mocked(handleCommonError).mockReturnValue(false)
 
-      await expect(resendEmailVerification()).rejects.toThrow('Process.exit(1)')
+      await expect(resendEmailVerification()).rejects.toThrow(
+        'Process.exit(1)'
+      )
       expect(error).toHaveBeenCalledWith('Failed to resend verification email')
     })
   })
@@ -578,31 +652,41 @@ describe('auth commands', () => {
     })
 
     it('should show warnings when usage is high', async () => {
-      vi.mocked(credentials.getCredentials).mockResolvedValue({ apiKey: 'lpd_1234567890123456' })
+      vi.mocked(credentials.getCredentials).mockResolvedValue({
+        apiKey: 'lpd_1234567890123456'
+      })
       fetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          authenticated: true,
-          usage: { siteCount: 10, storageUsed: 95 * 1024 * 1024 },
-          limits: { maxSites: 10, maxStorageMB: 100 },
-          canCreateNewSite: false
-        })
+        json: () =>
+          Promise.resolve({
+            authenticated: true,
+            usage: { siteCount: 10, storageUsed: 95 * 1024 * 1024 },
+            limits: { maxSites: 10, maxStorageMB: 100 },
+            canCreateNewSite: false
+          })
       })
 
       await quota()
-      expect(warning).toHaveBeenCalledWith(expect.stringContaining('Site limit reached'))
-      expect(warning).toHaveBeenCalledWith(expect.stringContaining('Storage 95% used'))
+      expect(warning).toHaveBeenCalledWith(
+        expect.stringContaining('Site limit reached')
+      )
+      expect(warning).toHaveBeenCalledWith(
+        expect.stringContaining('Storage 95% used')
+      )
     })
 
     it('should quota success with usage/limits fallback', async () => {
-      vi.mocked(credentials.getCredentials).mockResolvedValue({ apiKey: 'lpd_1234567890123456' })
+      vi.mocked(credentials.getCredentials).mockResolvedValue({
+        apiKey: 'lpd_1234567890123456'
+      })
       fetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          authenticated: true,
-          usage: {},
-          limits: {}
-        })
+        json: () =>
+          Promise.resolve({
+            authenticated: true,
+            usage: {},
+            limits: {}
+          })
       })
 
       await quota()
@@ -610,27 +694,31 @@ describe('auth commands', () => {
     })
 
     it('should test progress bar color thresholds', async () => {
-      vi.mocked(credentials.getCredentials).mockResolvedValue({ apiKey: 'lpd_1234567890123456' })
+      vi.mocked(credentials.getCredentials).mockResolvedValue({
+        apiKey: 'lpd_1234567890123456'
+      })
 
       // 70% threshold (Yellow)
       fetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          authenticated: true,
-          usage: { siteCount: 7, storageUsed: 0 },
-          limits: { maxSites: 10, maxStorageMB: 100 }
-        })
+        json: () =>
+          Promise.resolve({
+            authenticated: true,
+            usage: { siteCount: 7, storageUsed: 0 },
+            limits: { maxSites: 10, maxStorageMB: 100 }
+          })
       })
       await quota()
 
       // 90% threshold (Red)
       fetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          authenticated: true,
-          usage: { siteCount: 9, storageUsed: 0 },
-          limits: { maxSites: 10, maxStorageMB: 100 }
-        })
+        json: () =>
+          Promise.resolve({
+            authenticated: true,
+            usage: { siteCount: 9, storageUsed: 0 },
+            limits: { maxSites: 10, maxStorageMB: 100 }
+          })
       })
       await quota()
 

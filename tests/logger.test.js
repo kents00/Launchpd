@@ -9,10 +9,10 @@ describe('Logger', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => { })
-    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => { })
-    vi.spyOn(console, 'warn').mockImplementation(() => { })
-    vi.spyOn(console, 'info').mockImplementation(() => { })
+    consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    vi.spyOn(console, 'info').mockImplementation(() => {})
   })
 
   afterEach(() => {
@@ -161,7 +161,11 @@ describe('Logger', () => {
       // The implementation nullifies the module-level variable, not the returned object's references to it
       // (wait, the returned object methods check `activeSpinner` which is the module-level var)
 
-      const mockOraInstance = { start: vi.fn().mockReturnThis(), stop: vi.fn(), succeed: vi.fn() }
+      const mockOraInstance = {
+        start: vi.fn().mockReturnThis(),
+        stop: vi.fn(),
+        succeed: vi.fn()
+      }
       ora.mockReturnValue(mockOraInstance)
 
       const s = logger.spinner('test')

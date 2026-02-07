@@ -104,7 +104,7 @@ describe('versions command', () => {
 
     try {
       await versions('test-site', { to: 1 })
-    } catch { }
+    } catch {}
 
     expect(logger.warning).toHaveBeenCalledWith(
       expect.stringContaining('--to option is for the rollback')
@@ -155,7 +155,9 @@ describe('versions command', () => {
 
     await versions('test-site', { json: true })
 
-    const call = vi.mocked(logger.log).mock.calls.find(c => c[0].includes('{'))
+    const call = vi
+      .mocked(logger.log)
+      .mock.calls.find((c) => c[0].includes('{'))
     const data = JSON.parse(call[0])
     expect(data.versions[0].timestamp).toBe('2023-01-01T00:00:00.000Z')
     expect(data.versions[0].fileCount).toBe(3)
@@ -179,8 +181,6 @@ describe('versions command', () => {
 
     await versions('test-site', {})
 
-    expect(logger.log).toHaveBeenCalledWith(
-      expect.stringContaining('unknown')
-    )
+    expect(logger.log).toHaveBeenCalledWith(expect.stringContaining('unknown'))
   })
 })

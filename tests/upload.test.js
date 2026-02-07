@@ -1,6 +1,8 @@
 import { uploadFolder, finalizeUpload } from '../src/utils/upload.js'
 import { readdir, readFile } from 'node:fs/promises'
 
+import { getApiSecret } from '../src/utils/credentials.js'
+
 // Mock fs/promises
 vi.mock('node:fs/promises', () => ({
   readdir: vi.fn(),
@@ -12,8 +14,6 @@ vi.mock('../src/utils/credentials.js', () => ({
   getApiKey: vi.fn().mockResolvedValue('test-api-key'),
   getApiSecret: vi.fn().mockResolvedValue('test-api-secret')
 }))
-
-import { getApiSecret } from '../src/utils/credentials.js'
 
 // Mock global fetch
 globalThis.fetch = vi.fn()
@@ -54,7 +54,12 @@ describe('Upload Utility', () => {
 
     it('should use default MIME type for unknown extensions', async () => {
       readdir.mockResolvedValue([
-        { isFile: () => true, name: 'data.unknown', path: '/test', parentPath: '/test' }
+        {
+          isFile: () => true,
+          name: 'data.unknown',
+          path: '/test',
+          parentPath: '/test'
+        }
       ])
       readFile.mockResolvedValue(Buffer.from('binary'))
       fetch.mockResolvedValue({ ok: true, json: () => Promise.resolve({}) })
@@ -62,7 +67,9 @@ describe('Upload Utility', () => {
       await uploadFolder('/test', 'mysite', 1)
 
       const options = fetch.mock.calls[0][1]
-      expect(options.headers['X-Content-Type']).toBe('application/octet-stream')
+      expect(options.headers['X-Content-Type']).toBe(
+        'application/octet-stream'
+      )
     })
 
     it('should handle Windows paths correctly (to POSIX)', async () => {
@@ -88,9 +95,24 @@ describe('Upload Utility', () => {
 
     it('should skip ignored files and directories', async () => {
       readdir.mockResolvedValue([
-        { isFile: () => true, name: 'index.html', path: '/test', parentPath: '/test' },
-        { isFile: () => true, name: 'test.js', path: '/test/node_modules', parentPath: '/test/node_modules' },
-        { isFile: () => true, name: '.launchpd.json', path: '/test', parentPath: '/test' }
+        {
+          isFile: () => true,
+          name: 'index.html',
+          path: '/test',
+          parentPath: '/test'
+        },
+        {
+          isFile: () => true,
+          name: 'test.js',
+          path: '/test/node_modules',
+          parentPath: '/test/node_modules'
+        },
+        {
+          isFile: () => true,
+          name: '.launchpd.json',
+          path: '/test',
+          parentPath: '/test'
+        }
       ])
 
       readFile.mockResolvedValue(Buffer.from('content'))
@@ -108,7 +130,6 @@ describe('Upload Utility', () => {
       expect(result.uploaded).toBe(1)
     })
   })
-
 
   describe('finalizeUpload', () => {
     it('should call complete upload endpoint', async () => {
@@ -140,10 +161,13 @@ describe('Upload Utility', () => {
         ok: false,
         status: 400,
         statusText: 'Bad Request',
-        text: () => Promise.resolve(JSON.stringify({ error: 'Quota exceeded' }))
+        text: () =>
+          Promise.resolve(JSON.stringify({ error: 'Quota exceeded' }))
       })
 
-      await expect(finalizeUpload('mysite', 1, 1, 100, 'test')).rejects.toThrow('Quota exceeded')
+      await expect(finalizeUpload('mysite', 1, 1, 100, 'test')).rejects.toThrow(
+        'Quota exceeded'
+      )
     })
 
     it('should fallback to status text if JSON error has no error field (complete)', async () => {
@@ -202,11 +226,15 @@ describe('Upload Utility', () => {
       await finalizeUpload('mysite', 1, 1, 100, 'test')
 
       // Check last upload call
-      const uploadCall = fetch.mock.calls.find(c => c[0].includes('/upload/file'))
+      const uploadCall = fetch.mock.calls.find((c) =>
+        c[0].includes('/upload/file')
+      )
       expect(uploadCall[1].headers['X-Signature']).toBeUndefined()
 
       // Check finalize call
-      const completeCall = fetch.mock.calls.find(c => c[0].includes('/upload/complete'))
+      const completeCall = fetch.mock.calls.find((c) =>
+        c[0].includes('/upload/complete')
+      )
       expect(completeCall[1].headers['X-Signature']).toBeUndefined()
     })
   })
@@ -237,7 +265,9 @@ describe('Upload Utility', () => {
         text: () => Promise.resolve(JSON.stringify({ foo: 'bar' }))
       })
 
-      await expect(uploadFolder('/test', 'mysite', 1)).rejects.toThrow('Upload failed')
+      await expect(uploadFolder('/test', 'mysite', 1)).rejects.toThrow(
+        'Upload failed'
+      )
     })
 
     it('should parse Text error response', async () => {
@@ -265,7 +295,9 @@ describe('Upload Utility', () => {
         text: () => Promise.resolve('')
       })
 
-      await expect(uploadFolder('/test', 'mysite', 1)).rejects.toThrow('Upload failed: 500')
+      await expect(uploadFolder('/test', 'mysite', 1)).rejects.toThrow(
+        'Upload failed: 500'
+      )
     })
   })
 })

@@ -23,7 +23,7 @@ describe('config', () => {
   })
 
   it('should log warning if package.json fails to read with non-ENOENT error', async () => {
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => { })
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
     vi.mocked(readFileSync).mockImplementation(() => {
       const err = new Error('Permission denied')
       err.code = 'EACCES'

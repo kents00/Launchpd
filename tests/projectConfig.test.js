@@ -1,4 +1,10 @@
-import { findProjectRoot, getProjectConfig, saveProjectConfig, initProjectConfig, updateProjectConfig } from '../src/utils/projectConfig.js'
+import {
+  findProjectRoot,
+  getProjectConfig,
+  saveProjectConfig,
+  initProjectConfig,
+  updateProjectConfig
+} from '../src/utils/projectConfig.js'
 import { existsSync } from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'

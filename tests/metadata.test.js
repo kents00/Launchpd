@@ -1,5 +1,7 @@
-
-import { getNextVersion, recordDeploymentInMetadata } from '../src/utils/metadata.js';
+import {
+  getNextVersion,
+  recordDeploymentInMetadata
+} from '../src/utils/metadata.js'
 
 // Mock Config
 vi.mock('../src/config.js', () => ({
@@ -307,7 +309,9 @@ describe('Metadata Utilities', () => {
         json: () => Promise.resolve({ error: 'Custom error message' })
       })
       const m = await import('../src/utils/metadata.js')
-      await expect(m.listDeploymentsFromR2()).rejects.toThrow('Custom error message')
+      await expect(m.listDeploymentsFromR2()).rejects.toThrow(
+        'Custom error message'
+      )
     })
 
     it('should use status code in thrown error if data.error is missing', async () => {

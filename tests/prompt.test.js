@@ -78,7 +78,7 @@ describe('prompt utils', () => {
     })
 
     it('exits process on Ctrl+C', async () => {
-      const mockExit = vi.spyOn(process, 'exit').mockImplementation(() => { })
+      const mockExit = vi.spyOn(process, 'exit').mockImplementation(() => {})
 
       mockStdin.on.mockImplementation((event, handler) => {
         if (event === 'keypress') {
@@ -185,10 +185,10 @@ describe('prompt utils', () => {
     })
   })
 
-
   describe('confirm', () => {
     it('returns true for y/yes', async () => {
-      const mockQuestion = vi.fn()
+      const mockQuestion = vi
+        .fn()
         .mockImplementationOnce((q, cb) => cb('y'))
         .mockImplementationOnce((q, cb) => cb('yes'))
         .mockImplementationOnce((q, cb) => cb('Y'))
@@ -205,7 +205,8 @@ describe('prompt utils', () => {
     })
 
     it('returns false for others', async () => {
-      const mockQuestion = vi.fn()
+      const mockQuestion = vi
+        .fn()
         .mockImplementationOnce((q, cb) => cb('n'))
         .mockImplementationOnce((q, cb) => cb('no'))
         .mockImplementationOnce((q, cb) => cb('other'))

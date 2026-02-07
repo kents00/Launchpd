@@ -17,7 +17,7 @@ describe('list command', () => {
     })
     logger.formatSize.mockImplementation((bytes) => `${bytes} B`)
 
-    vi.spyOn(process, 'exit').mockImplementation(() => { })
+    vi.spyOn(process, 'exit').mockImplementation(() => {})
   })
 
   const mockDeployments = [
@@ -118,9 +118,7 @@ describe('list command', () => {
 
     await list({})
 
-    expect(logger.log).toHaveBeenCalledWith(
-      expect.stringContaining('expired')
-    )
+    expect(logger.log).toHaveBeenCalledWith(expect.stringContaining('expired'))
   })
 
   it('should show time remaining for deployments with future expiration', async () => {
@@ -140,9 +138,7 @@ describe('list command', () => {
 
     await list({})
 
-    expect(logger.log).toHaveBeenCalledWith(
-      expect.stringContaining('⏱')
-    )
+    expect(logger.log).toHaveBeenCalledWith(expect.stringContaining('⏱'))
   })
 
   it('should handle errors and exit with code 1', async () => {
@@ -173,8 +169,6 @@ describe('list command', () => {
 
     await list({})
 
-    expect(logger.log).toHaveBeenCalledWith(
-      expect.stringContaining('v1')
-    )
+    expect(logger.log).toHaveBeenCalledWith(expect.stringContaining('v1'))
   })
 })

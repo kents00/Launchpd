@@ -120,7 +120,9 @@ describe('rollback command', () => {
     })
 
     await expect(rollback('test', { to: 99 })).rejects.toThrow('Process.exit')
-    expect(error).toHaveBeenCalledWith(expect.stringContaining('Version 99 does not exist'))
+    expect(error).toHaveBeenCalledWith(
+      expect.stringContaining('Version 99 does not exist')
+    )
     expect(info).toHaveBeenCalledWith('Available versions:')
   })
 
@@ -150,7 +152,9 @@ describe('rollback command', () => {
 
     // Rollback from default (1) should fail if it's the oldest
     await expect(rollback('test', {})).rejects.toThrow('Process.exit')
-    expect(warning).toHaveBeenCalledWith(expect.stringContaining('Already at the oldest version'))
+    expect(warning).toHaveBeenCalledWith(
+      expect.stringContaining('Already at the oldest version')
+    )
   })
 
   it('should fail if already at the oldest version', async () => {
@@ -163,7 +167,9 @@ describe('rollback command', () => {
     })
 
     await expect(rollback('test', {})).rejects.toThrow('Process.exit')
-    expect(warning).toHaveBeenCalledWith(expect.stringContaining('Already at the oldest version'))
+    expect(warning).toHaveBeenCalledWith(
+      expect.stringContaining('Already at the oldest version')
+    )
   })
 
   it('should exit early if target version is already active', async () => {
@@ -181,7 +187,9 @@ describe('rollback command', () => {
     })
 
     await rollback('test', { to: 2 })
-    expect(warning).toHaveBeenCalledWith(expect.stringContaining('already active'))
+    expect(warning).toHaveBeenCalledWith(
+      expect.stringContaining('already active')
+    )
     expect(process.exit).toHaveBeenCalledWith(0)
   })
 
@@ -212,7 +220,9 @@ describe('rollback command', () => {
 
     await rollback('test', {})
 
-    expect(info).toHaveBeenCalledWith(expect.stringContaining('Version message: "First deploy"'))
+    expect(info).toHaveBeenCalledWith(
+      expect.stringContaining('Version message: "First deploy"')
+    )
   })
 
   it('should handle missing timestamp in restoration log', async () => {
@@ -227,7 +237,8 @@ describe('rollback command', () => {
 
     await rollback('test', {})
 
-    expect(info).toHaveBeenCalledWith(expect.stringContaining('Restored deployment from: unknown'))
+    expect(info).toHaveBeenCalledWith(
+      expect.stringContaining('Restored deployment from: unknown')
+    )
   })
 })
-

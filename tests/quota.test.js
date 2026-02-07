@@ -299,12 +299,23 @@ describe('quota.js', () => {
     })
 
     it('should log verbose error details on failure', async () => {
-      mockFetch.mockResolvedValueOnce({ ok: false, status: 500, statusText: 'Server Error', text: () => Promise.resolve('Error details') })
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        statusText: 'Server Error',
+        text: () => Promise.resolve('Error details')
+      })
 
       await checkQuota('site', 0, { verbose: true })
 
-      expect(logger.raw).toHaveBeenCalledWith(expect.stringContaining('Quota check failed: 500'), 'error')
-      expect(logger.raw).toHaveBeenCalledWith(expect.stringContaining('Response: Error details'), 'error')
+      expect(logger.raw).toHaveBeenCalledWith(
+        expect.stringContaining('Quota check failed: 500'),
+        'error'
+      )
+      expect(logger.raw).toHaveBeenCalledWith(
+        expect.stringContaining('Response: Error details'),
+        'error'
+      )
     })
 
     it('should log exception details in verbose mode', async () => {
@@ -315,7 +326,10 @@ describe('quota.js', () => {
       await checkQuota('site', 0, { verbose: true })
 
       expect(logger.raw).toHaveBeenCalledWith('Quota check error:', 'error')
-      expect(logger.raw).toHaveBeenCalledWith(expect.stringContaining('Cause:'), 'error')
+      expect(logger.raw).toHaveBeenCalledWith(
+        expect.stringContaining('Cause:'),
+        'error'
+      )
       expect(logger.raw).toHaveBeenCalledWith(error.cause, 'error')
     })
 
@@ -326,13 +340,21 @@ describe('quota.js', () => {
       await checkQuota('site', 0, { verbose: true })
 
       expect(logger.raw).toHaveBeenCalledWith('Quota check error:', 'error')
-      expect(logger.raw).not.toHaveBeenCalledWith(expect.stringContaining('Cause:'), 'error')
+      expect(logger.raw).not.toHaveBeenCalledWith(
+        expect.stringContaining('Cause:'),
+        'error'
+      )
     })
 
     it('should check ownership if subdomain provided but isUpdate is falsy', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve({ canDeploy: true, usage: {}, limits: { maxSites: 5 } })
+        json: () =>
+          Promise.resolve({
+            canDeploy: true,
+            usage: {},
+            limits: { maxSites: 5 }
+          })
       })
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -348,7 +370,12 @@ describe('quota.js', () => {
     it('should skip ownership check if subdomain is null and isUpdate is false', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve({ canDeploy: true, usage: {}, limits: { maxSites: 5 } })
+        json: () =>
+          Promise.resolve({
+            canDeploy: true,
+            usage: {},
+            limits: { maxSites: 5 }
+          })
       })
 
       const result = await checkQuota(null, 0, { isUpdate: false })
@@ -390,21 +417,22 @@ describe('quota.js', () => {
       )
     })
 
-
-
     it('should show upgrade prompt if anonymous storage limit exceeded', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve({
-          canDeploy: true,
-          usage: { sitesRemaining: 1, storageUsed: 9999999 },
-          limits: { maxSites: 3, maxStorageBytes: 1000 }
-        })
+        json: () =>
+          Promise.resolve({
+            canDeploy: true,
+            usage: { sitesRemaining: 1, storageUsed: 9999999 },
+            limits: { maxSites: 3, maxStorageBytes: 1000 }
+          })
       })
 
       await checkQuota('site', 500) // 9999999 + 500 > 1000
 
-      expect(logger.log).toHaveBeenCalledWith(expect.stringContaining('Upgrade to Launchpd Free Tier'))
+      expect(logger.log).toHaveBeenCalledWith(
+        expect.stringContaining('Upgrade to Launchpd Free Tier')
+      )
     })
 
     it('should return null on anonymous quota network error', async () => {
@@ -461,7 +489,9 @@ describe('quota.js', () => {
       })
 
       const result = await checkQuota('site', 0)
-      const siteWarnings = result.warnings.filter(w => w.includes('site(s) remaining'))
+      const siteWarnings = result.warnings.filter((w) =>
+        w.includes('site(s) remaining')
+      )
       expect(siteWarnings).toHaveLength(1)
     })
   })
@@ -513,13 +543,16 @@ describe('quota.js', () => {
 
       await checkQuota('mysite', 0)
 
-      expect(logger.log).toHaveBeenCalledWith(expect.stringContaining('User subdomains:'))
-      expect(logger.log).toHaveBeenCalledWith(expect.stringContaining('Owns site? false'))
+      expect(logger.log).toHaveBeenCalledWith(
+        expect.stringContaining('User subdomains:')
+      )
+      expect(logger.log).toHaveBeenCalledWith(
+        expect.stringContaining('Owns site? false')
+      )
 
       vi.stubEnv('DEBUG', '')
     })
   })
-
 
   describe('Helpers', () => {
     it('formatBytes should format correctly', () => {
