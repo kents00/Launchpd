@@ -156,7 +156,9 @@ describe('api.js', () => {
         status: 401,
         json: () => Promise.resolve({})
       })
-      await expect(apiRequest('/test')).rejects.toThrow('Authentication failed')
+      await expect(apiRequest('/test')).rejects.toThrow(
+        'Authentication failed'
+      )
     })
 
     it('should handle 401 TwoFactorRequiredError', async () => {
