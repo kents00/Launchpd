@@ -1,6 +1,6 @@
 {
     "name": "launchpd",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "description": "Deploy static sites instantly to a live URL",
     "keywords": [
         "static",
