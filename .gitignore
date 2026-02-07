@@ -1,0 +1,5 @@
+node_modules/
+.claude/
+quota_debug_trace.txt
+docs/
+.patch

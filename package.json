@@ -1,0 +1,70 @@
+{
+    "name": "launchpd",
+    "version": "1.0.3",
+    "description": "Deploy static sites instantly to a live URL",
+    "keywords": [
+        "static",
+        "hosting",
+        "deploy",
+        "cli",
+        "cdn",
+        "website",
+        "publish"
+    ],
+    "homepage": "https://launchpd.cloud",
+    "bugs": {
+        "url": "https://github.com/kents00/launchpd/issues"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/kents00/launchpd.git",
+        "directory": "cli"
+    },
+    "license": "MIT",
+    "author": "Kent John Edoloverio",
+    "type": "module",
+    "exports": {
+        ".": "./src/commands/index.js",
+        "./utils": "./src/utils/index.js"
+    },
+    "main": "./src/commands/index.js",
+    "bin": {
+        "launchpd": "bin/cli.js"
+    },
+    "directories": {
+        "test": "tests"
+    },
+    "files": [
+        "bin",
+        "src"
+    ],
+    "scripts": {
+        "start": "node bin/cli.js",
+        "dev": "node bin/cli.js deploy ../examples/test-site",
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "test:coverage": "vitest run --coverage",
+        "lint": "eslint src bin --ext .js",
+        "lint:fix": "eslint src bin --ext .js --fix",
+        "prepublishOnly": "npm run lint && npm run test"
+    },
+    "dependencies": {
+        "chalk": "^5.4.0",
+        "commander": "^14.0.0",
+        "launchpd": "^1.0.0",
+        "mime-types": "^2.1.35",
+        "nanoid": "^5.1.0",
+        "ora": "^8.0.1",
+        "qrcode": "^1.5.4",
+        "update-notifier": "^7.3.1"
+    },
+    "devDependencies": {
+        "@eslint/js": "^9.39.2",
+        "@vitest/coverage-v8": "^4.0.18",
+        "eslint": "^9.0.0",
+        "vitest": "^4.0.18"
+    },
+    "engines": {
+        "node": ">=20.0.0"
+    }
+}
