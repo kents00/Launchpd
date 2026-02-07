@@ -12,7 +12,7 @@ export const MIN_EXPIRATION_MS = 30 * 60 * 1000
  * @returns {number} Time in milliseconds
  * @throws {Error} If format is invalid or time is below minimum
  */
-export function parseTimeString(timeStr) {
+export function parseTimeString (timeStr) {
   const regex = /^(\d+)([a-z]+)$/i
   const match = regex.exec(timeStr)
 
@@ -53,7 +53,7 @@ export function parseTimeString(timeStr) {
  * @param {string} timeStr - Time string (e.g., "30m", "2h", "1d")
  * @returns {Date} Date object of expiration
  */
-export function calculateExpiresAt(timeStr) {
+export function calculateExpiresAt (timeStr) {
   const ms = parseTimeString(timeStr)
   return new Date(Date.now() + ms)
 }
@@ -63,7 +63,7 @@ export function calculateExpiresAt(timeStr) {
  * @param {string} expiresAt - ISO timestamp
  * @returns {string} Human-readable time remaining
  */
-export function formatTimeRemaining(expiresAt) {
+export function formatTimeRemaining (expiresAt) {
   const now = Date.now()
   const expiry = new Date(expiresAt).getTime()
   const remaining = expiry - now
@@ -90,7 +90,7 @@ export function formatTimeRemaining(expiresAt) {
  * @param {string} expiresAt - ISO timestamp or null
  * @returns {boolean}
  */
-export function isExpired(expiresAt) {
+export function isExpired (expiresAt) {
   if (!expiresAt) return false
   return new Date(expiresAt).getTime() < Date.now()
 }

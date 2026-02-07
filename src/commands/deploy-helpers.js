@@ -15,23 +15,23 @@ import { calculateExpiresAt } from '../utils/expiration.js'
  * @param {boolean} verbose - Verbose mode
  * @returns {Date|null} Expiration date or null
  */
-export function parseExpirationOption(expiresOption, verbose) {
-    if (!expiresOption) return null
+export function parseExpirationOption (expiresOption, verbose) {
+  if (!expiresOption) return null
 
-    try {
-        return calculateExpiresAt(expiresOption)
-    } catch (err) {
-        errorWithSuggestions(
-            err.message,
-            [
-                'Use format like: 30m, 2h, 1d, 7d',
-                'Minimum expiration is 30 minutes',
-                'Examples: --expires 1h, --expires 2d'
-            ],
-            { verbose, cause: err }
-        )
-        process.exit(1)
-    }
+  try {
+    return calculateExpiresAt(expiresOption)
+  } catch (err) {
+    errorWithSuggestions(
+      err.message,
+      [
+        'Use format like: 30m, 2h, 1d, 7d',
+        'Minimum expiration is 30 minutes',
+        'Examples: --expires 1h, --expires 2d'
+      ],
+      { verbose, cause: err }
+    )
+    process.exit(1)
+  }
 }
 
 /**
@@ -39,19 +39,19 @@ export function parseExpirationOption(expiresOption, verbose) {
  * @param {string|undefined} message - Deployment message
  * @param {boolean} verbose - Verbose mode
  */
-export function validateDeploymentMessage(message, verbose) {
-    if (!message) {
-        errorWithSuggestions(
-            'Deployment message is required.',
-            [
-                'Use -m or --message to provide a description',
-                'Example: launchpd deploy . -m "Fix layout"',
-                'Example: launchpd deploy . -m "Initial deployment"'
-            ],
-            { verbose }
-        )
-        process.exit(1)
-    }
+export function validateDeploymentMessage (message, verbose) {
+  if (!message) {
+    errorWithSuggestions(
+      'Deployment message is required.',
+      [
+        'Use -m or --message to provide a description',
+        'Example: launchpd deploy . -m "Fix layout"',
+        'Example: launchpd deploy . -m "Initial deployment"'
+      ],
+      { verbose }
+    )
+    process.exit(1)
+  }
 }
 
 /**
@@ -59,19 +59,19 @@ export function validateDeploymentMessage(message, verbose) {
  * @param {string} folderPath - Folder path
  * @param {boolean} verbose - Verbose mode
  */
-export function validateFolderExists(folderPath, existsSync, verbose) {
-    if (!existsSync(folderPath)) {
-        errorWithSuggestions(
-            `Folder not found: ${folderPath}`,
-            [
-                'Check the path is correct',
-                'Use an absolute path or path relative to current directory',
-                `Current directory: ${process.cwd()}`
-            ],
-            { verbose }
-        )
-        process.exit(1)
-    }
+export function validateFolderExists (folderPath, existsSync, verbose) {
+  if (!existsSync(folderPath)) {
+    errorWithSuggestions(
+      `Folder not found: ${folderPath}`,
+      [
+        'Check the path is correct',
+        'Use an absolute path or path relative to current directory',
+        `Current directory: ${process.cwd()}`
+      ],
+      { verbose }
+    )
+    process.exit(1)
+  }
 }
 
 /**
@@ -80,14 +80,14 @@ export function validateFolderExists(folderPath, existsSync, verbose) {
  * @param {string} folderPath - Base folder path
  * @returns {Array} Filtered files
  */
-export function filterActiveFiles(files, folderPath) {
-    return files.filter((file) => {
-        if (!file.isFile()) return false
-        const parentDir = file.parentPath || file.path
-        const relativePath = relative(folderPath, join(parentDir, file.name))
-        const pathParts = relativePath.split(sep)
-        return !pathParts.some((part) => isIgnored(part, file.isDirectory()))
-    })
+export function filterActiveFiles (files, folderPath) {
+  return files.filter((file) => {
+    if (!file.isFile()) return false
+    const parentDir = file.parentPath || file.path
+    const relativePath = relative(folderPath, join(parentDir, file.name))
+    const pathParts = relativePath.split(sep)
+    return !pathParts.some((part) => isIgnored(part, file.isDirectory()))
+  })
 }
 
 /**
@@ -95,19 +95,19 @@ export function filterActiveFiles(files, folderPath) {
  * @param {number} fileCount - Number of files
  * @param {boolean} verbose - Verbose mode
  */
-export function validateFolderNotEmpty(fileCount, verbose) {
-    if (fileCount === 0) {
-        errorWithSuggestions(
-            'Nothing to deploy.',
-            [
-                'Add some files to your folder',
-                'Make sure your files are not in ignored directories (like node_modules)',
-                'Make sure index.html exists for static sites'
-            ],
-            { verbose }
-        )
-        process.exit(1)
-    }
+export function validateFolderNotEmpty (fileCount, verbose) {
+  if (fileCount === 0) {
+    errorWithSuggestions(
+      'Nothing to deploy.',
+      [
+        'Add some files to your folder',
+        'Make sure your files are not in ignored directories (like node_modules)',
+        'Make sure index.html exists for static sites'
+      ],
+      { verbose }
+    )
+    process.exit(1)
+  }
 }
 
 /**
@@ -119,85 +119,82 @@ export function validateFolderNotEmpty(fileCount, verbose) {
  * @param {Function} warningHandler - Warning handler function
  * @returns {Array} Array of suggestions
  */
-export function getDeploymentErrorSuggestions(err) {
-    const suggestions = []
+export function getDeploymentErrorSuggestions (err) {
+  const suggestions = []
 
-    if (
-        err.message.includes('fetch failed') ||
-        err.message.includes('ENOTFOUND')
-    ) {
-        suggestions.push(
-            'Check your internet connection',
-            'The API server may be temporarily unavailable'
-        )
-    } else if (
-        err.message.includes('401') ||
-        err.message.includes('Unauthorized')
-    ) {
-        suggestions.push(
-            'Run "launchpd login" to authenticate',
-            'Your API key may have expired'
-        )
-    } else if (
-        err.message.includes('413') ||
-        err.message.includes('too large')
-    ) {
-        suggestions.push(
-            'Try deploying fewer or smaller files',
-            'Check your storage quota with "launchpd quota"'
-        )
-    } else if (
-        err.message.includes('429') ||
-        err.message.includes('rate limit')
-    ) {
-        suggestions.push(
-            'Wait a few minutes and try again',
-            'You may be deploying too frequently'
-        )
-    } else {
-        suggestions.push(
-            'Try running with --verbose for more details',
-            'Check https://status.launchpd.cloud for service status'
-        )
-    }
+  if (
+    err.message.includes('fetch failed') ||
+    err.message.includes('ENOTFOUND')
+  ) {
+    suggestions.push(
+      'Check your internet connection',
+      'The API server may be temporarily unavailable'
+    )
+  } else if (
+    err.message.includes('401') ||
+    err.message.includes('Unauthorized')
+  ) {
+    suggestions.push(
+      'Run "launchpd login" to authenticate',
+      'Your API key may have expired'
+    )
+  } else if (err.message.includes('413') || err.message.includes('too large')) {
+    suggestions.push(
+      'Try deploying fewer or smaller files',
+      'Check your storage quota with "launchpd quota"'
+    )
+  } else if (
+    err.message.includes('429') ||
+    err.message.includes('rate limit')
+  ) {
+    suggestions.push(
+      'Wait a few minutes and try again',
+      'You may be deploying too frequently'
+    )
+  } else {
+    suggestions.push(
+      'Try running with --verbose for more details',
+      'Check https://status.launchpd.cloud for service status'
+    )
+  }
 
-    return suggestions
+  return suggestions
 }
 
 /**
  * Calculate total size of a folder (exported for reuse)
  */
-export async function calculateFolderSize(folderPath) {
-    const files = await readdir(folderPath, {
-        recursive: true,
-        withFileTypes: true
-    })
-    let totalSize = 0
+export async function calculateFolderSize (folderPath) {
+  const files = await readdir(folderPath, {
+    recursive: true,
+    withFileTypes: true
+  })
+  let totalSize = 0
 
-    for (const file of files) {
-        const parentDir = file.parentPath || file.path
-        const relativePath = relative(folderPath, join(parentDir, file.name))
-        const pathParts = relativePath.split(sep)
+  for (const file of files) {
+    const parentDir = file.parentPath || file.path
+    const relativePath = relative(folderPath, join(parentDir, file.name))
+    const pathParts = relativePath.split(sep)
 
-        // Skip ignored directories/files in the path
-        if (
-            pathParts.some((part) => {
-                return isIgnored(part, file.isDirectory())
-            })
-        ) {
-            continue
-        }
-
-        if (file.isFile()) {
-            const fullPath = join(parentDir, file.name)
-            try {
-                const stats = statSync(fullPath)
-                totalSize += stats.size
-            } catch {
-                // File may have been deleted
-            }
-        }
+    // Skip ignored directories/files in the path
+    if (
+      pathParts.some((part) => {
+        return isIgnored(part, file.isDirectory())
+      })
+    ) {
+      continue
     }
 
-    return totalSize
+    if (file.isFile()) {
+      const fullPath = join(parentDir, file.name)
+      try {
+        const stats = statSync(fullPath)
+        totalSize += stats.size
+      } catch {
+        // File may have been deleted
+      }
+    }
+  }
+
+  return totalSize
 }
