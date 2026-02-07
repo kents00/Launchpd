@@ -132,10 +132,12 @@ export async function checkQuota (subdomain, estimatedBytes = 0, options = {}) {
   // Check site limit for new sites
   if (isNewSite) {
     const canCreate =
-      quotaData.canCreateNewSite !== undefined
-        ? quotaData.canCreateNewSite
-        : remaining > 0
-    if (!canCreate) {
+      quotaData.canCreateNewSite === undefined
+        ? remaining > 0
+        : quotaData.canCreateNewSite
+    if (canCreate) {
+      // Site creation is allowed, continue
+    } else {
       error(
         `Site limit reached (${quotaData.limits?.maxSites || 'unknown'} sites)`
       )

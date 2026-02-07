@@ -1,5 +1,5 @@
 node_modules/
-tests/
 .claude/
 quota_debug_trace.txt
 docs/
+.patch

@@ -3,8 +3,8 @@
  * login, logout, register, whoami
  */
 
-import { exec } from 'node:child_process'
-import { promptSecret, prompt } from '../utils/prompt.js'
+import { execFile } from 'node:child_process'
+import { promptSecret } from '../utils/prompt.js'
 import { config } from '../config.js'
 import {
   getCredentials,
@@ -22,8 +22,8 @@ import {
   log
 } from '../utils/logger.js'
 import { formatBytes } from '../utils/quota.js'
-import { handleCommonError, MaintenanceError } from '../utils/errors.js'
-import { serverLogout, resendVerification } from '../utils/api.js'
+import { handleCommonError } from '../utils/errors.js'
+import { resendVerification } from '../utils/api.js'
 import chalk from 'chalk'
 
 const API_BASE_URL = config.apiUrl
@@ -33,7 +33,7 @@ const REGISTER_URL = `https://${config.domain}/`
  * Validate API key format
  * Returns true if the key matches expected format: lpd_ followed by alphanumeric/special chars
  */
-function isValidApiKeyFormat (apiKey) {
+function isValidApiKeyFormat(apiKey) {
   if (!apiKey || typeof apiKey !== 'string') {
     return false
   }
@@ -45,7 +45,7 @@ function isValidApiKeyFormat (apiKey) {
 /**
  * Validate API key with the server
  */
-async function validateApiKey (apiKey) {
+async function validateApiKey(apiKey) {
   // Validate API key format before sending to network
   // This ensures we only send properly formatted keys, not arbitrary file data
   if (!isValidApiKeyFormat(apiKey)) {
@@ -58,6 +58,14 @@ async function validateApiKey (apiKey) {
         'X-API-Key': apiKey
       }
     })
+
+    if (response.status === 401) {
+      const data = await response.json().catch(() => ({}))
+      if (data.requires_2fa) {
+        return { requires_2fa: true, two_factor_type: data.two_factor_type }
+      }
+      return null
+    }
 
     if (!response.ok) {
       return null
@@ -76,7 +84,7 @@ async function validateApiKey (apiKey) {
 /**
  * Background update credentials if new data (like apiSecret) is available
  */
-async function updateCredentialsIfNeeded (creds, result) {
+async function updateCredentialsIfNeeded(creds, result) {
   if (result.user?.api_secret && !creds.apiSecret) {
     await saveCredentials({
       ...creds,
@@ -88,117 +96,9 @@ async function updateCredentialsIfNeeded (creds, result) {
 }
 
 /**
- * Login with email and password (supports 2FA)
- */
-async function loginWithEmailPassword () {
-  const email = await prompt('Email: ')
-  if (!email) {
-    error('Email is required')
-    return null
-  }
-
-  const password = await promptSecret('Password: ')
-  if (!password) {
-    error('Password is required')
-    return null
-  }
-
-  const loginSpinner = spinner('Authenticating...')
-
-  try {
-    // First login attempt
-    let response = await fetch(`${API_BASE_URL}/api/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
-    })
-
-    // Handle maintenance mode
-    if (response.status === 503) {
-      const data = await response.json().catch(() => ({}))
-      if (data.maintenance_mode) {
-        loginSpinner.fail('Service unavailable')
-        throw new MaintenanceError(data.message)
-      }
-    }
-
-    let data = await response.json()
-
-    // Handle 2FA requirement
-    if (data.requires_2fa) {
-      loginSpinner.stop()
-
-      const codeType =
-        data.two_factor_type === 'email'
-          ? 'email verification code'
-          : 'authenticator code'
-
-      if (data.two_factor_type === 'email') {
-        log('')
-        info('A verification code has been sent to your email')
-      } else {
-        log('')
-        info('Two-factor authentication required')
-      }
-
-      const twoFactorCode = await prompt(`Enter ${codeType}: `)
-
-      if (!twoFactorCode) {
-        error('Verification code is required')
-        return null
-      }
-
-      const verifySpinner = spinner('Verifying code...')
-
-      // Retry with 2FA code
-      response = await fetch(`${API_BASE_URL}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email,
-          password,
-          two_factor_code: twoFactorCode
-        })
-      })
-
-      data = await response.json()
-
-      if (!data.success) {
-        verifySpinner.fail('Verification failed')
-        error(data.message || 'Invalid verification code')
-        return null
-      }
-
-      verifySpinner.succeed('Verified!')
-    } else if (data.success) {
-      loginSpinner.succeed('Authenticated!')
-    } else {
-      loginSpinner.fail('Authentication failed')
-      error(data.message || 'Invalid email or password')
-      return null
-    }
-
-    return data
-  } catch (err) {
-    if (handleCommonError(err, { error, info, warning })) {
-      return null
-    }
-    if (
-      err.message.includes('fetch failed') ||
-      err.message.includes('ENOTFOUND')
-    ) {
-      error('Unable to connect to LaunchPd servers')
-      info('Check your internet connection')
-      return null
-    }
-    throw err
-  }
-}
-
-/**
  * Login with API key (original method)
  */
-async function loginWithApiKey () {
+async function loginWithApiKey() {
   log('Enter your API key from the dashboard.')
   log(`Don't have one? Run ${chalk.cyan('"launchpd register"')} first.\n`)
 
@@ -227,6 +127,14 @@ async function loginWithApiKey () {
     return null
   }
 
+  if (result.requires_2fa) {
+    validateSpinner.fail('2FA Required')
+    info(
+      '2FA is required for your account. Please log in via the browser or use an authenticator app.'
+    )
+    return null
+  }
+
   validateSpinner.succeed('Logged in successfully!')
 
   return {
@@ -238,7 +146,7 @@ async function loginWithApiKey () {
 /**
  * Login command - prompts for API key and validates it
  */
-export async function login () {
+export async function login() {
   // Check if already logged in
   if (await isLoggedIn()) {
     const creds = await getCredentials()
@@ -248,30 +156,12 @@ export async function login () {
   }
 
   log('\nLaunchpd Login\n')
-  log('Choose login method:')
-  log(`  ${chalk.cyan('1.')} API Key ${chalk.gray('(from dashboard)')}`)
-  log(`  ${chalk.cyan('2.')} Email & Password ${chalk.gray('(supports 2FA)')}`)
-  log('')
 
-  const choice = await prompt('Enter choice (1 or 2): ')
-
-  let result
-  let apiKey
-
-  if (choice === '2') {
-    result = await loginWithEmailPassword()
-    if (!result) {
-      process.exit(1)
-    }
-    // Extract API key from user data
-    apiKey = result.user?.api_key
-  } else {
-    result = await loginWithApiKey()
-    if (!result) {
-      process.exit(1)
-    }
-    apiKey = result.apiKey
+  const result = await loginWithApiKey()
+  if (!result) {
+    process.exit(1)
   }
+  const apiKey = result.apiKey
 
   // Save credentials
   await saveCredentials({
@@ -289,8 +179,14 @@ export async function login () {
     log(
       `  ${chalk.gray('Sites:')} ${result.usage?.siteCount || 0}/${result.limits?.maxSites || '?'}`
     )
+    const storageUsed =
+      result.usage?.storageUsed ||
+      (result.usage?.storageUsedMB || 0) * 1024 * 1024
+    const storageMax =
+      result.limits?.maxStorageBytes ||
+      (result.limits?.maxStorageMB || 0) * 1024 * 1024
     log(
-      `  ${chalk.gray('Storage:')} ${result.usage?.storageUsedMB || 0}MB/${result.limits?.maxStorageMB || '?'}MB`
+      `  ${chalk.gray('Storage:')} ${formatBytes(storageUsed)}/${formatBytes(storageMax)}`
     )
   }
 
@@ -307,7 +203,7 @@ export async function login () {
 /**
  * Logout command - clears stored credentials and invalidates server session
  */
-export async function logout () {
+export async function logout() {
   const loggedIn = await isLoggedIn()
 
   if (!loggedIn) {
@@ -316,13 +212,6 @@ export async function logout () {
   }
 
   const creds = await getCredentials()
-
-  // Try server-side logout (best effort - don't fail if it doesn't work)
-  try {
-    await serverLogout()
-  } catch {
-    // Ignore server logout errors - we'll clear local creds anyway
-  }
 
   await clearCredentials()
 
@@ -338,23 +227,23 @@ export async function logout () {
 /**
  * Register command - opens browser to registration page
  */
-export async function register () {
+export function register() {
   log('\nRegister for Launchpd\n')
   log(`Opening registration page: ${chalk.cyan(REGISTER_URL)}\n`)
 
   // Open browser based on platform
   const platform = process.platform
-  let cmd
+  let command = 'xdg-open'
+  let args = [REGISTER_URL]
 
   if (platform === 'darwin') {
-    cmd = `open "${REGISTER_URL}"`
+    command = 'open'
   } else if (platform === 'win32') {
-    cmd = `start "" "${REGISTER_URL}"`
-  } else {
-    cmd = `xdg-open "${REGISTER_URL}"`
+    command = 'cmd'
+    args = ['/c', 'start', '', REGISTER_URL]
   }
 
-  exec(cmd, (err) => {
+  execFile(command, args, (err) => {
     if (err) {
       log(
         `Please open this URL in your browser:\n  ${chalk.cyan(REGISTER_URL)}\n`
@@ -384,7 +273,7 @@ export async function register () {
 /**
  * Whoami command - shows current user info and quota status
  */
-export async function whoami () {
+export async function whoami() {
   const creds = await getCredentials()
 
   if (!creds) {
@@ -446,11 +335,18 @@ export async function whoami () {
 
   log('Usage:')
   log(`  Sites: ${result.usage?.siteCount || 0} / ${result.limits?.maxSites}`)
-  log(
-    `  Storage: ${result.usage?.storageUsedMB || 0}MB / ${result.limits?.maxStorageMB}MB`
-  )
+  const storageUsed =
+    result.usage?.storageUsed ||
+    (result.usage?.storageUsedMB || 0) * 1024 * 1024
+  const storageMax =
+    result.limits?.maxStorageBytes ||
+    (result.limits?.maxStorageMB || 0) * 1024 * 1024
+  log(`  Storage: ${formatBytes(storageUsed)} / ${formatBytes(storageMax)}`)
   log(`  Sites remaining: ${result.usage?.sitesRemaining || 0}`)
-  log(`  Storage remaining: ${result.usage?.storageRemainingMB || 0}MB`)
+  const storageRemaining =
+    result.usage?.storageRemaining ||
+    (result.usage?.storageRemainingMB || 0) * 1024 * 1024
+  log(`  Storage remaining: ${formatBytes(storageRemaining)}`)
   log('')
 
   log('Limits:')
@@ -483,14 +379,15 @@ export async function whoami () {
     log('')
     info('Tip: Enable 2FA for better security')
     const securityUrl = `https://${config.domain}/settings/security`
-    log(`   ${chalk.gray('Visit: ' + securityUrl)}`)
+    const securityUrlMsg = `Visit: ${securityUrl}`
+    log(`   ${chalk.gray(securityUrlMsg)}`)
   }
 }
 
 /**
  * Quota command - shows detailed quota information
  */
-export async function quota () {
+export async function quota() {
   const creds = await getCredentials()
 
   if (!creds) {
@@ -500,24 +397,16 @@ export async function quota () {
     log(chalk.bold('Anonymous tier limits:'))
     log(chalk.gray('  ┌─────────────────────────────────┐'))
     log(
-      chalk.gray('  │') +
-        ` Sites:      ${chalk.white('3 maximum')}           ` +
-        chalk.gray('│')
+      `${chalk.gray('  │')} Sites:      ${chalk.white('3 maximum')}           ${chalk.gray('│')}`
     )
     log(
-      chalk.gray('  │') +
-        ` Storage:    ${chalk.white('50MB total')}          ` +
-        chalk.gray('│')
+      `${chalk.gray('  │')} Storage:    ${chalk.white('50MB total')}          ${chalk.gray('│')}`
     )
     log(
-      chalk.gray('  │') +
-        ` Retention:  ${chalk.white('7 days')}              ` +
-        chalk.gray('│')
+      `${chalk.gray('  │')} Retention:  ${chalk.white('7 days')}              ${chalk.gray('│')}`
     )
     log(
-      chalk.gray('  │') +
-        ` Versions:   ${chalk.white('1 per site')}          ` +
-        chalk.gray('│')
+      `${chalk.gray('  │')} Versions:   ${chalk.white('1 per site')}          ${chalk.gray('│')}`
     )
     log(chalk.gray('  └─────────────────────────────────┘'))
     log('')
@@ -602,7 +491,7 @@ export async function quota () {
 /**
  * Create a simple progress bar with color coding
  */
-function createProgressBar (current, max, width = 20) {
+function createProgressBar(current, max, width = 20) {
   const filled = Math.round((current / max) * width)
   const empty = width - filled
   const percent = (current / max) * 100
@@ -618,15 +507,14 @@ function createProgressBar (current, max, width = 20) {
     barColor = chalk.green
   }
 
-  const bar =
-    barColor(filledChar.repeat(filled)) + chalk.gray('░'.repeat(empty))
+  const bar = `${barColor(filledChar.repeat(filled))}${chalk.gray('░'.repeat(empty))}`
   return `[${bar}]`
 }
 
 /**
  * Get colored percentage text
  */
-function getPercentColor (percent) {
+function getPercentColor(percent) {
   if (percent >= 90) {
     return chalk.red(`${percent}%`)
   } else if (percent >= 70) {
@@ -638,7 +526,7 @@ function getPercentColor (percent) {
 /**
  * Resend email verification command
  */
-export async function resendEmailVerification () {
+export async function resendEmailVerification() {
   const loggedIn = await isLoggedIn()
 
   if (!loggedIn) {

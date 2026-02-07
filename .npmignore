@@ -1,5 +1,4 @@
 # Test files
-tests/
 *.test.js
 vitest.config.js
 coverage/
@@ -26,3 +25,4 @@ node_modules/
 # OS
 .DS_Store
 Thumbs.db
+.patch
