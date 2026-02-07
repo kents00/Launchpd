@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.5] - 2026-02-07
+
+### Added
+
+- **Test Coverage**: Achieved 100% logic coverage for `auth.js` to ensure login and registration reliability.
+
+### Fixed
+
+- **Static Analysis**: Resolved multiple linting issues and removed unnecessary code blocks as reported by Codacy and DeepSource.
+- **Auth stability**: Fixed failing tests in `auth.test.js` related to process exit handling and mock assertions.
+
+### Security
+
+- **Credential Validation**: Strengthened internal checks for API key and token presence during CLI commands.
+
 ## [1.0.4] - 2026-02-04
 
 ### Added
