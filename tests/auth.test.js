@@ -439,6 +439,16 @@ describe('auth commands', () => {
 
       Object.defineProperty(process, 'platform', { value: originalPlatform })
     })
+
+    it('should use "xdg-open" command on Linux', () => {
+      const originalPlatform = process.platform
+      Object.defineProperty(process, 'platform', { value: 'linux' })
+
+      register()
+      expect(execFile).toHaveBeenCalledWith('xdg-open', expect.anything(), expect.anything())
+
+      Object.defineProperty(process, 'platform', { value: originalPlatform })
+    })
   })
 
   describe('resendVerification', () => {
