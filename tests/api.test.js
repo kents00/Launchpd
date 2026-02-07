@@ -15,9 +15,7 @@ import {
   resendVerification,
   regenerateApiKey
 } from '../src/utils/api.js'
-import { config } from '../src/config.js'
 import * as credentials from '../src/utils/credentials.js'
-import * as machineId from '../src/utils/machineId.js'
 import { createHmac } from 'node:crypto'
 
 // Mock dependencies
