@@ -5,6 +5,13 @@
  */
 
 export const MIN_EXPIRATION_MS = 30 * 60 * 1000
+
+/**
+ * Parse a time string into milliseconds
+ * @param {string} timeStr - Time string (e.g., "30m", "2h", "1d")
+ * @returns {number} Time in milliseconds
+ * @throws {Error} If format is invalid or time is below minimum
+ */
 export function parseTimeString(timeStr) {
   const regex = /^(\d+)([a-z]+)$/i
   const match = regex.exec(timeStr)

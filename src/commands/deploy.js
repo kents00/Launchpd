@@ -49,7 +49,7 @@ import QRCode from 'qrcode'
 /**
  * Calculate total size of a folder
  */
-async function calculateFolderSize (folderPath) {
+async function calculateFolderSize(folderPath) {
   const files = await readdir(folderPath, {
     recursive: true,
     withFileTypes: true
@@ -91,8 +91,12 @@ async function calculateFolderSize (folderPath) {
  * @param {string} options.name - Custom subdomain
  * @param {string} options.expires - Expiration time (e.g., "30m", "2h", "1d")
  * @param {boolean} options.verbose - Show verbose error details
+ *
+ * Note: This function has high cyclomatic complexity due to deployment orchestration.
+ * The complexity is necessary to handle all validation, error cases, and user interactions.
  */
-export async function deploy (folder, options) {
+/* eslint-disable-next-line complexity */
+export async function deploy(folder, options) {
   const folderPath = resolve(folder)
   const verbose = options.verbose || false
 

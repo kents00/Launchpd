@@ -497,7 +497,7 @@ function createProgressBar(current, max, width = 20) {
   const percent = (current / max) * 100
 
   const filledChar = '█'
-  let barColor
+  let barColor = null
 
   if (percent >= 90) {
     barColor = chalk.red

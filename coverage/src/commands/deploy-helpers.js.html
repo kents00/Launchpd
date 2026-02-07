@@ -3,7 +3,7 @@
 <html lang="en">
 
 <head>
-    <title>Code coverage report for src/utils/validator.js</title>
+    <title>Code coverage report for src/commands/deploy-helpers.js</title>
     <meta charset="utf-8" />
     <link rel="stylesheet" href="../../prettify.css" />
     <link rel="stylesheet" href="../../base.css" />
@@ -19,34 +19,34 @@
 <body>
 <div class='wrapper'>
     <div class='pad1'>
-        <h1><a href="../../index.html">All files</a> / <a href="index.html">src/utils</a> validator.js</h1>
+        <h1><a href="../../index.html">All files</a> / <a href="index.html">src/commands</a> deploy-helpers.js</h1>
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>18/18</span>
+                <span class='fraction'>49/49</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>12/12</span>
+                <span class='fraction'>34/34</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>1/1</span>
+                <span class='fraction'>10/10</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>18/18</span>
+                <span class='fraction'>46/46</span>
             </div>
         
             
@@ -201,7 +201,175 @@
 <a name='L136'></a><a href='#L136'>136</a>
 <a name='L137'></a><a href='#L137'>137</a>
 <a name='L138'></a><a href='#L138'>138</a>
-<a name='L139'></a><a href='#L139'>139</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L139'></a><a href='#L139'>139</a>
+<a name='L140'></a><a href='#L140'>140</a>
+<a name='L141'></a><a href='#L141'>141</a>
+<a name='L142'></a><a href='#L142'>142</a>
+<a name='L143'></a><a href='#L143'>143</a>
+<a name='L144'></a><a href='#L144'>144</a>
+<a name='L145'></a><a href='#L145'>145</a>
+<a name='L146'></a><a href='#L146'>146</a>
+<a name='L147'></a><a href='#L147'>147</a>
+<a name='L148'></a><a href='#L148'>148</a>
+<a name='L149'></a><a href='#L149'>149</a>
+<a name='L150'></a><a href='#L150'>150</a>
+<a name='L151'></a><a href='#L151'>151</a>
+<a name='L152'></a><a href='#L152'>152</a>
+<a name='L153'></a><a href='#L153'>153</a>
+<a name='L154'></a><a href='#L154'>154</a>
+<a name='L155'></a><a href='#L155'>155</a>
+<a name='L156'></a><a href='#L156'>156</a>
+<a name='L157'></a><a href='#L157'>157</a>
+<a name='L158'></a><a href='#L158'>158</a>
+<a name='L159'></a><a href='#L159'>159</a>
+<a name='L160'></a><a href='#L160'>160</a>
+<a name='L161'></a><a href='#L161'>161</a>
+<a name='L162'></a><a href='#L162'>162</a>
+<a name='L163'></a><a href='#L163'>163</a>
+<a name='L164'></a><a href='#L164'>164</a>
+<a name='L165'></a><a href='#L165'>165</a>
+<a name='L166'></a><a href='#L166'>166</a>
+<a name='L167'></a><a href='#L167'>167</a>
+<a name='L168'></a><a href='#L168'>168</a>
+<a name='L169'></a><a href='#L169'>169</a>
+<a name='L170'></a><a href='#L170'>170</a>
+<a name='L171'></a><a href='#L171'>171</a>
+<a name='L172'></a><a href='#L172'>172</a>
+<a name='L173'></a><a href='#L173'>173</a>
+<a name='L174'></a><a href='#L174'>174</a>
+<a name='L175'></a><a href='#L175'>175</a>
+<a name='L176'></a><a href='#L176'>176</a>
+<a name='L177'></a><a href='#L177'>177</a>
+<a name='L178'></a><a href='#L178'>178</a>
+<a name='L179'></a><a href='#L179'>179</a>
+<a name='L180'></a><a href='#L180'>180</a>
+<a name='L181'></a><a href='#L181'>181</a>
+<a name='L182'></a><a href='#L182'>182</a>
+<a name='L183'></a><a href='#L183'>183</a>
+<a name='L184'></a><a href='#L184'>184</a>
+<a name='L185'></a><a href='#L185'>185</a>
+<a name='L186'></a><a href='#L186'>186</a>
+<a name='L187'></a><a href='#L187'>187</a>
+<a name='L188'></a><a href='#L188'>188</a>
+<a name='L189'></a><a href='#L189'>189</a>
+<a name='L190'></a><a href='#L190'>190</a>
+<a name='L191'></a><a href='#L191'>191</a>
+<a name='L192'></a><a href='#L192'>192</a>
+<a name='L193'></a><a href='#L193'>193</a>
+<a name='L194'></a><a href='#L194'>194</a>
+<a name='L195'></a><a href='#L195'>195</a>
+<a name='L196'></a><a href='#L196'>196</a>
+<a name='L197'></a><a href='#L197'>197</a>
+<a name='L198'></a><a href='#L198'>198</a>
+<a name='L199'></a><a href='#L199'>199</a>
+<a name='L200'></a><a href='#L200'>200</a>
+<a name='L201'></a><a href='#L201'>201</a>
+<a name='L202'></a><a href='#L202'>202</a>
+<a name='L203'></a><a href='#L203'>203</a>
+<a name='L204'></a><a href='#L204'>204</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -220,27 +388,37 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">9x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">9x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">7x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -251,231 +429,248 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">9x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">9x</span>
+<span class="cline-any cline-yes">9x</span>
+<span class="cline-any cline-yes">9x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">9x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">9x</span>
-<span class="cline-any cline-yes">9x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">8x</span>
-<span class="cline-any cline-yes">21x</span>
-<span class="cline-any cline-yes">21x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">21x</span>
-<span class="cline-any cline-yes">6x</span>
-<span class="cline-any cline-yes">6x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">15x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">14x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">13x</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-yes">7x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">8x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { readdir } from 'node:fs/promises'
-import { extname } from 'node:path'
-import { isIgnored } from './ignore.js'
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">/**
+ * Helper functions for deploy command to reduce cyclomatic complexity
+ */
 &nbsp;
-// Allowed static file extensions
-const ALLOWED_EXTENSIONS = new Set([
-  '.html',
-  '.htm',
-  '.css',
-  '.scss',
-  '.sass',
-  '.js',
-  '.mjs',
-  '.cjs',
-  '.json',
-  '.jsonld',
-  '.svg',
-  '.png',
-  '.jpg',
-  '.jpeg',
-  '.gif',
-  '.webp',
-  '.ico',
-  '.avif',
-  '.woff',
-  '.woff2',
-  '.ttf',
-  '.otf',
-  '.eot',
-  '.mp4',
-  '.webm',
-  '.ogg',
-  '.mp3',
-  '.wav',
-  '.flac',
-  '.pdf',
-  '.txt',
-  '.md',
-  '.xml',
-  '.yaml',
-  '.yml'
-])
-&nbsp;
-// Forbidden indicators (frameworks, build tools, backend code)
-const FORBIDDEN_INDICATORS = new Set([
-  // Build systems &amp; Frameworks
-  'package.json',
-  'package-lock.json',
-  'yarn.lock',
-  'pnpm-lock.yaml',
-  'node_modules',
-  'composer.json',
-  'vendor',
-  'requirements.txt',
-  'Gemfile',
-  'Makefile',
-  'tsconfig.json',
-  'next.config.js',
-  'nuxt.config.js',
-  'svelte.config.js',
-  'vite.config.js',
-  'webpack.config.js',
-  'rollup.config.js',
-  'angular.json',
-&nbsp;
-  // Backend/Source
-  '.jsx',
-  '.tsx',
-  '.ts',
-  '.vue',
-  '.svelte',
-  '.php',
-  '.py',
-  '.rb',
-  '.go',
-  '.rs',
-  '.java',
-  '.cs',
-  '.cpp',
-  '.c',
-  '.env',
-  '.env.local',
-  '.env.production',
-  '.dockerfile',
-  'docker-compose.yml',
-&nbsp;
-  // Hidden/System
-  '.git',
-  '.svn',
-  '.hg'
-])
+import { readdir } from 'node:fs/promises'
+import { statSync } from 'node:fs'
+import { join, relative, sep } from 'node:path'
+import { isIgnored } from '../utils/ignore.js'
+import { errorWithSuggestions } from '../utils/logger.js'
+import { calculateExpiresAt } from '../utils/expiration.js'
 &nbsp;
 /**
- * Validates that a folder contains ONLY static files.
- * @param {string} folderPath
- * @returns {Promise&lt;{success: boolean, violations: string[]}&gt;}
+ * Validate and parse expiration time
+ * @param {string|undefined} expiresOption - Expiration time option
+ * @param {boolean} verbose - Verbose mode
+ * @returns {Date|null} Expiration date or null
  */
-export async function validateStaticOnly (folderPath) {
-  const violations = []
+export function parseExpirationOption(expiresOption, verbose) {
+    if (!expiresOption) return null
 &nbsp;
-  try {
-    const files = await readdir(folderPath, {
-      recursive: true,
-      withFileTypes: true
+    try {
+        return calculateExpiresAt(expiresOption)
+    } catch (err) {
+        errorWithSuggestions(
+            err.message,
+            [
+                'Use format like: 30m, 2h, 1d, 7d',
+                'Minimum expiration is 30 minutes',
+                'Examples: --expires 1h, --expires 2d'
+            ],
+            { verbose, cause: err }
+        )
+        process.exit(1)
+    }
+}
+&nbsp;
+/**
+ * Validate deployment message is provided
+ * @param {string|undefined} message - Deployment message
+ * @param {boolean} verbose - Verbose mode
+ */
+export function validateDeploymentMessage(message, verbose) {
+    if (!message) {
+        errorWithSuggestions(
+            'Deployment message is required.',
+            [
+                'Use -m or --message to provide a description',
+                'Example: launchpd deploy . -m "Fix layout"',
+                'Example: launchpd deploy . -m "Initial deployment"'
+            ],
+            { verbose }
+        )
+        process.exit(1)
+    }
+}
+&nbsp;
+/**
+ * Validate folder exists
+ * @param {string} folderPath - Folder path
+ * @param {boolean} verbose - Verbose mode
+ */
+export function validateFolderExists(folderPath, existsSync, verbose) {
+    if (!existsSync(folderPath)) {
+        errorWithSuggestions(
+            `Folder not found: ${folderPath}`,
+            [
+                'Check the path is correct',
+                'Use an absolute path or path relative to current directory',
+                `Current directory: ${process.cwd()}`
+            ],
+            { verbose }
+        )
+        process.exit(1)
+    }
+}
+&nbsp;
+/**
+ * Filter active (non-ignored) files from a directory scan
+ * @param {Array} files - Files from readdir
+ * @param {string} folderPath - Base folder path
+ * @returns {Array} Filtered files
+ */
+export function filterActiveFiles(files, folderPath) {
+    return files.filter((file) =&gt; {
+        if (!file.isFile()) return false
+        const parentDir = file.parentPath || file.path
+        const relativePath = relative(folderPath, join(parentDir, file.name))
+        const pathParts = relativePath.split(sep)
+        return !pathParts.some((part) =&gt; isIgnored(part, file.isDirectory()))
     })
+}
+&nbsp;
+/**
+ * Validate folder has deployable files
+ * @param {number} fileCount - Number of files
+ * @param {boolean} verbose - Verbose mode
+ */
+export function validateFolderNotEmpty(fileCount, verbose) {
+    if (fileCount === 0) {
+        errorWithSuggestions(
+            'Nothing to deploy.',
+            [
+                'Add some files to your folder',
+                'Make sure your files are not in ignored directories (like node_modules)',
+                'Make sure index.html exists for static sites'
+            ],
+            { verbose }
+        )
+        process.exit(1)
+    }
+}
+&nbsp;
+/**
+ * Handle error conditions during deployment
+ * @param {Error} err - Error object
+ * @param {boolean} verbose - Verbose mode
+ * @param {Function} errorHandler - Error handler function
+ * @param {Function} infoHandler - Info handler function
+ * @param {Function} warningHandler - Warning handler function
+ * @returns {Array} Array of suggestions
+ */
+export function getDeploymentErrorSuggestions(err) {
+    const suggestions = []
+&nbsp;
+    if (
+        err.message.includes('fetch failed') ||
+        err.message.includes('ENOTFOUND')
+    ) {
+        suggestions.push(
+            'Check your internet connection',
+            'The API server may be temporarily unavailable'
+        )
+    } else if (
+        err.message.includes('401') ||
+        err.message.includes('Unauthorized')
+    ) {
+        suggestions.push(
+            'Run "launchpd login" to authenticate',
+            'Your API key may have expired'
+        )
+    } else if (
+        err.message.includes('413') ||
+        err.message.includes('too large')
+    ) {
+        suggestions.push(
+            'Try deploying fewer or smaller files',
+            'Check your storage quota with "launchpd quota"'
+        )
+    } else if (
+        err.message.includes('429') ||
+        err.message.includes('rate limit')
+    ) {
+        suggestions.push(
+            'Wait a few minutes and try again',
+            'You may be deploying too frequently'
+        )
+    } else {
+        suggestions.push(
+            'Try running with --verbose for more details',
+            'Check https://status.launchpd.cloud for service status'
+        )
+    }
+&nbsp;
+    return suggestions
+}
+&nbsp;
+/**
+ * Calculate total size of a folder (exported for reuse)
+ */
+export async function calculateFolderSize(folderPath) {
+    const files = await readdir(folderPath, {
+        recursive: true,
+        withFileTypes: true
+    })
+    let totalSize = 0
 &nbsp;
     for (const file of files) {
-      const fileName = file.name.toLowerCase()
-      const ext = extname(fileName)
+        const parentDir = file.parentPath || file.path
+        const relativePath = relative(folderPath, join(parentDir, file.name))
+        const pathParts = relativePath.split(sep)
 &nbsp;
-      // 1. Check if the file/dir itself is a forbidden indicator
-      if (FORBIDDEN_INDICATORS.has(fileName) || FORBIDDEN_INDICATORS.has(ext)) {
-        violations.push(file.name)
-        continue
-      }
-&nbsp;
-      // 2. Skip ignored files and directories
-      if (isIgnored(fileName, file.isDirectory())) {
-        continue
-      }
-&nbsp;
-      // 2. Check extension for non-allowed types (only for files)
-      if (file.isFile()) {
-        // Ignore files without extensions or if they start with a dot (but handle indicators above)
-        if (ext &amp;&amp; !ALLOWED_EXTENSIONS.has(ext)) {
-          violations.push(file.name)
+        // Skip ignored directories/files in the path
+        if (
+            pathParts.some((part) =&gt; {
+                return isIgnored(part, file.isDirectory())
+            })
+        ) {
+            continue
         }
-      }
+&nbsp;
+        if (file.isFile()) {
+            const fullPath = join(parentDir, file.name)
+            try {
+                const stats = statSync(fullPath)
+                totalSize += stats.size
+            } catch {
+                // File may have been deleted
+            }
+        }
     }
 &nbsp;
-    return {
-      success: violations.length === 0,
-      violations: [...new Set(violations)] // Deduplicate
-    }
-  } catch (err) {
-    throw new Error(`Failed to validate folder: ${err.message}`)
-  }
+    return totalSize
 }
 &nbsp;</pre></td></tr></table></pre>
 

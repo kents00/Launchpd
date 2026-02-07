@@ -19,10 +19,10 @@ const API_BASE_URL = `https://api.${config.domain}`
  * @param {boolean} options.isUpdate - Whether this is known to be an update
  * @returns {Promise<{allowed: boolean, isNewSite: boolean, quota: object, warnings: string[]}>}
  */
-export async function checkQuota (subdomain, estimatedBytes = 0, options = {}) {
+export async function checkQuota(subdomain, estimatedBytes = 0, options = {}) {
   const creds = await getCredentials()
 
-  let quotaData
+  let quotaData = null
 
   if (creds?.apiKey) {
     // Authenticated user
@@ -35,7 +35,7 @@ export async function checkQuota (subdomain, estimatedBytes = 0, options = {}) {
   /**
    * Check quota for authenticated user
    */
-  async function checkAuthenticatedQuota (apiKey, isUpdate = false) {
+  async function checkAuthenticatedQuota(apiKey, isUpdate = false) {
     try {
       const url = new URL(`${API_BASE_URL}/api/quota`)
       if (isUpdate) {
@@ -204,7 +204,7 @@ export async function checkQuota (subdomain, estimatedBytes = 0, options = {}) {
 /**
  * Check quota for anonymous user
  */
-async function checkAnonymousQuota () {
+async function checkAnonymousQuota() {
   try {
     const clientToken = await getClientToken()
 
@@ -241,7 +241,7 @@ async function checkAnonymousQuota () {
 /**
  * Check if user owns a subdomain
  */
-async function userOwnsSite (apiKey, subdomain) {
+async function userOwnsSite(apiKey, subdomain) {
   if (!apiKey) {
     // For anonymous, we track by client token in deployments
     return false
@@ -279,7 +279,7 @@ async function userOwnsSite (apiKey, subdomain) {
 /**
  * Show upgrade prompt for anonymous users
  */
-function showUpgradePrompt () {
+function showUpgradePrompt() {
   log('')
   log('╔══════════════════════════════════════════════════════════════╗')
   log('║  Upgrade to Launchpd Free Tier                               ║')
@@ -298,7 +298,7 @@ function showUpgradePrompt () {
 /**
  * Display quota warnings
  */
-export function displayQuotaWarnings (warnings) {
+export function displayQuotaWarnings(warnings) {
   if (warnings && warnings.length > 0) {
     log('')
     warnings.forEach((w) => warning(w))
@@ -308,7 +308,7 @@ export function displayQuotaWarnings (warnings) {
 /**
  * Format bytes to human readable
  */
-export function formatBytes (bytes) {
+export function formatBytes(bytes) {
   if (bytes === 0) return '0 B'
   const k = 1024
   const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
