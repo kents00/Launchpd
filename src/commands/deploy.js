@@ -499,8 +499,9 @@ function openUrlInBrowser (url) {
   if (platform === 'darwin') {
     command = 'open'
   } else if (platform === 'win32') {
-    command = 'cmd'
-    args = ['/c', 'start', '', url]
+    // Use rundll32 to open the URL with the default browser without invoking a shell
+    command = 'rundll32'
+    args = ['url.dll,FileProtocolHandler', url]
   }
 
   execFile(command, args)
