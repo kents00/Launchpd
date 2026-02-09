@@ -46,6 +46,10 @@ import { prompt } from '../utils/prompt.js'
 import { handleCommonError } from '../utils/errors.js'
 import QRCode from 'qrcode'
 
+// ============================================================================
+// Helper Functions (extracted to reduce cyclomatic complexity)
+// ============================================================================
+
 /**
  * Validate subdomain contains only safe DNS characters
  * @param {string} subdomain - The subdomain to validate
@@ -53,7 +57,6 @@ import QRCode from 'qrcode'
  * @throws {Error} If subdomain contains invalid characters
  */
 function validateSubdomain(subdomain) {
-  // Only allow lowercase alphanumeric and hyphens (valid DNS subdomain chars)
   const safePattern = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/
   if (!safePattern.test(subdomain)) {
     throw new Error(
@@ -64,13 +67,10 @@ function validateSubdomain(subdomain) {
 }
 
 /**
- * Calculate total size of a folder
+ * Calculate total size of a folder (excluding ignored files)
  */
 async function calculateFolderSize(folderPath) {
-  const files = await readdir(folderPath, {
-    recursive: true,
-    withFileTypes: true
-  })
+  const files = await readdir(folderPath, { recursive: true, withFileTypes: true })
   let totalSize = 0
 
   for (const file of files) {
@@ -78,12 +78,7 @@ async function calculateFolderSize(folderPath) {
     const relativePath = relative(folderPath, join(parentDir, file.name))
     const pathParts = relativePath.split(sep)
 
-    // Skip ignored directories/files in the path
-    if (
-      pathParts.some((part) => {
-        return isIgnored(part, file.isDirectory())
-      })
-    ) {
+    if (pathParts.some((part) => isIgnored(part, file.isDirectory()))) {
       continue
     }
 
@@ -102,37 +97,31 @@ async function calculateFolderSize(folderPath) {
 }
 
 /**
- * Deploy a local folder to StaticLaunch
- * @param {string} folder - Path to folder to deploy
- * @param {object} options - Command options
- * @param {string} options.name - Custom subdomain
- * @param {string} options.expires - Expiration time (e.g., "30m", "2h", "1d")
- * @param {boolean} options.verbose - Show verbose error details
+ * Parse and validate expiration option
  */
-export async function deploy(folder, options) {
-  const folderPath = resolve(folder)
-  const verbose = options.verbose || false
+function parseExpiration(expiresOption, verbose) {
+  if (!expiresOption) return null
 
-  // Parse expiration if provided
-  let expiresAt = null
-  if (options.expires) {
-    try {
-      expiresAt = calculateExpiresAt(options.expires)
-    } catch (err) {
-      errorWithSuggestions(
-        err.message,
-        [
-          'Use format like: 30m, 2h, 1d, 7d',
-          'Minimum expiration is 30 minutes',
-          'Examples: --expires 1h, --expires 2d'
-        ],
-        { verbose, cause: err }
-      )
-      process.exit(1)
-    }
+  try {
+    return calculateExpiresAt(expiresOption)
+  } catch (err) {
+    errorWithSuggestions(
+      err.message,
+      [
+        'Use format like: 30m, 2h, 1d, 7d',
+        'Minimum expiration is 30 minutes',
+        'Examples: --expires 1h, --expires 2d'
+      ],
+      { verbose, cause: err }
+    )
+    process.exit(1)
   }
+}
 
-  // Validate deployment message is provided
+/**
+ * Validate required options
+ */
+function validateOptions(options, folderPath, verbose) {
   if (!options.message) {
     errorWithSuggestions(
       'Deployment message is required.',
@@ -146,7 +135,6 @@ export async function deploy(folder, options) {
     process.exit(1)
   }
 
-  // Validate folder exists
   if (!existsSync(folderPath)) {
     errorWithSuggestions(
       `Folder not found: ${folderPath}`,
@@ -159,15 +147,15 @@ export async function deploy(folder, options) {
     )
     process.exit(1)
   }
+}
 
-  // Check folder is not empty
+/**
+ * Scan folder and return active file count
+ */
+async function scanFolder(folderPath, verbose) {
   const scanSpinner = spinner('Scanning folder...')
-  const files = await readdir(folderPath, {
-    recursive: true,
-    withFileTypes: true
-  })
+  const files = await readdir(folderPath, { recursive: true, withFileTypes: true })
 
-  // Filter out ignored files for the count
   const activeFiles = files.filter((file) => {
     if (!file.isFile()) return false
     const parentDir = file.parentPath || file.path
@@ -191,34 +179,37 @@ export async function deploy(folder, options) {
     )
     process.exit(1)
   }
-  scanSpinner.succeed(
-    `Found ${fileCount} file(s) (ignored system files skipped)`
-  )
 
-  // Static-Only Validation
+  scanSpinner.succeed(`Found ${fileCount} file(s) (ignored system files skipped)`)
+  return fileCount
+}
+
+/**
+ * Validate static-only files
+ */
+async function validateStaticFiles(folderPath, options, verbose) {
   const validationSpinner = spinner('Validating files...')
   const validation = await validateStaticOnly(folderPath)
+
   if (!validation.success) {
     if (options.force) {
-      validationSpinner.warn(
-        'Static-only validation failed, but proceeding due to --force'
-      )
+      validationSpinner.warn('Static-only validation failed, but proceeding due to --force')
       warning('Non-static files detected.')
       warning(chalk.bold.red('IMPORTANT: Launchpd only hosts STATIC files.'))
-      warning(
-        'Backend code (Node.js, PHP, etc.) will NOT be executed on the server.'
-      )
+      warning('Backend code (Node.js, PHP, etc.) will NOT be executed on the server.')
     } else {
       validationSpinner.fail('Deployment blocked: Non-static files detected')
+      const violationList = validation.violations.map((v) => `   - ${v}`).slice(0, 10)
+      const moreCount = validation.violations.length > 10
+        ? `   - ...and ${validation.violations.length - 10} more`
+        : ''
       errorWithSuggestions(
         'Your project contains files that are not allowed.',
         [
           'Launchpd only supports static files (HTML, CSS, JS, images, etc.)',
           'Remove framework files, backend code, and build metadata:',
-          ...validation.violations.map((v) => `   - ${v}`).slice(0, 10),
-          validation.violations.length > 10
-            ? `   - ...and ${validation.violations.length - 10} more`
-            : '',
+          ...violationList,
+          moreCount,
           'If you use a framework (React, Vue, etc.), deploy the "dist" or "build" folder instead.'
         ],
         { verbose }
@@ -228,10 +219,12 @@ export async function deploy(folder, options) {
   } else {
     validationSpinner.succeed('Project validated (Static files only)')
   }
+}
 
-  // Generate or use provided subdomain
-  // Anonymous users cannot use custom subdomains
-  const creds = await getCredentials()
+/**
+ * Resolve subdomain from options/config
+ */
+async function resolveSubdomain(options, folderPath, creds, verbose) {
   if (options.name && !creds?.email) {
     warning('Custom subdomains require registration!')
     info('Anonymous deployments use random subdomains.')
@@ -239,16 +232,10 @@ export async function deploy(folder, options) {
     log('')
   }
 
-  // Detect project config if no name provided
-  let subdomain =
-    options.name && creds?.email ? options.name.toLowerCase() : null
-  let configSubdomain = null
-
+  let subdomain = options.name && creds?.email ? options.name.toLowerCase() : null
   const projectRoot = findProjectRoot(folderPath)
   const config = await getProjectConfig(projectRoot)
-  if (config?.subdomain) {
-    configSubdomain = config.subdomain
-  }
+  const configSubdomain = config?.subdomain || null
 
   if (!subdomain) {
     if (configSubdomain) {
@@ -258,26 +245,10 @@ export async function deploy(folder, options) {
       subdomain = generateSubdomain()
     }
   } else if (configSubdomain && subdomain !== configSubdomain) {
-    warning(
-      `Mismatch: This project is linked to ${chalk.bold(configSubdomain)} but you are deploying to ${chalk.bold(subdomain)}`
-    )
-
-    let shouldUpdate = options.yes
-    if (!shouldUpdate) {
-      const confirm = await prompt(
-        `Would you like to update this project's default subdomain to "${subdomain}"? (Y/N): `
-      )
-      shouldUpdate =
-        confirm.toLowerCase() === 'y' || confirm.toLowerCase() === 'yes'
-    }
-
-    if (shouldUpdate) {
-      await updateProjectConfig({ subdomain }, projectRoot)
-      success(`Project configuration updated to: ${subdomain}`)
-    }
+    await handleSubdomainMismatch(subdomain, configSubdomain, options, projectRoot)
   }
 
-  // Validate subdomain before using in URL (prevents shell injection)
+  // Validate subdomain
   try {
     subdomain = validateSubdomain(subdomain)
   } catch (err) {
@@ -289,75 +260,85 @@ export async function deploy(folder, options) {
     process.exit(1)
   }
 
-  const url = `https://${subdomain}.launchpd.cloud`
+  return { subdomain, configSubdomain, projectRoot }
+}
 
-  // Check subdomain availability and ownership (ALWAYS run this)
+/**
+ * Handle subdomain mismatch between CLI arg and config
+ */
+async function handleSubdomainMismatch(subdomain, configSubdomain, options, projectRoot) {
+  warning(
+    `Mismatch: This project is linked to ${chalk.bold(configSubdomain)} but you are deploying to ${chalk.bold(subdomain)}`
+  )
+
+  let shouldUpdate = options.yes
+  if (!shouldUpdate) {
+    const confirm = await prompt(
+      `Would you like to update this project's default subdomain to "${subdomain}"? (Y/N): `
+    )
+    shouldUpdate = confirm.toLowerCase() === 'y' || confirm.toLowerCase() === 'yes'
+  }
+
+  if (shouldUpdate) {
+    await updateProjectConfig({ subdomain }, projectRoot)
+    success(`Project configuration updated to: ${subdomain}`)
+  }
+}
+
+/**
+ * Check subdomain availability
+ */
+async function checkSubdomainOwnership(subdomain) {
   const checkSpinner = spinner('Checking subdomain availability...')
   try {
     const isAvailable = await checkSubdomainAvailable(subdomain)
 
     if (!isAvailable) {
-      // Check if the current user owns it
       const result = await listSubdomains()
       const owned = result?.subdomains?.some((s) => s.subdomain === subdomain)
 
       if (owned) {
-        checkSpinner.succeed(
-          `Deploying new version to your subdomain: "${subdomain}"`
-        )
+        checkSpinner.succeed(`Deploying new version to your subdomain: "${subdomain}"`)
       } else {
-        checkSpinner.fail(
-          `Subdomain "${subdomain}" is already taken by another user`
-        )
-        warning(
-          'You do not own this subdomain. Please choose a different name.'
-        )
+        checkSpinner.fail(`Subdomain "${subdomain}" is already taken by another user`)
+        warning('You do not own this subdomain. Please choose a different name.')
         process.exit(1)
       }
     } else {
-      // If strictly new, it's available
       checkSpinner.succeed(`Subdomain "${subdomain}" is available`)
     }
   } catch {
-    checkSpinner.warn(
-      'Could not verify subdomain availability (skipping check)'
-    )
+    checkSpinner.warn('Could not verify subdomain availability (skipping check)')
   }
+}
 
-  // Auto-init: If using --name and no config exists, prompt to save it
+/**
+ * Prompt for auto-init if needed
+ */
+async function promptAutoInit(options, configSubdomain, subdomain, folderPath) {
   if (options.name && !configSubdomain) {
     const confirm = await prompt(
       `\nRun "launchpd init" to link '${folderPath}' to '${subdomain}'? (Y/N): `
     )
-    if (
-      confirm.toLowerCase() === 'y' ||
-      confirm.toLowerCase() === 'yes' ||
-      confirm === ''
-    ) {
+    if (confirm.toLowerCase() === 'y' || confirm.toLowerCase() === 'yes' || confirm === '') {
       await initProjectConfig(subdomain, folderPath)
       success('Project initialized! Future deploys here can skip --name.')
     }
   }
+}
 
-  // Calculate estimated upload size
-  const sizeSpinner = spinner('Calculating folder size...')
-  const estimatedBytes = await calculateFolderSize(folderPath)
-  sizeSpinner.succeed(`Size: ${formatBytes(estimatedBytes)}`)
-
-  // Check quota before deploying
+/**
+ * Check quota and return result
+ */
+async function checkDeploymentQuota(subdomain, estimatedBytes, configSubdomain, options) {
   const quotaSpinner = spinner('Checking quota...')
   const isUpdate = configSubdomain && subdomain === configSubdomain
-
   const quotaCheck = await checkQuota(subdomain, estimatedBytes, { isUpdate })
 
   if (!quotaCheck.allowed) {
     if (options.force) {
-      quotaSpinner.warn(
-        'Deployment blocked due to quota limits, but proceeding due to --force'
-      )
-      warning(
-        'Uploading anyway... (server might still reject if physical limit is hit)'
-      )
+      quotaSpinner.warn('Deployment blocked due to quota limits, but proceeding due to --force')
+      warning('Uploading anyway... (server might still reject if physical limit is hit)')
     } else {
       quotaSpinner.fail('Deployment blocked due to quota limits')
       info('Try running "launchpd quota" to check your storage.')
@@ -368,236 +349,271 @@ export async function deploy(folder, options) {
     quotaSpinner.succeed('Quota check passed')
   }
 
-  // Display any warnings
   displayQuotaWarnings(quotaCheck.warnings)
+}
 
-  // Show current user status (creds already fetched above)
+/**
+ * Perform the actual upload
+ */
+async function performUpload(folderPath, subdomain, fileCount, expiresAt, options) {
+  const versionSpinner = spinner('Fetching version info...')
+  let version = await getNextVersionFromAPI(subdomain)
+  if (version === null) {
+    version = await getNextVersion(subdomain)
+  }
+  versionSpinner.succeed(`Deploying as version ${version}`)
+
+  const folderName = basename(folderPath)
+  const uploadSpinner = spinner(`Uploading files... 0/${fileCount}`)
+
+  const { totalBytes } = await uploadFolder(
+    folderPath,
+    subdomain,
+    version,
+    (uploaded, total, fileName) => {
+      uploadSpinner.update(`Uploading files... ${uploaded}/${total} (${fileName})`)
+    }
+  )
+
+  uploadSpinner.succeed(`Uploaded ${fileCount} files (${formatBytes(totalBytes)})`)
+
+  const finalizeSpinner = spinner('Finalizing deployment...')
+  await finalizeUpload(
+    subdomain,
+    version,
+    fileCount,
+    totalBytes,
+    folderName,
+    expiresAt?.toISOString() || null,
+    options.message
+  )
+  finalizeSpinner.succeed('Deployment finalized')
+
+  await saveLocalDeployment({
+    subdomain,
+    folderName,
+    fileCount,
+    totalBytes,
+    version,
+    timestamp: new Date().toISOString(),
+    expiresAt: expiresAt?.toISOString() || null
+  })
+
+  return { version, totalBytes }
+}
+
+/**
+ * Show post-deployment info
+ */
+async function showPostDeploymentInfo(url, options, expiresAt, creds, verbose) {
+  if (options.open) {
+    openUrlInBrowser(url)
+  }
+
+  if (expiresAt) {
+    warning(`Expires: ${formatTimeRemaining(expiresAt)}`)
+  }
+
+  if (!creds?.email) {
+    showAnonymousWarnings()
+  }
+
+  log('')
+
+  if (options.qr) {
+    await showQRCode(url, verbose)
+  }
+}
+
+/**
+ * Open URL in system browser
+ */
+function openUrlInBrowser(url) {
+  const platform = process.platform
+  let command = 'xdg-open'
+  let args = [url]
+
+  if (platform === 'darwin') {
+    command = 'open'
+  } else if (platform === 'win32') {
+    command = 'cmd'
+    args = ['/c', 'start', '', url]
+  }
+
+  execFile(command, args)
+}
+
+/**
+ * Show warnings for anonymous deployments
+ */
+function showAnonymousWarnings() {
+  log('')
+  warning('Anonymous deployment limits:')
+  log('   • 3 active sites per IP')
+  log('   • 50MB total storage')
+  log('   • 7-day site expiration')
+  log('')
+  info('Run "launchpd register" to unlock unlimited sites and permanent storage!')
+}
+
+/**
+ * Generate and display QR code
+ */
+async function showQRCode(url, verbose) {
+  try {
+    const terminalWidth = process.stdout.columns || 80
+    const qr = await QRCode.toString(url, {
+      type: 'terminal',
+      small: true,
+      margin: 2,
+      errorCorrectionLevel: 'L'
+    })
+
+    const firstLine = qr.split('\n')[0]
+    if (firstLine.length > terminalWidth) {
+      warning('\nTerminal is too narrow to display the QR code correctly.')
+      info(`Please expand your terminal to at least ${firstLine.length} columns.`)
+      info(`URL: ${url}`)
+    } else {
+      log(`\nScan this QR code to view your site on mobile:\n${qr}`)
+    }
+  } catch (err) {
+    warning('Could not generate QR code.')
+    if (verbose) raw(err, 'error')
+  }
+}
+
+/**
+ * Handle upload errors with appropriate messages
+ */
+function handleUploadError(err, verbose) {
+  if (handleCommonError(err, {
+    error: (msg) => errorWithSuggestions(msg, [], { verbose }),
+    info,
+    warning
+  })) {
+    process.exit(1)
+  }
+
+  if (err instanceof MaintenanceError || err.isMaintenanceError) {
+    errorWithSuggestions(
+      '⚠️ LaunchPd is under maintenance',
+      ['Please try again in a few minutes', 'Check https://status.launchpd.cloud for updates'],
+      { verbose }
+    )
+    process.exit(1)
+  }
+
+  if (err instanceof NetworkError || err.isNetworkError) {
+    errorWithSuggestions(
+      'Unable to connect to LaunchPd',
+      [
+        'Check your internet connection',
+        'The API server may be temporarily unavailable',
+        'Check https://status.launchpd.cloud for service status'
+      ],
+      { verbose, cause: err }
+    )
+    process.exit(1)
+  }
+
+  if (err instanceof AuthError || err.isAuthError) {
+    errorWithSuggestions(
+      'Authentication failed',
+      ['Run "launchpd login" to authenticate', 'Your API key may have expired or been revoked'],
+      { verbose, cause: err }
+    )
+    process.exit(1)
+  }
+
+  const suggestions = getErrorSuggestions(err)
+  errorWithSuggestions(`Upload failed: ${err.message}`, suggestions, { verbose, cause: err })
+  process.exit(1)
+}
+
+/**
+ * Get context-specific suggestions for errors
+ */
+function getErrorSuggestions(err) {
+  const message = err.message || ''
+
+  if (message.includes('fetch failed') || message.includes('ENOTFOUND')) {
+    return ['Check your internet connection', 'The API server may be temporarily unavailable']
+  }
+
+  if (message.includes('401') || message.includes('Unauthorized')) {
+    return ['Run "launchpd login" to authenticate', 'Your API key may have expired']
+  }
+
+  if (message.includes('413') || message.includes('too large')) {
+    return ['Try deploying fewer or smaller files', 'Check your storage quota with "launchpd quota"']
+  }
+
+  if (message.includes('429') || message.includes('rate limit')) {
+    return ['Wait a few minutes and try again', 'You may be deploying too frequently']
+  }
+
+  return ['Try running with --verbose for more details', 'Check https://status.launchpd.cloud for service status']
+}
+
+// ============================================================================
+// Main Deploy Function
+// ============================================================================
+
+/**
+ * Deploy a local folder to StaticLaunch
+ * @param {string} folder - Path to folder to deploy
+ * @param {object} options - Command options
+ * @param {string} options.name - Custom subdomain
+ * @param {string} options.expires - Expiration time (e.g., "30m", "2h", "1d")
+ * @param {boolean} options.verbose - Show verbose error details
+ */
+export async function deploy(folder, options) {
+  const folderPath = resolve(folder)
+  const verbose = options.verbose || false
+
+  // Parse and validate
+  const expiresAt = parseExpiration(options.expires, verbose)
+  validateOptions(options, folderPath, verbose)
+
+  // Scan and validate folder
+  const fileCount = await scanFolder(folderPath, verbose)
+  await validateStaticFiles(folderPath, options, verbose)
+
+  // Resolve subdomain
+  const creds = await getCredentials()
+  const { subdomain, configSubdomain } = await resolveSubdomain(options, folderPath, creds, verbose)
+  const url = `https://${subdomain}.launchpd.cloud`
+
+  // Check subdomain availability
+  await checkSubdomainOwnership(subdomain)
+
+  // Auto-init prompt
+  await promptAutoInit(options, configSubdomain, subdomain, folderPath)
+
+  // Calculate size and check quota
+  const sizeSpinner = spinner('Calculating folder size...')
+  const estimatedBytes = await calculateFolderSize(folderPath)
+  sizeSpinner.succeed(`Size: ${formatBytes(estimatedBytes)}`)
+
+  await checkDeploymentQuota(subdomain, estimatedBytes, configSubdomain, options)
+
+  // Show deployment info
   if (creds?.email) {
     info(`Deploying as: ${creds.email}`)
   } else {
     info('Deploying as: anonymous (run "launchpd login" for more quota)')
   }
-
   info(`Deploying ${fileCount} file(s) from ${folderPath}`)
   info(`Target: ${url}`)
 
-  // Perform actual upload
+  // Perform upload
   try {
-    // Get next version number for this subdomain (try API first, fallback to local)
-    const versionSpinner = spinner('Fetching version info...')
-    let version = await getNextVersionFromAPI(subdomain)
-    if (version === null) {
-      version = await getNextVersion(subdomain)
-    }
-    versionSpinner.succeed(`Deploying as version ${version}`)
-
-    // Upload all files via API proxy
-    const folderName = basename(folderPath)
-    const uploadSpinner = spinner(`Uploading files... 0/${fileCount}`)
-
-    const { totalBytes } = await uploadFolder(
-      folderPath,
-      subdomain,
-      version,
-      (uploaded, total, fileName) => {
-        uploadSpinner.update(
-          `Uploading files... ${uploaded}/${total} (${fileName})`
-        )
-      }
-    )
-
-    uploadSpinner.succeed(
-      `Uploaded ${fileCount} files (${formatBytes(totalBytes)})`
-    )
-
-    // Finalize upload: set active version and record metadata
-    const finalizeSpinner = spinner('Finalizing deployment...')
-    await finalizeUpload(
-      subdomain,
-      version,
-      fileCount,
-      totalBytes,
-      folderName,
-      expiresAt?.toISOString() || null,
-      options.message
-    )
-    finalizeSpinner.succeed('Deployment finalized')
-
-    // Save locally for quick access
-    await saveLocalDeployment({
-      subdomain,
-      folderName,
-      fileCount,
-      totalBytes,
-      version,
-      timestamp: new Date().toISOString(),
-      expiresAt: expiresAt?.toISOString() || null
-    })
-
+    const { version } = await performUpload(folderPath, subdomain, fileCount, expiresAt, options)
     success(`Deployed successfully! (v${version})`)
     log(`\n${url}`)
-
-    if (options.open) {
-      const platform = process.platform
-      let command = 'xdg-open'
-      let args = [url]
-
-      if (platform === 'darwin') {
-        command = 'open'
-      } else if (platform === 'win32') {
-        command = 'cmd'
-        args = ['/c', 'start', '', url]
-      }
-
-      execFile(command, args)
-    }
-
-    if (expiresAt) {
-      warning(`Expires: ${formatTimeRemaining(expiresAt)}`)
-    }
-
-    // Show anonymous limit warnings
-    if (!creds?.email) {
-      log('')
-      warning('Anonymous deployment limits:')
-      log('   • 3 active sites per IP')
-      log('   • 50MB total storage')
-      log('   • 7-day site expiration')
-      log('')
-      info(
-        'Run "launchpd register" to unlock unlimited sites and permanent storage!'
-      )
-    }
-    log('')
-
-    if (options.qr) {
-      try {
-        // Determine terminal width to avoid wrapping
-        const terminalWidth = process.stdout.columns || 80
-
-        // version: 2-3 is typical for these URLs. L level is smallest.
-        // margin: 2 is safe but compact.
-        const qr = await QRCode.toString(url, {
-          type: 'terminal',
-          small: true,
-          margin: 2,
-          errorCorrectionLevel: 'L'
-        })
-
-        // Check if QR might wrap
-        const firstLine = qr.split('\n')[0]
-        if (firstLine.length > terminalWidth) {
-          warning('\nTerminal is too narrow to display the QR code correctly.')
-          info(
-            `Please expand your terminal to at least ${firstLine.length} columns.`
-          )
-          info(`URL: ${url}`)
-        } else {
-          log(`\nScan this QR code to view your site on mobile:\n${qr}`)
-        }
-      } catch (err) {
-        warning('Could not generate QR code.')
-        if (verbose) raw(err, 'error')
-      }
-    }
+    await showPostDeploymentInfo(url, options, expiresAt, creds, verbose)
   } catch (err) {
-    // Handle common errors with standardized messages
-    if (
-      handleCommonError(err, {
-        error: (msg) => errorWithSuggestions(msg, [], { verbose }),
-        info,
-        warning
-      })
-    ) {
-      process.exit(1)
-    }
-
-    // Handle maintenance mode specifically
-    if (err instanceof MaintenanceError || err.isMaintenanceError) {
-      errorWithSuggestions(
-        '⚠️ LaunchPd is under maintenance',
-        [
-          'Please try again in a few minutes',
-          'Check https://status.launchpd.cloud for updates'
-        ],
-        { verbose }
-      )
-      process.exit(1)
-    }
-
-    // Handle network errors
-    if (err instanceof NetworkError || err.isNetworkError) {
-      errorWithSuggestions(
-        'Unable to connect to LaunchPd',
-        [
-          'Check your internet connection',
-          'The API server may be temporarily unavailable',
-          'Check https://status.launchpd.cloud for service status'
-        ],
-        { verbose, cause: err }
-      )
-      process.exit(1)
-    }
-
-    // Handle auth errors
-    if (err instanceof AuthError || err.isAuthError) {
-      errorWithSuggestions(
-        'Authentication failed',
-        [
-          'Run "launchpd login" to authenticate',
-          'Your API key may have expired or been revoked'
-        ],
-        { verbose, cause: err }
-      )
-      process.exit(1)
-    }
-
-    const suggestions = []
-
-    // Provide context-specific suggestions for other errors
-    if (
-      err.message.includes('fetch failed') ||
-      err.message.includes('ENOTFOUND')
-    ) {
-      suggestions.push(
-        'Check your internet connection',
-        'The API server may be temporarily unavailable'
-      )
-    } else if (
-      err.message.includes('401') ||
-      err.message.includes('Unauthorized')
-    ) {
-      suggestions.push(
-        'Run "launchpd login" to authenticate',
-        'Your API key may have expired'
-      )
-    } else if (
-      err.message.includes('413') ||
-      err.message.includes('too large')
-    ) {
-      suggestions.push(
-        'Try deploying fewer or smaller files',
-        'Check your storage quota with "launchpd quota"'
-      )
-    } else if (
-      err.message.includes('429') ||
-      err.message.includes('rate limit')
-    ) {
-      suggestions.push(
-        'Wait a few minutes and try again',
-        'You may be deploying too frequently'
-      )
-    } else {
-      suggestions.push(
-        'Try running with --verbose for more details',
-        'Check https://status.launchpd.cloud for service status'
-      )
-    }
-
-    errorWithSuggestions(`Upload failed: ${err.message}`, suggestions, {
-      verbose,
-      cause: err
-    })
-    process.exit(1)
+    handleUploadError(err, verbose)
   }
 }
