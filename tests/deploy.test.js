@@ -73,7 +73,7 @@ describe('deploy command', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    exitMock = vi.spyOn(process, 'exit').mockImplementation(() => {})
+    exitMock = vi.spyOn(process, 'exit').mockImplementation(() => { })
 
     // Default mocks
     vi.mocked(logger.spinner).mockReturnValue({
@@ -652,10 +652,8 @@ describe('deploy command', () => {
 
       await deploy('./test', { name: 'site', message: 'test', open: true })
 
-      expect(execFile).toHaveBeenCalledWith('cmd', [
-        '/c',
-        'start',
-        '',
+      expect(execFile).toHaveBeenCalledWith('rundll32', [
+        'url.dll,FileProtocolHandler',
         expect.stringContaining('site.launchpd.cloud')
       ])
 
