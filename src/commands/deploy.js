@@ -47,9 +47,26 @@ import { handleCommonError } from '../utils/errors.js'
 import QRCode from 'qrcode'
 
 /**
+ * Validate subdomain contains only safe DNS characters
+ * @param {string} subdomain - The subdomain to validate
+ * @returns {string} The validated subdomain
+ * @throws {Error} If subdomain contains invalid characters
+ */
+function validateSubdomain(subdomain) {
+  // Only allow lowercase alphanumeric and hyphens (valid DNS subdomain chars)
+  const safePattern = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/
+  if (!safePattern.test(subdomain)) {
+    throw new Error(
+      `Invalid subdomain "${subdomain}": must contain only lowercase letters, numbers, and hyphens`
+    )
+  }
+  return subdomain
+}
+
+/**
  * Calculate total size of a folder
  */
-async function calculateFolderSize (folderPath) {
+async function calculateFolderSize(folderPath) {
   const files = await readdir(folderPath, {
     recursive: true,
     withFileTypes: true
@@ -92,7 +109,7 @@ async function calculateFolderSize (folderPath) {
  * @param {string} options.expires - Expiration time (e.g., "30m", "2h", "1d")
  * @param {boolean} options.verbose - Show verbose error details
  */
-export async function deploy (folder, options) {
+export async function deploy(folder, options) {
   const folderPath = resolve(folder)
   const verbose = options.verbose || false
 
@@ -258,6 +275,18 @@ export async function deploy (folder, options) {
       await updateProjectConfig({ subdomain }, projectRoot)
       success(`Project configuration updated to: ${subdomain}`)
     }
+  }
+
+  // Validate subdomain before using in URL (prevents shell injection)
+  try {
+    subdomain = validateSubdomain(subdomain)
+  } catch (err) {
+    errorWithSuggestions(err.message, [
+      'Subdomain must start and end with alphanumeric characters',
+      'Only lowercase letters, numbers, and hyphens are allowed',
+      'Example: my-site-123'
+    ], { verbose })
+    process.exit(1)
   }
 
   const url = `https://${subdomain}.launchpd.cloud`

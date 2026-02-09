@@ -534,6 +534,31 @@ describe('deploy command', () => {
       await deploy('./test', { name: 'fail-check', message: 'test' });
       expect(logger.spinner().warn).toHaveBeenCalledWith(expect.stringContaining('Could not verify subdomain availability'));
     });
+
+    it('should exit with error if subdomain contains invalid characters', async () => {
+      await deploy('./test', { name: 'invalid!subdomain', message: 'test' });
+
+      expect(logger.errorWithSuggestions).toHaveBeenCalledWith(
+        expect.stringContaining('Invalid subdomain'),
+        expect.arrayContaining([
+          expect.stringContaining('alphanumeric'),
+          expect.stringContaining('lowercase letters, numbers, and hyphens')
+        ]),
+        expect.anything()
+      );
+      expect(exitMock).toHaveBeenCalledWith(1);
+    });
+
+    it('should exit with error if subdomain starts with hyphen', async () => {
+      await deploy('./test', { name: '-invalid', message: 'test' });
+
+      expect(logger.errorWithSuggestions).toHaveBeenCalledWith(
+        expect.stringContaining('Invalid subdomain'),
+        expect.any(Array),
+        expect.anything()
+      );
+      expect(exitMock).toHaveBeenCalledWith(1);
+    });
   });
 
   describe('Version and Progress Logic', () => {
