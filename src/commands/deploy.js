@@ -52,7 +52,7 @@ import QRCode from 'qrcode'
  * @returns {string} The validated subdomain
  * @throws {Error} If subdomain contains invalid characters
  */
-function validateSubdomain(subdomain) {
+function validateSubdomain (subdomain) {
   // Only allow lowercase alphanumeric and hyphens (valid DNS subdomain chars)
   const safePattern = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/
   if (!safePattern.test(subdomain)) {
@@ -66,7 +66,7 @@ function validateSubdomain(subdomain) {
 /**
  * Calculate total size of a folder
  */
-async function calculateFolderSize(folderPath) {
+async function calculateFolderSize (folderPath) {
   const files = await readdir(folderPath, {
     recursive: true,
     withFileTypes: true
@@ -109,7 +109,7 @@ async function calculateFolderSize(folderPath) {
  * @param {string} options.expires - Expiration time (e.g., "30m", "2h", "1d")
  * @param {boolean} options.verbose - Show verbose error details
  */
-export async function deploy(folder, options) {
+export async function deploy (folder, options) {
   const folderPath = resolve(folder)
   const verbose = options.verbose || false
 
@@ -281,11 +281,15 @@ export async function deploy(folder, options) {
   try {
     subdomain = validateSubdomain(subdomain)
   } catch (err) {
-    errorWithSuggestions(err.message, [
-      'Subdomain must start and end with alphanumeric characters',
-      'Only lowercase letters, numbers, and hyphens are allowed',
-      'Example: my-site-123'
-    ], { verbose })
+    errorWithSuggestions(
+      err.message,
+      [
+        'Subdomain must start and end with alphanumeric characters',
+        'Only lowercase letters, numbers, and hyphens are allowed',
+        'Example: my-site-123'
+      ],
+      { verbose }
+    )
     process.exit(1)
   }
 

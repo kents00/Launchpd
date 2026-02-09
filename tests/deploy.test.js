@@ -1,24 +1,28 @@
-
-import { deploy } from '../src/commands/deploy.js';
-import * as validator from '../src/utils/validator.js';
-import * as upload from '../src/utils/upload.js';
-import * as api from '../src/utils/api.js';
-import * as logger from '../src/utils/logger.js';
-import * as quota from '../src/utils/quota.js';
-import { getProjectConfig, findProjectRoot, updateProjectConfig, initProjectConfig } from '../src/utils/projectConfig.js';
-import { existsSync } from 'node:fs';
-import { readdir } from 'node:fs/promises';
-import * as credentials from '../src/utils/credentials.js';
-import { execFile } from 'node:child_process';
-import * as metadata from '../src/utils/metadata.js';
-import * as errors from '../src/utils/errors.js';
-import { resolve } from 'node:path';
-import * as prompt from '../src/utils/prompt.js';
-import * as ignore from '../src/utils/ignore.js';
-import * as expiration from '../src/utils/expiration.js';
+import { deploy } from '../src/commands/deploy.js'
+import * as validator from '../src/utils/validator.js'
+import * as upload from '../src/utils/upload.js'
+import * as api from '../src/utils/api.js'
+import * as logger from '../src/utils/logger.js'
+import * as quota from '../src/utils/quota.js'
+import {
+  getProjectConfig,
+  findProjectRoot,
+  updateProjectConfig,
+  initProjectConfig
+} from '../src/utils/projectConfig.js'
+import { existsSync } from 'node:fs'
+import { readdir } from 'node:fs/promises'
+import * as credentials from '../src/utils/credentials.js'
+import { execFile } from 'node:child_process'
+import * as metadata from '../src/utils/metadata.js'
+import * as errors from '../src/utils/errors.js'
+import { resolve } from 'node:path'
+import * as prompt from '../src/utils/prompt.js'
+import * as ignore from '../src/utils/ignore.js'
+import * as expiration from '../src/utils/expiration.js'
 
 // Mock everything
-vi.mock('node:child_process');
+vi.mock('node:child_process')
 // Mock node:fs with actual fallbacks to prevent breaking top-level reads like package.json
 vi.mock('node:fs', async () => {
   const actual = await vi.importActual('node:fs')
@@ -69,7 +73,7 @@ describe('deploy command', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    exitMock = vi.spyOn(process, 'exit').mockImplementation(() => { })
+    exitMock = vi.spyOn(process, 'exit').mockImplementation(() => {})
 
     // Default mocks
     vi.mocked(logger.spinner).mockReturnValue({
@@ -103,7 +107,9 @@ describe('deploy command', () => {
       totalBytes: 100
     })
     vi.mocked(upload.finalizeUpload).mockResolvedValue({ success: true })
-    vi.mocked(credentials.getCredentials).mockResolvedValue({ email: 'test@example.com' })
+    vi.mocked(credentials.getCredentials).mockResolvedValue({
+      email: 'test@example.com'
+    })
     vi.mocked(quota.formatBytes).mockImplementation((b) => `${b} bytes`)
     vi.mocked(prompt.prompt).mockResolvedValue('')
     vi.mocked(prompt.confirm).mockResolvedValue(true)
@@ -202,16 +208,16 @@ describe('deploy command', () => {
     vi.mocked(validator.validateStaticOnly).mockResolvedValue({
       success: false,
       violations: new Array(11).fill('bad-file.exe')
-    });
+    })
 
-    await deploy('./test', { message: 'test' });
+    await deploy('./test', { message: 'test' })
 
     expect(logger.errorWithSuggestions).toHaveBeenCalledWith(
       expect.anything(),
       expect.arrayContaining([expect.stringContaining('...and 1 more')]),
       expect.anything()
-    );
-    expect(exitMock).toHaveBeenCalledWith(1);
+    )
+    expect(exitMock).toHaveBeenCalledWith(1)
   })
 
   it('should generate a QR code when --qr option is provided', async () => {
@@ -255,13 +261,13 @@ describe('deploy command', () => {
     })
 
     it('should NOT update project config if user rejects subdomain mismatch prompt', async () => {
-      vi.mocked(getProjectConfig).mockResolvedValue({ subdomain: 'old-site' });
-      vi.mocked(prompt.prompt).mockResolvedValue('n');
+      vi.mocked(getProjectConfig).mockResolvedValue({ subdomain: 'old-site' })
+      vi.mocked(prompt.prompt).mockResolvedValue('n')
 
-      await deploy('./test-folder', { name: 'new-site', message: 'test' });
+      await deploy('./test-folder', { name: 'new-site', message: 'test' })
 
-      expect(updateProjectConfig).not.toHaveBeenCalled();
-    });
+      expect(updateProjectConfig).not.toHaveBeenCalled()
+    })
 
     it('should NOT prompt update if --yes is passed', async () => {
       const { getProjectConfig, updateProjectConfig, findProjectRoot } =
@@ -302,13 +308,13 @@ describe('deploy command', () => {
     })
 
     it('should NOT initialize project if user rejects auto-init prompt', async () => {
-      vi.mocked(getProjectConfig).mockResolvedValue(null);
-      vi.mocked(prompt.prompt).mockResolvedValue('n');
+      vi.mocked(getProjectConfig).mockResolvedValue(null)
+      vi.mocked(prompt.prompt).mockResolvedValue('n')
 
-      await deploy('./test-folder', { name: 'new-site', message: 'test' });
+      await deploy('./test-folder', { name: 'new-site', message: 'test' })
 
-      expect(initProjectConfig).not.toHaveBeenCalled();
-    });
+      expect(initProjectConfig).not.toHaveBeenCalled()
+    })
   })
 
   describe('Validation and Quota with Force', () => {
@@ -400,143 +406,192 @@ describe('deploy command', () => {
 
       await deploy('./test', { name: 'site', message: 'test' })
 
-      expect(logger.errorWithSuggestions).toHaveBeenCalledWith(expect.stringContaining('Upload failed: Unknown'), expect.anything(), expect.anything());
-      expect(exitMock).toHaveBeenCalledWith(1);
-    });
+      expect(logger.errorWithSuggestions).toHaveBeenCalledWith(
+        expect.stringContaining('Upload failed: Unknown'),
+        expect.anything(),
+        expect.anything()
+      )
+      expect(exitMock).toHaveBeenCalledWith(1)
+    })
 
     it('should ignore non-file entries during size calculation and scanning', async () => {
-      const mockFolderPath = resolve('./test');
+      const mockFolderPath = resolve('./test')
       vi.mocked(readdir).mockResolvedValue([
-        { isFile: () => true, isDirectory: () => false, name: 'normal.html', parentPath: mockFolderPath },
-        { isFile: () => false, isDirectory: () => true, name: 'subdir', parentPath: mockFolderPath }
-      ]);
+        {
+          isFile: () => true,
+          isDirectory: () => false,
+          name: 'normal.html',
+          parentPath: mockFolderPath
+        },
+        {
+          isFile: () => false,
+          isDirectory: () => true,
+          name: 'subdir',
+          parentPath: mockFolderPath
+        }
+      ])
 
-      await deploy('./test', { name: 'site', message: 'test' });
+      await deploy('./test', { name: 'site', message: 'test' })
 
-      expect(upload.uploadFolder).toHaveBeenCalled();
-    });
+      expect(upload.uploadFolder).toHaveBeenCalled()
+    })
 
     it('should ignore files during size calculation', async () => {
-      const mockFolderPath = resolve('./test');
+      const mockFolderPath = resolve('./test')
       vi.mocked(readdir).mockResolvedValue([
-        { isFile: () => true, isDirectory: () => false, name: 'normal.html', parentPath: mockFolderPath },
-        { isFile: () => true, isDirectory: () => false, name: 'ignored.tmp', parentPath: mockFolderPath }
-      ]);
-      vi.mocked(ignore.isIgnored).mockImplementation((name) => name === 'ignored.tmp');
+        {
+          isFile: () => true,
+          isDirectory: () => false,
+          name: 'normal.html',
+          parentPath: mockFolderPath
+        },
+        {
+          isFile: () => true,
+          isDirectory: () => false,
+          name: 'ignored.tmp',
+          parentPath: mockFolderPath
+        }
+      ])
+      vi.mocked(ignore.isIgnored).mockImplementation(
+        (name) => name === 'ignored.tmp'
+      )
 
-      await deploy('./test', { name: 'site', message: 'test' });
+      await deploy('./test', { name: 'site', message: 'test' })
 
       // If it didn't crash and called upload, it handled the ignore correctly
-      expect(upload.uploadFolder).toHaveBeenCalled();
-    });
-  });
+      expect(upload.uploadFolder).toHaveBeenCalled()
+    })
+  })
 
   describe('CLI Flags and Options', () => {
     it('should exit on invalid expiration format', async () => {
       vi.mocked(expiration.calculateExpiresAt).mockImplementation(() => {
-        throw new Error('Invalid format');
-      });
+        throw new Error('Invalid format')
+      })
 
-      await deploy('./test', { message: 'test', expires: 'invalid' });
+      await deploy('./test', { message: 'test', expires: 'invalid' })
 
       expect(logger.errorWithSuggestions).toHaveBeenCalledWith(
         'Invalid format',
         expect.any(Array),
         expect.anything()
-      );
-      expect(exitMock).toHaveBeenCalledWith(1);
-    });
+      )
+      expect(exitMock).toHaveBeenCalledWith(1)
+    })
 
     it('should warn when anonymous user uses custom subdomain', async () => {
-      vi.mocked(credentials.getCredentials).mockResolvedValue({});
-      await deploy('./test', { name: 'custom-site', message: 'test' });
-      expect(logger.warning).toHaveBeenCalledWith(expect.stringContaining('Custom subdomains require registration'));
-    });
+      vi.mocked(credentials.getCredentials).mockResolvedValue({})
+      await deploy('./test', { name: 'custom-site', message: 'test' })
+      expect(logger.warning).toHaveBeenCalledWith(
+        expect.stringContaining('Custom subdomains require registration')
+      )
+    })
 
     it('should show anonymous warnings if not logged in', async () => {
-      vi.mocked(credentials.getCredentials).mockResolvedValue({}); // No email
-      const { log } = await import('../src/utils/logger.js');
+      vi.mocked(credentials.getCredentials).mockResolvedValue({}) // No email
+      const { log } = await import('../src/utils/logger.js')
 
-      await deploy('./test-folder', { message: 'test' });
+      await deploy('./test-folder', { message: 'test' })
 
-      expect(logger.warning).toHaveBeenCalledWith(expect.stringContaining('Anonymous deployment limits'));
-    });
-  });
+      expect(logger.warning).toHaveBeenCalledWith(
+        expect.stringContaining('Anonymous deployment limits')
+      )
+    })
+  })
 
   describe('Detailed Error Suggestions', () => {
     it('should suggest clean up for 413 Payload Too Large', async () => {
-      vi.mocked(upload.uploadFolder).mockRejectedValue(new Error('413 Payload Too Large'));
+      vi.mocked(upload.uploadFolder).mockRejectedValue(
+        new Error('413 Payload Too Large')
+      )
 
-      await deploy('./test', { message: 'test' });
+      await deploy('./test', { message: 'test' })
 
       expect(logger.errorWithSuggestions).toHaveBeenCalledWith(
         expect.any(String),
         expect.arrayContaining([expect.stringContaining('deploying fewer')]),
         expect.anything()
-      );
-    });
+      )
+    })
 
     it('should suggest waiting for 429 Too Many Requests', async () => {
-      vi.mocked(upload.uploadFolder).mockRejectedValue(new Error('429 Too Many Requests'));
+      vi.mocked(upload.uploadFolder).mockRejectedValue(
+        new Error('429 Too Many Requests')
+      )
 
-      await deploy('./test', { message: 'test' });
+      await deploy('./test', { message: 'test' })
 
       expect(logger.errorWithSuggestions).toHaveBeenCalledWith(
         expect.any(String),
         expect.arrayContaining([expect.stringContaining('Wait a few minutes')]),
         expect.anything()
-      );
-    });
+      )
+    })
 
     it('should suggest checking connection for fetch errors', async () => {
-      vi.mocked(upload.uploadFolder).mockRejectedValue(new Error('fetch failed'));
+      vi.mocked(upload.uploadFolder).mockRejectedValue(
+        new Error('fetch failed')
+      )
 
-      await deploy('./test', { message: 'test' });
+      await deploy('./test', { message: 'test' })
 
       expect(logger.errorWithSuggestions).toHaveBeenCalledWith(
         expect.any(String),
-        expect.arrayContaining([expect.stringContaining('internet connection')]),
+        expect.arrayContaining([
+          expect.stringContaining('internet connection')
+        ]),
         expect.anything()
-      );
-    });
-  });
-
+      )
+    })
+  })
 
   describe('Subdomain and Config Logic', () => {
     it('should use subdomain from project config if no name is provided', async () => {
-      vi.mocked(findProjectRoot).mockReturnValue('/root');
-      vi.mocked(getProjectConfig).mockResolvedValue({ subdomain: 'config-site' });
+      vi.mocked(findProjectRoot).mockReturnValue('/root')
+      vi.mocked(getProjectConfig).mockResolvedValue({
+        subdomain: 'config-site'
+      })
 
-      await deploy('./test', { message: 'test' });
+      await deploy('./test', { message: 'test' })
 
-      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('Using project subdomain: config-site'));
-    });
+      expect(logger.info).toHaveBeenCalledWith(
+        expect.stringContaining('Using project subdomain: config-site')
+      )
+    })
 
     it('should succeed if subdomain is available', async () => {
-      vi.mocked(api.checkSubdomainAvailable).mockResolvedValue(true);
-      await deploy('./test', { name: 'available', message: 'test' });
-      expect(logger.spinner().succeed).toHaveBeenCalledWith(expect.stringContaining('is available'));
-    });
+      vi.mocked(api.checkSubdomainAvailable).mockResolvedValue(true)
+      await deploy('./test', { name: 'available', message: 'test' })
+      expect(logger.spinner().succeed).toHaveBeenCalledWith(
+        expect.stringContaining('is available')
+      )
+    })
 
     it('should proceed if subdomain is taken but owned by user', async () => {
-      vi.mocked(api.checkSubdomainAvailable).mockResolvedValue(false);
+      vi.mocked(api.checkSubdomainAvailable).mockResolvedValue(false)
       vi.mocked(api.listSubdomains).mockResolvedValue({
         subdomains: [{ subdomain: 'my-site' }]
-      });
+      })
 
-      await deploy('./test', { name: 'my-site', message: 'test' });
+      await deploy('./test', { name: 'my-site', message: 'test' })
 
-      expect(logger.spinner().succeed).toHaveBeenCalledWith(expect.stringContaining('Deploying new version to your subdomain'));
-    });
+      expect(logger.spinner().succeed).toHaveBeenCalledWith(
+        expect.stringContaining('Deploying new version to your subdomain')
+      )
+    })
 
     it('should warn if subdomain availability check fails', async () => {
-      vi.mocked(api.checkSubdomainAvailable).mockRejectedValue(new Error('Check Fail'));
-      await deploy('./test', { name: 'fail-check', message: 'test' });
-      expect(logger.spinner().warn).toHaveBeenCalledWith(expect.stringContaining('Could not verify subdomain availability'));
-    });
+      vi.mocked(api.checkSubdomainAvailable).mockRejectedValue(
+        new Error('Check Fail')
+      )
+      await deploy('./test', { name: 'fail-check', message: 'test' })
+      expect(logger.spinner().warn).toHaveBeenCalledWith(
+        expect.stringContaining('Could not verify subdomain availability')
+      )
+    })
 
     it('should exit with error if subdomain contains invalid characters', async () => {
-      await deploy('./test', { name: 'invalid!subdomain', message: 'test' });
+      await deploy('./test', { name: 'invalid!subdomain', message: 'test' })
 
       expect(logger.errorWithSuggestions).toHaveBeenCalledWith(
         expect.stringContaining('Invalid subdomain'),
@@ -545,159 +600,192 @@ describe('deploy command', () => {
           expect.stringContaining('lowercase letters, numbers, and hyphens')
         ]),
         expect.anything()
-      );
-      expect(exitMock).toHaveBeenCalledWith(1);
-    });
+      )
+      expect(exitMock).toHaveBeenCalledWith(1)
+    })
 
     it('should exit with error if subdomain starts with hyphen', async () => {
-      await deploy('./test', { name: '-invalid', message: 'test' });
+      await deploy('./test', { name: '-invalid', message: 'test' })
 
       expect(logger.errorWithSuggestions).toHaveBeenCalledWith(
         expect.stringContaining('Invalid subdomain'),
         expect.any(Array),
         expect.anything()
-      );
-      expect(exitMock).toHaveBeenCalledWith(1);
-    });
-  });
+      )
+      expect(exitMock).toHaveBeenCalledWith(1)
+    })
+  })
 
   describe('Version and Progress Logic', () => {
     it('should fallback to local getNextVersion if API returns null', async () => {
-      vi.mocked(api.getNextVersionFromAPI).mockResolvedValue(null);
-      vi.mocked(metadata.getNextVersion).mockResolvedValue(5);
+      vi.mocked(api.getNextVersionFromAPI).mockResolvedValue(null)
+      vi.mocked(metadata.getNextVersion).mockResolvedValue(5)
 
-      await deploy('./test', { name: 'site', message: 'test' });
+      await deploy('./test', { name: 'site', message: 'test' })
 
-      expect(metadata.getNextVersion).toHaveBeenCalledWith('site');
-      expect(logger.spinner().succeed).toHaveBeenCalledWith(expect.stringContaining('Deploying as version 5'));
-    });
+      expect(metadata.getNextVersion).toHaveBeenCalledWith('site')
+      expect(logger.spinner().succeed).toHaveBeenCalledWith(
+        expect.stringContaining('Deploying as version 5')
+      )
+    })
 
     it('should trigger progress updates during upload', async () => {
-      vi.mocked(upload.uploadFolder).mockImplementation(async (path, sub, ver, cb) => {
-        cb(1, 2, 'file1.txt');
-        return { totalBytes: 100 };
-      });
+      vi.mocked(upload.uploadFolder).mockImplementation(
+        async (path, sub, ver, cb) => {
+          cb(1, 2, 'file1.txt')
+          return { totalBytes: 100 }
+        }
+      )
 
-      await deploy('./test', { name: 'site', message: 'test' });
+      await deploy('./test', { name: 'site', message: 'test' })
 
-      expect(logger.spinner().update).toHaveBeenCalledWith(expect.stringContaining('1/2 (file1.txt)'));
-    });
-  });
+      expect(logger.spinner().update).toHaveBeenCalledWith(
+        expect.stringContaining('1/2 (file1.txt)')
+      )
+    })
+  })
 
   describe('CLI Options and Platforms', () => {
     it('should open URL on Windows if --open is provided', async () => {
-      const originalPlatform = process.platform;
-      Object.defineProperty(process, 'platform', { value: 'win32' });
+      const originalPlatform = process.platform
+      Object.defineProperty(process, 'platform', { value: 'win32' })
 
-      await deploy('./test', { name: 'site', message: 'test', open: true });
+      await deploy('./test', { name: 'site', message: 'test', open: true })
 
-      expect(execFile).toHaveBeenCalledWith('cmd', ['/c', 'start', '', expect.stringContaining('site.launchpd.cloud')]);
+      expect(execFile).toHaveBeenCalledWith('cmd', [
+        '/c',
+        'start',
+        '',
+        expect.stringContaining('site.launchpd.cloud')
+      ])
 
-      Object.defineProperty(process, 'platform', { value: originalPlatform });
-    });
+      Object.defineProperty(process, 'platform', { value: originalPlatform })
+    })
 
     it('should open URL on Mac if --open is provided', async () => {
-      const originalPlatform = process.platform;
-      Object.defineProperty(process, 'platform', { value: 'darwin' });
+      const originalPlatform = process.platform
+      Object.defineProperty(process, 'platform', { value: 'darwin' })
 
-      await deploy('./test', { name: 'site', message: 'test', open: true });
+      await deploy('./test', { name: 'site', message: 'test', open: true })
 
-      expect(execFile).toHaveBeenCalledWith('open', [expect.any(String)]);
+      expect(execFile).toHaveBeenCalledWith('open', [expect.any(String)])
 
-      Object.defineProperty(process, 'platform', { value: originalPlatform });
-    });
+      Object.defineProperty(process, 'platform', { value: originalPlatform })
+    })
 
     it('should open URL on Linux if --open is provided', async () => {
-      const originalPlatform = process.platform;
-      Object.defineProperty(process, 'platform', { value: 'linux' });
+      const originalPlatform = process.platform
+      Object.defineProperty(process, 'platform', { value: 'linux' })
 
-      await deploy('./test', { name: 'site', message: 'test', open: true });
+      await deploy('./test', { name: 'site', message: 'test', open: true })
 
-      expect(execFile).toHaveBeenCalledWith('xdg-open', [expect.stringContaining('site.launchpd.cloud')]);
+      expect(execFile).toHaveBeenCalledWith('xdg-open', [
+        expect.stringContaining('site.launchpd.cloud')
+      ])
 
-      Object.defineProperty(process, 'platform', { value: originalPlatform });
-    });
+      Object.defineProperty(process, 'platform', { value: originalPlatform })
+    })
 
     it('should show expiration warning if --expires is used', async () => {
-      await deploy('./test', { message: 'test', expires: '1h' });
-      expect(logger.warning).toHaveBeenCalledWith(expect.stringContaining('Expires:'));
-    });
-  });
+      await deploy('./test', { message: 'test', expires: '1h' })
+      expect(logger.warning).toHaveBeenCalledWith(
+        expect.stringContaining('Expires:')
+      )
+    })
+  })
 
   describe('QR Code Edge Cases', () => {
     it('should warn if terminal is too narrow for QR code', async () => {
-      const QRCode = await import('qrcode');
-      vi.spyOn(QRCode.default, 'toString').mockResolvedValue('VERY_WIDE_QR_CODE_CONTENT');
-      const originalColumns = process.stdout.columns;
-      process.stdout.columns = 5; // Very narrow
+      const QRCode = await import('qrcode')
+      vi.spyOn(QRCode.default, 'toString').mockResolvedValue(
+        'VERY_WIDE_QR_CODE_CONTENT'
+      )
+      const originalColumns = process.stdout.columns
+      process.stdout.columns = 5 // Very narrow
 
-      await deploy('./test', { message: 'test', qr: true });
+      await deploy('./test', { message: 'test', qr: true })
 
-      expect(logger.warning).toHaveBeenCalledWith(expect.stringContaining('Terminal is too narrow'));
+      expect(logger.warning).toHaveBeenCalledWith(
+        expect.stringContaining('Terminal is too narrow')
+      )
 
-      process.stdout.columns = originalColumns;
-    });
+      process.stdout.columns = originalColumns
+    })
 
     it('should handle QR code generation error', async () => {
-      const QRCode = await import('qrcode');
-      vi.spyOn(QRCode.default, 'toString').mockRejectedValue(new Error('QR Fail'));
+      const QRCode = await import('qrcode')
+      vi.spyOn(QRCode.default, 'toString').mockRejectedValue(
+        new Error('QR Fail')
+      )
 
-      await deploy('./test', { message: 'test', qr: true });
+      await deploy('./test', { message: 'test', qr: true })
 
-      expect(logger.warning).toHaveBeenCalledWith(expect.stringContaining('Could not generate QR code'));
-    });
+      expect(logger.warning).toHaveBeenCalledWith(
+        expect.stringContaining('Could not generate QR code')
+      )
+    })
 
     it('should show verbose error if QR generation fails and --verbose is used', async () => {
-      const { raw } = await import('../src/utils/logger.js');
-      const QRCode = (await import('qrcode')).default;
-      vi.mocked(QRCode.toString).mockRejectedValue(new Error('QR Fail'));
+      const { raw } = await import('../src/utils/logger.js')
+      const QRCode = (await import('qrcode')).default
+      vi.mocked(QRCode.toString).mockRejectedValue(new Error('QR Fail'))
 
-      await deploy('./test', { message: 'test', qr: true, verbose: true });
+      await deploy('./test', { message: 'test', qr: true, verbose: true })
 
-      expect(raw).toHaveBeenCalledWith(expect.any(Error), 'error');
-    });
-  });
+      expect(raw).toHaveBeenCalledWith(expect.any(Error), 'error')
+    })
+  })
 
   describe('Standardized Error Handling', () => {
     it('should handle errors via handleCommonError', async () => {
-      vi.mocked(api.getNextVersionFromAPI).mockRejectedValue(new Error('Common Fail'));
-      const handleSpy = vi.spyOn(errors, 'handleCommonError').mockReturnValue(true);
+      vi.mocked(api.getNextVersionFromAPI).mockRejectedValue(
+        new Error('Common Fail')
+      )
+      const handleSpy = vi
+        .spyOn(errors, 'handleCommonError')
+        .mockReturnValue(true)
 
-      await deploy('./test', { message: 'test' });
+      await deploy('./test', { message: 'test' })
 
-      expect(handleSpy).toHaveBeenCalled();
-      expect(exitMock).toHaveBeenCalledWith(1);
-      handleSpy.mockRestore();
-    });
+      expect(handleSpy).toHaveBeenCalled()
+      expect(exitMock).toHaveBeenCalledWith(1)
+      handleSpy.mockRestore()
+    })
 
     it('should handle common errors via handleCommonError and call its error callback', async () => {
-      vi.mocked(api.getNextVersionFromAPI).mockRejectedValue(new Error('Common Fail'));
-      const handleSpy = vi.spyOn(errors, 'handleCommonError').mockImplementation((err, callbacks) => {
-        callbacks.error('Mocked Error Message');
-        return true;
-      });
+      vi.mocked(api.getNextVersionFromAPI).mockRejectedValue(
+        new Error('Common Fail')
+      )
+      const handleSpy = vi
+        .spyOn(errors, 'handleCommonError')
+        .mockImplementation((err, callbacks) => {
+          callbacks.error('Mocked Error Message')
+          return true
+        })
 
-      await deploy('./test', { message: 'test' });
+      await deploy('./test', { message: 'test' })
 
       expect(logger.errorWithSuggestions).toHaveBeenCalledWith(
         'Mocked Error Message',
         expect.any(Array),
         expect.anything()
-      );
-      expect(exitMock).toHaveBeenCalledWith(1);
-      handleSpy.mockRestore();
-    });
+      )
+      expect(exitMock).toHaveBeenCalledWith(1)
+      handleSpy.mockRestore()
+    })
 
     it('should provide suggestions for Unauthorized/401 errors', async () => {
-      vi.mocked(api.getNextVersionFromAPI).mockRejectedValue(new Error('401 Unauthorized'));
+      vi.mocked(api.getNextVersionFromAPI).mockRejectedValue(
+        new Error('401 Unauthorized')
+      )
 
-      await deploy('./test', { message: 'test' });
+      await deploy('./test', { message: 'test' })
 
       expect(logger.errorWithSuggestions).toHaveBeenCalledWith(
         expect.any(String),
         expect.arrayContaining([expect.stringContaining('launchpd login')]),
         expect.anything()
-      );
-    });
-  });
-});
+      )
+    })
+  })
+})
