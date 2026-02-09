@@ -56,7 +56,7 @@ import QRCode from 'qrcode'
  * @returns {string} The validated subdomain
  * @throws {Error} If subdomain contains invalid characters
  */
-function validateSubdomain(subdomain) {
+function validateSubdomain (subdomain) {
   const safePattern = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/
   if (!safePattern.test(subdomain)) {
     throw new Error(
@@ -69,7 +69,7 @@ function validateSubdomain(subdomain) {
 /**
  * Calculate total size of a folder (excluding ignored files)
  */
-async function calculateFolderSize(folderPath) {
+async function calculateFolderSize (folderPath) {
   const files = await readdir(folderPath, {
     recursive: true,
     withFileTypes: true
@@ -102,7 +102,7 @@ async function calculateFolderSize(folderPath) {
 /**
  * Parse and validate expiration option
  */
-function parseExpiration(expiresOption, verbose) {
+function parseExpiration (expiresOption, verbose) {
   if (!expiresOption) return null
 
   try {
@@ -125,7 +125,7 @@ function parseExpiration(expiresOption, verbose) {
 /**
  * Validate required options
  */
-function validateOptions(options, folderPath, verbose) {
+function validateOptions (options, folderPath, verbose) {
   if (!options.message) {
     errorWithSuggestions(
       'Deployment message is required.',
@@ -156,7 +156,7 @@ function validateOptions(options, folderPath, verbose) {
 /**
  * Scan folder and return active file count
  */
-async function scanFolder(folderPath, verbose) {
+async function scanFolder (folderPath, verbose) {
   const scanSpinner = spinner('Scanning folder...')
   const files = await readdir(folderPath, {
     recursive: true,
@@ -196,7 +196,7 @@ async function scanFolder(folderPath, verbose) {
 /**
  * Validate static-only files
  */
-async function validateStaticFiles(folderPath, options, verbose) {
+async function validateStaticFiles (folderPath, options, verbose) {
   const validationSpinner = spinner('Validating files...')
   const validation = await validateStaticOnly(folderPath)
 
@@ -240,7 +240,7 @@ async function validateStaticFiles(folderPath, options, verbose) {
 /**
  * Resolve subdomain from options/config
  */
-async function resolveSubdomain(options, folderPath, creds, verbose) {
+async function resolveSubdomain (options, folderPath, creds, verbose) {
   if (options.name && !creds?.email) {
     warning('Custom subdomains require registration!')
     info('Anonymous deployments use random subdomains.')
@@ -292,7 +292,7 @@ async function resolveSubdomain(options, folderPath, creds, verbose) {
 /**
  * Handle subdomain mismatch between CLI arg and config
  */
-async function handleSubdomainMismatch(
+async function handleSubdomainMismatch (
   subdomain,
   configSubdomain,
   options,
@@ -320,7 +320,7 @@ async function handleSubdomainMismatch(
 /**
  * Check subdomain availability
  */
-async function checkSubdomainOwnership(subdomain) {
+async function checkSubdomainOwnership (subdomain) {
   const checkSpinner = spinner('Checking subdomain availability...')
   try {
     const isAvailable = await checkSubdomainAvailable(subdomain)
@@ -355,7 +355,7 @@ async function checkSubdomainOwnership(subdomain) {
 /**
  * Prompt for auto-init if needed
  */
-async function promptAutoInit(options, configSubdomain, subdomain, folderPath) {
+async function promptAutoInit (options, configSubdomain, subdomain, folderPath) {
   if (options.name && !configSubdomain) {
     const confirm = await prompt(
       `\nRun "launchpd init" to link '${folderPath}' to '${subdomain}'? (Y/N): `
@@ -374,7 +374,7 @@ async function promptAutoInit(options, configSubdomain, subdomain, folderPath) {
 /**
  * Check quota and return result
  */
-async function checkDeploymentQuota(
+async function checkDeploymentQuota (
   subdomain,
   estimatedBytes,
   configSubdomain,
@@ -408,7 +408,7 @@ async function checkDeploymentQuota(
 /**
  * Perform the actual upload
  */
-async function performUpload(
+async function performUpload (
   folderPath,
   subdomain,
   fileCount,
@@ -468,7 +468,7 @@ async function performUpload(
 /**
  * Show post-deployment info
  */
-async function showPostDeploymentInfo(url, options, expiresAt, creds, verbose) {
+async function showPostDeploymentInfo (url, options, expiresAt, creds, verbose) {
   if (options.open) {
     openUrlInBrowser(url)
   }
@@ -491,7 +491,7 @@ async function showPostDeploymentInfo(url, options, expiresAt, creds, verbose) {
 /**
  * Open URL in system browser
  */
-function openUrlInBrowser(url) {
+function openUrlInBrowser (url) {
   const platform = process.platform
   let command = 'xdg-open'
   let args = [url]
@@ -509,7 +509,7 @@ function openUrlInBrowser(url) {
 /**
  * Show warnings for anonymous deployments
  */
-function showAnonymousWarnings() {
+function showAnonymousWarnings () {
   log('')
   warning('Anonymous deployment limits:')
   log('   • 3 active sites per IP')
@@ -524,7 +524,7 @@ function showAnonymousWarnings() {
 /**
  * Generate and display QR code
  */
-async function showQRCode(url, verbose) {
+async function showQRCode (url, verbose) {
   try {
     const terminalWidth = process.stdout.columns || 80
     const qr = await QRCode.toString(url, {
@@ -553,7 +553,7 @@ async function showQRCode(url, verbose) {
 /**
  * Handle upload errors with appropriate messages
  */
-function handleUploadError(err, verbose) {
+function handleUploadError (err, verbose) {
   if (
     handleCommonError(err, {
       error: (msg) => errorWithSuggestions(msg, [], { verbose }),
@@ -612,7 +612,7 @@ function handleUploadError(err, verbose) {
 /**
  * Get context-specific suggestions for errors
  */
-function getErrorSuggestions(err) {
+function getErrorSuggestions (err) {
   const message = err.message || ''
 
   if (message.includes('fetch failed') || message.includes('ENOTFOUND')) {
@@ -661,7 +661,7 @@ function getErrorSuggestions(err) {
  * @param {string} options.expires - Expiration time (e.g., "30m", "2h", "1d")
  * @param {boolean} options.verbose - Show verbose error details
  */
-export async function deploy(folder, options) {
+export async function deploy (folder, options) {
   const folderPath = resolve(folder)
   const verbose = options.verbose || false
 
