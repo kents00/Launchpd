@@ -106,16 +106,3 @@ Run `launchpd register` to unlock these benefits!
 ## License
 
 [MIT](LICENSE) © [Kent Edoloverio](https://github.com/kents00)
-
----
-
-## Publishing (Maintainers)
-
-Publishing is automated from GitHub Releases. Create a release tag like `v1.0.4` and the workflow will:
-
-1. Extract the version from the tag
-2. Update `package.json`
-3. Run tests
-4. Publish to npm
-
-Ensure `NPM_TOKEN` is set in GitHub Actions secrets.
