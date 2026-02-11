@@ -33,7 +33,7 @@ const REGISTER_URL = `https://${config.domain}/`
  * Validate API key format
  * Returns true if the key matches expected format: lpd_ followed by alphanumeric/special chars
  */
-function isValidApiKeyFormat(apiKey) {
+function isValidApiKeyFormat (apiKey) {
   if (!apiKey || typeof apiKey !== 'string') {
     return false
   }
@@ -45,7 +45,7 @@ function isValidApiKeyFormat(apiKey) {
 /**
  * Validate API key with the server
  */
-async function validateApiKey(apiKey) {
+async function validateApiKey (apiKey) {
   // Validate API key format before sending to network
   // This ensures we only send properly formatted keys, not arbitrary file data
   if (!isValidApiKeyFormat(apiKey)) {
@@ -84,7 +84,7 @@ async function validateApiKey(apiKey) {
 /**
  * Background update credentials if new data (like apiSecret) is available
  */
-async function updateCredentialsIfNeeded(creds, result) {
+async function updateCredentialsIfNeeded (creds, result) {
   if (result.user?.api_secret && !creds.apiSecret) {
     await saveCredentials({
       ...creds,
@@ -98,7 +98,7 @@ async function updateCredentialsIfNeeded(creds, result) {
 /**
  * Login with API key (original method)
  */
-async function loginWithApiKey() {
+async function loginWithApiKey () {
   log('Enter your API key from the dashboard.')
   log(`Don't have one? Run ${chalk.cyan('"launchpd register"')} first.\n`)
 
@@ -146,7 +146,7 @@ async function loginWithApiKey() {
 /**
  * Login command - prompts for API key and validates it
  */
-export async function login() {
+export async function login () {
   // Check if already logged in
   if (await isLoggedIn()) {
     const creds = await getCredentials()
@@ -203,7 +203,7 @@ export async function login() {
 /**
  * Logout command - clears stored credentials and invalidates server session
  */
-export async function logout() {
+export async function logout () {
   const loggedIn = await isLoggedIn()
 
   if (!loggedIn) {
@@ -227,7 +227,7 @@ export async function logout() {
 /**
  * Register command - opens browser to registration page
  */
-export function register() {
+export function register () {
   log('\nRegister for Launchpd\n')
   log(`Opening registration page: ${chalk.cyan(REGISTER_URL)}\n`)
 
@@ -273,7 +273,7 @@ export function register() {
 /**
  * Whoami command - shows current user info and quota status
  */
-export async function whoami() {
+export async function whoami () {
   const creds = await getCredentials()
 
   if (!creds) {
@@ -387,7 +387,7 @@ export async function whoami() {
 /**
  * Quota command - shows detailed quota information
  */
-export async function quota() {
+export async function quota () {
   const creds = await getCredentials()
 
   if (!creds) {
@@ -491,7 +491,7 @@ export async function quota() {
 /**
  * Create a simple progress bar with color coding
  */
-function createProgressBar(current, max, width = 20) {
+function createProgressBar (current, max, width = 20) {
   const filled = Math.round((current / max) * width)
   const empty = width - filled
   const percent = (current / max) * 100
@@ -514,7 +514,7 @@ function createProgressBar(current, max, width = 20) {
 /**
  * Get colored percentage text
  */
-function getPercentColor(percent) {
+function getPercentColor (percent) {
   if (percent >= 90) {
     return chalk.red(`${percent}%`)
   } else if (percent >= 70) {
@@ -526,7 +526,7 @@ function getPercentColor(percent) {
 /**
  * Resend email verification command
  */
-export async function resendEmailVerification() {
+export async function resendEmailVerification () {
   const loggedIn = await isLoggedIn()
 
   if (!loggedIn) {
