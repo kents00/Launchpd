@@ -69,9 +69,28 @@ const TRUSTED_RAW_HOSTS = new Set([
  * Windows reserved filenames (case-insensitive) that must not be written to disk
  */
 const WINDOWS_RESERVED_NAMES = new Set([
-  'CON', 'PRN', 'AUX', 'NUL',
-  'COM1', 'COM2', 'COM3', 'COM4', 'COM5', 'COM6', 'COM7', 'COM8', 'COM9',
-  'LPT1', 'LPT2', 'LPT3', 'LPT4', 'LPT5', 'LPT6', 'LPT7', 'LPT8', 'LPT9'
+  'CON',
+  'PRN',
+  'AUX',
+  'NUL',
+  'COM1',
+  'COM2',
+  'COM3',
+  'COM4',
+  'COM5',
+  'COM6',
+  'COM7',
+  'COM8',
+  'COM9',
+  'LPT1',
+  'LPT2',
+  'LPT3',
+  'LPT4',
+  'LPT5',
+  'LPT6',
+  'LPT7',
+  'LPT8',
+  'LPT9'
 ])
 
 // ============================================================================
@@ -85,10 +104,12 @@ const WINDOWS_RESERVED_NAMES = new Set([
  */
 export function isRemoteUrl(input) {
   if (!input || typeof input !== 'string') return false
-  return input.startsWith('https://github.com/') ||
+  return (
+    input.startsWith('https://github.com/') ||
     input.startsWith('https://gist.github.com/') ||
     input.startsWith('http://github.com/') ||
     input.startsWith('http://gist.github.com/')
+  )
 }
 
 /**
@@ -106,9 +127,7 @@ export function parseRemoteUrl(url) {
   try {
     parsed = new URL(url)
   } catch {
-    throw new Error(
-      `Invalid URL: "${url}". Expected a GitHub or Gist URL.`
-    )
+    throw new Error(`Invalid URL: "${url}". Expected a GitHub or Gist URL.`)
   }
 
   const pathname = parsed.pathname.replace(/\/+$/, '') // strip trailing slashes
@@ -223,7 +242,10 @@ function validateDirPath(tempDir, dir) {
   const resolvedDir = resolve(tempDir, dir)
   const normalizedTempDir = resolve(tempDir)
 
-  if (!resolvedDir.startsWith(normalizedTempDir + sep) && resolvedDir !== normalizedTempDir) {
+  if (
+    !resolvedDir.startsWith(normalizedTempDir + sep) &&
+    resolvedDir !== normalizedTempDir
+  ) {
     throw new Error(
       `Unsafe --dir path: "${dir}". The path must not escape the repository root.`
     )
@@ -264,9 +286,11 @@ function createSizeLimitStream(maxBytes) {
     transform(chunk, _encoding, callback) {
       bytesReceived += chunk.length
       if (bytesReceived > maxBytes) {
-        callback(new Error(
-          `Download exceeds maximum size limit of ${Math.round(maxBytes / 1024 / 1024)}MB. Aborting.`
-        ))
+        callback(
+          new Error(
+            `Download exceeds maximum size limit of ${Math.round(maxBytes / 1024 / 1024)}MB. Aborting.`
+          )
+        )
         return
       }
       callback(null, chunk)
@@ -429,7 +453,7 @@ async function fetchGist(gistId) {
         validateRawUrl(fileData.raw_url)
 
         const { signal: rawSignal, clear: rawClear } = createFetchTimeout(FETCH_TIMEOUT_MS)
-        let rawResponse = null
+        let rawResponse
         try {
           rawResponse = await fetch(fileData.raw_url, {
             headers: { 'User-Agent': USER_AGENT },
@@ -450,7 +474,7 @@ async function fetchGist(gistId) {
           throw new Error(`Failed to download file "${filename}" from Gist.`)
         }
 
-        // Content-Length pre-check (optimization): bail early before downloading body
+        // Content-Length pre-check for truncated gist files (optimization)
         const rawContentLength = parseInt(rawResponse.headers.get('Content-Length') || '0')
         if (rawContentLength > 0 && totalBytes + rawContentLength > MAX_DOWNLOAD_BYTES) {
           throw new Error(
@@ -580,7 +604,7 @@ async function fetchRepo(owner, repo, branch) {
  * @returns {Promise<{ tempDir: string, folderPath: string }>}
  */
 export async function fetchRemoteSource(parsed, options = {}) {
-  let tempDir = null
+  let tempDir
 
   if (parsed.type === 'gist') {
     tempDir = await fetchGist(parsed.gistId)
