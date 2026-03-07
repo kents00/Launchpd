@@ -478,10 +478,9 @@ async function fetchGist(gistId) {
           throw new Error(`Failed to download file "${filename}" from Gist.`)
         }
 
-        // Content-Length pre-check: use the immutable snapshot to avoid
-        // referencing the shared mutable totalBytes inside a parallel callback.
+        // Content-Length pre-check for truncated gist files (optimization)
         const rawContentLength = parseInt(rawResponse.headers.get('Content-Length') || '0')
-        if (rawContentLength > 0 && bytesAtBatchStart + rawContentLength > MAX_DOWNLOAD_BYTES) {
+        if (rawContentLength > 0 && totalBytes + rawContentLength > MAX_DOWNLOAD_BYTES) {
           throw new Error(
             `Gist exceeds maximum size limit of ${Math.round(MAX_DOWNLOAD_BYTES / 1024 / 1024)}MB. Aborting.`
           )
@@ -609,7 +608,7 @@ async function fetchRepo(owner, repo, branch) {
  * @returns {Promise<{ tempDir: string, folderPath: string }>}
  */
 export async function fetchRemoteSource(parsed, options = {}) {
-  let tempDir = null
+  let tempDir
 
   if (parsed.type === 'gist') {
     tempDir = await fetchGist(parsed.gistId)
