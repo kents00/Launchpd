@@ -441,15 +441,12 @@ async function fetchGist(gistId) {
     await writeFile(join(tempDir, filename), content)
   }
 
-  // Download truncated files in parallel batches
-  // Each callback returns { filename, content, size } to avoid unsafe concurrent
-  // mutation of totalBytes across parallel promises (JS-0073).
+  // Download truncated files in parallel batches.
+  // Callbacks return { filename, content, size } so that totalBytes is never
+  // referenced inside a parallel closure — accumulation happens serially after
+  // each batch (resolves JS-0073).
   for (let i = 0; i < truncatedFiles.length; i += GIST_PARALLEL_LIMIT) {
     const batch = truncatedFiles.slice(i, i + GIST_PARALLEL_LIMIT)
-
-    // Snapshot totalBytes before the batch so parallel callbacks close over an
-    // immutable value, avoiding unsafe shared-variable references (JS-0073).
-    const bytesAtBatchStart = totalBytes
 
     const results = await Promise.all(
       batch.map(async ([filename, fileData]) => {
@@ -478,20 +475,12 @@ async function fetchGist(gistId) {
           throw new Error(`Failed to download file "${filename}" from Gist.`)
         }
 
-        // Content-Length pre-check for truncated gist files (optimization)
-        const rawContentLength = parseInt(rawResponse.headers.get('Content-Length') || '0')
-        if (rawContentLength > 0 && totalBytes + rawContentLength > MAX_DOWNLOAD_BYTES) {
-          throw new Error(
-            `Gist exceeds maximum size limit of ${Math.round(MAX_DOWNLOAD_BYTES / 1024 / 1024)}MB. Aborting.`
-          )
-        }
-
         const content = await rawResponse.text()
         return { filename, content, size: Buffer.byteLength(content) }
       })
     )
 
-    // Accumulate sizes and write files serially after the batch completes
+    // Accumulate sizes and write files serially — size limit enforced here.
     for (const { filename, content, size } of results) {
       totalBytes += size
       if (totalBytes > MAX_DOWNLOAD_BYTES) {
@@ -602,27 +591,33 @@ async function fetchRepo(owner, repo, branch) {
 // ============================================================================
 
 /**
+ * Resolve the temp directory for a remote source (Gist or Repo).
+ * Extracted so that fetchRemoteSource can declare tempDir as a const.
+ * @param {{ type: 'gist'|'repo', owner: string, repo?: string, gistId?: string }} parsed
+ * @param {{ branch?: string }} options
+ * @returns {Promise<string>} Path to the temp directory
+ */
+async function dispatchFetch(parsed, options) {
+  if (parsed.type === 'gist') {
+    return fetchGist(parsed.gistId)
+  }
+  if (parsed.type === 'repo') {
+    return fetchRepo(parsed.owner, parsed.repo, options.branch)
+  }
+  throw new Error(`Unknown remote source type: "${parsed.type}"`)
+}
+
+/**
  * Fetch remote source (Gist or Repo) and return the path to deploy from
  * @param {{ type: 'gist'|'repo', owner: string, repo?: string, gistId?: string }} parsed
  * @param {{ branch?: string, dir?: string }} options
  * @returns {Promise<{ tempDir: string, folderPath: string }>}
  */
 export async function fetchRemoteSource(parsed, options = {}) {
-  let tempDir
-
-  if (parsed.type === 'gist') {
-    tempDir = await fetchGist(parsed.gistId)
-  } else if (parsed.type === 'repo') {
-    tempDir = await fetchRepo(parsed.owner, parsed.repo, options.branch)
-  } else {
-    throw new Error(`Unknown remote source type: "${parsed.type}"`)
-  }
+  const tempDir = await dispatchFetch(parsed, options)
 
   // Resolve subdirectory if --dir was specified (with path traversal check)
-  let folderPath = tempDir
-  if (options.dir) {
-    folderPath = validateDirPath(tempDir, options.dir)
-  }
+  const folderPath = options.dir ? validateDirPath(tempDir, options.dir) : tempDir
 
   return { tempDir, folderPath }
 }

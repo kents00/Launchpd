@@ -662,8 +662,12 @@ describe('Security', () => {
         })
     })
 
-    describe('Content-Length pre-check for truncated gist files', () => {
-        it('should reject a truncated gist file whose Content-Length would exceed the total size limit', async () => {
+    describe('Size limit enforcement for truncated gist file downloads', () => {
+        it('should reject a truncated gist file whose body exceeds the total size limit', async () => {
+            // The body content itself is oversized — size limit enforced in the
+            // serial accumulation loop after Promise.all (totalBytes += size).
+            const oversizedContent = 'x'.repeat(MAX_DOWNLOAD_BYTES + 1)
+
             globalThis.fetch = vi.fn().mockImplementation((url) => {
                 if (url.includes('/gists/')) {
                     return Promise.resolve({
@@ -680,13 +684,10 @@ describe('Security', () => {
                         headers: new Headers()
                     })
                 }
-                // Report Content-Length > MAX_DOWNLOAD_BYTES on raw file
                 return Promise.resolve({
                     ok: true,
-                    headers: new Headers({
-                        'Content-Length': String(MAX_DOWNLOAD_BYTES + 1)
-                    }),
-                    text: async () => 'x'.repeat(10) // would not actually be called
+                    headers: new Headers(),
+                    text: async () => oversizedContent
                 })
             })
 
