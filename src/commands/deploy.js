@@ -672,7 +672,7 @@ function getErrorSuggestions(err) {
  */
 export async function deploy(source, options) {
   const verbose = options.verbose || false
-  let folderPath
+  let folderPath = null
   let tempDir = null
 
   // Detect remote URL vs local folder

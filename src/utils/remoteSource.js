@@ -102,7 +102,7 @@ export function parseRemoteUrl(url) {
     throw new Error('URL is required')
   }
 
-  let parsed
+  let parsed = null
   try {
     parsed = new URL(url)
   } catch {
@@ -237,7 +237,7 @@ function validateDirPath(tempDir, dir) {
  * @throws {Error} If the URL points to an untrusted host
  */
 function validateRawUrl(rawUrl) {
-  let parsed
+  let parsed = null
   try {
     parsed = new URL(rawUrl)
   } catch {
@@ -307,13 +307,10 @@ function createTarFilter() {
     // Skip ignored files/directories (node_modules, .git, etc.)
     const parts = path.split('/').filter(Boolean)
     const name = parts[parts.length - 1]
-    if (name && isIgnored(name, entry.type === 'Directory')) {
-      return false
-    }
-
-    return true
+    return !(name && isIgnored(name, entry.type === 'Directory'))
   }
 
+  /** @returns {{ fileCount: number }} Snapshot of extraction statistics */
   const getStats = () => ({ fileCount })
   return { filter, getStats }
 }
@@ -344,7 +341,7 @@ function createFetchTimeout(ms) {
  */
 async function fetchGist(gistId) {
   const { signal, clear } = createFetchTimeout(FETCH_TIMEOUT_MS)
-  let response
+  let response = null
   try {
     response = await fetch(`${GITHUB_API}/gists/${gistId}`, {
       headers: {
@@ -421,15 +418,18 @@ async function fetchGist(gistId) {
   }
 
   // Download truncated files in parallel batches
+  // Each callback returns { filename, content, size } to avoid unsafe concurrent
+  // mutation of totalBytes across parallel promises (JS-0073).
   for (let i = 0; i < truncatedFiles.length; i += GIST_PARALLEL_LIMIT) {
     const batch = truncatedFiles.slice(i, i + GIST_PARALLEL_LIMIT)
-    await Promise.all(
+
+    const results = await Promise.all(
       batch.map(async ([filename, fileData]) => {
         // SSRF protection: validate raw_url domain before fetching
         validateRawUrl(fileData.raw_url)
 
         const { signal: rawSignal, clear: rawClear } = createFetchTimeout(FETCH_TIMEOUT_MS)
-        let rawResponse
+        let rawResponse = null
         try {
           rawResponse = await fetch(fileData.raw_url, {
             headers: { 'User-Agent': USER_AGENT },
@@ -450,7 +450,7 @@ async function fetchGist(gistId) {
           throw new Error(`Failed to download file "${filename}" from Gist.`)
         }
 
-        // Content-Length pre-check for truncated gist files (optimization)
+        // Content-Length pre-check (optimization): bail early before downloading body
         const rawContentLength = parseInt(rawResponse.headers.get('Content-Length') || '0')
         if (rawContentLength > 0 && totalBytes + rawContentLength > MAX_DOWNLOAD_BYTES) {
           throw new Error(
@@ -459,15 +459,20 @@ async function fetchGist(gistId) {
         }
 
         const content = await rawResponse.text()
-        totalBytes += Buffer.byteLength(content)
-        if (totalBytes > MAX_DOWNLOAD_BYTES) {
-          throw new Error(
-            `Gist exceeds maximum size limit of ${Math.round(MAX_DOWNLOAD_BYTES / 1024 / 1024)}MB. Aborting.`
-          )
-        }
-        await writeFile(join(tempDir, filename), content)
+        return { filename, content, size: Buffer.byteLength(content) }
       })
     )
+
+    // Accumulate sizes and write files serially after the batch completes
+    for (const { filename, content, size } of results) {
+      totalBytes += size
+      if (totalBytes > MAX_DOWNLOAD_BYTES) {
+        throw new Error(
+          `Gist exceeds maximum size limit of ${Math.round(MAX_DOWNLOAD_BYTES / 1024 / 1024)}MB. Aborting.`
+        )
+      }
+      await writeFile(join(tempDir, filename), content)
+    }
   }
 
   return tempDir
@@ -486,7 +491,7 @@ async function fetchRepo(owner, repo, branch) {
   const tarballUrl = `${GITHUB_API}/repos/${owner}/${repo}/tarball/${ref}`
 
   const { signal, clear } = createFetchTimeout(FETCH_TIMEOUT_MS)
-  let response
+  let response = null
   try {
     response = await fetch(tarballUrl, {
       headers: {
@@ -575,7 +580,7 @@ async function fetchRepo(owner, repo, branch) {
  * @returns {Promise<{ tempDir: string, folderPath: string }>}
  */
 export async function fetchRemoteSource(parsed, options = {}) {
-  let tempDir
+  let tempDir = null
 
   if (parsed.type === 'gist') {
     tempDir = await fetchGist(parsed.gistId)
