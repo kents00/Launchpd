@@ -634,7 +634,9 @@ export async function fetchRemoteSource(parsed, options = {}) {
   }
 
   // Resolve subdirectory if --dir was specified (with path traversal check)
-  const folderPath = options.dir ? validateDirPath(tempDir, options.dir) : tempDir
+  const folderPath = options.dir
+    ? validateDirPath(tempDir, options.dir)
+    : tempDir
 
   return { tempDir, folderPath }
 }
