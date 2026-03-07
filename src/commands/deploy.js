@@ -44,6 +44,12 @@ import { validateStaticOnly } from '../utils/validator.js'
 import { isIgnored } from '../utils/ignore.js'
 import { prompt } from '../utils/prompt.js'
 import { handleCommonError } from '../utils/errors.js'
+import {
+  isRemoteUrl,
+  parseRemoteUrl,
+  fetchRemoteSource,
+  cleanupTempDir
+} from '../utils/remoteSource.js'
 import QRCode from 'qrcode'
 
 // ============================================================================
@@ -56,7 +62,7 @@ import QRCode from 'qrcode'
  * @returns {string} The validated subdomain
  * @throws {Error} If subdomain contains invalid characters
  */
-function validateSubdomain (subdomain) {
+function validateSubdomain(subdomain) {
   const safePattern = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/
   if (!safePattern.test(subdomain)) {
     throw new Error(
@@ -69,7 +75,7 @@ function validateSubdomain (subdomain) {
 /**
  * Calculate total size of a folder (excluding ignored files)
  */
-async function calculateFolderSize (folderPath) {
+async function calculateFolderSize(folderPath) {
   const files = await readdir(folderPath, {
     recursive: true,
     withFileTypes: true
@@ -102,7 +108,7 @@ async function calculateFolderSize (folderPath) {
 /**
  * Parse and validate expiration option
  */
-function parseExpiration (expiresOption, verbose) {
+function parseExpiration(expiresOption, verbose) {
   if (!expiresOption) return null
 
   try {
@@ -125,7 +131,7 @@ function parseExpiration (expiresOption, verbose) {
 /**
  * Validate required options
  */
-function validateOptions (options, folderPath, verbose) {
+function validateOptions(options, folderPath, verbose) {
   if (!options.message) {
     errorWithSuggestions(
       'Deployment message is required.',
@@ -156,7 +162,7 @@ function validateOptions (options, folderPath, verbose) {
 /**
  * Scan folder and return active file count
  */
-async function scanFolder (folderPath, verbose) {
+async function scanFolder(folderPath, verbose) {
   const scanSpinner = spinner('Scanning folder...')
   const files = await readdir(folderPath, {
     recursive: true,
@@ -196,7 +202,7 @@ async function scanFolder (folderPath, verbose) {
 /**
  * Validate static-only files
  */
-async function validateStaticFiles (folderPath, options, verbose) {
+async function validateStaticFiles(folderPath, options, verbose) {
   const validationSpinner = spinner('Validating files...')
   const validation = await validateStaticOnly(folderPath)
 
@@ -240,7 +246,7 @@ async function validateStaticFiles (folderPath, options, verbose) {
 /**
  * Resolve subdomain from options/config
  */
-async function resolveSubdomain (options, folderPath, creds, verbose) {
+async function resolveSubdomain(options, folderPath, creds, verbose) {
   if (options.name && !creds?.email) {
     warning('Custom subdomains require registration!')
     info('Anonymous deployments use random subdomains.')
@@ -292,7 +298,7 @@ async function resolveSubdomain (options, folderPath, creds, verbose) {
 /**
  * Handle subdomain mismatch between CLI arg and config
  */
-async function handleSubdomainMismatch (
+async function handleSubdomainMismatch(
   subdomain,
   configSubdomain,
   options,
@@ -320,7 +326,7 @@ async function handleSubdomainMismatch (
 /**
  * Check subdomain availability
  */
-async function checkSubdomainOwnership (subdomain) {
+async function checkSubdomainOwnership(subdomain) {
   const checkSpinner = spinner('Checking subdomain availability...')
   try {
     const isAvailable = await checkSubdomainAvailable(subdomain)
@@ -355,7 +361,7 @@ async function checkSubdomainOwnership (subdomain) {
 /**
  * Prompt for auto-init if needed
  */
-async function promptAutoInit (options, configSubdomain, subdomain, folderPath) {
+async function promptAutoInit(options, configSubdomain, subdomain, folderPath) {
   if (options.name && !configSubdomain) {
     const confirm = await prompt(
       `\nRun "launchpd init" to link '${folderPath}' to '${subdomain}'? (Y/N): `
@@ -374,7 +380,7 @@ async function promptAutoInit (options, configSubdomain, subdomain, folderPath) 
 /**
  * Check quota and return result
  */
-async function checkDeploymentQuota (
+async function checkDeploymentQuota(
   subdomain,
   estimatedBytes,
   configSubdomain,
@@ -408,7 +414,7 @@ async function checkDeploymentQuota (
 /**
  * Perform the actual upload
  */
-async function performUpload (
+async function performUpload(
   folderPath,
   subdomain,
   fileCount,
@@ -468,7 +474,7 @@ async function performUpload (
 /**
  * Show post-deployment info
  */
-async function showPostDeploymentInfo (url, options, expiresAt, creds, verbose) {
+async function showPostDeploymentInfo(url, options, expiresAt, creds, verbose) {
   if (options.open) {
     openUrlInBrowser(url)
   }
@@ -491,7 +497,7 @@ async function showPostDeploymentInfo (url, options, expiresAt, creds, verbose) 
 /**
  * Open URL in system browser
  */
-function openUrlInBrowser (url) {
+function openUrlInBrowser(url) {
   const platform = process.platform
   let command = 'xdg-open'
   let args = [url]
@@ -510,7 +516,7 @@ function openUrlInBrowser (url) {
 /**
  * Show warnings for anonymous deployments
  */
-function showAnonymousWarnings () {
+function showAnonymousWarnings() {
   log('')
   warning('Anonymous deployment limits:')
   log('   • 3 active sites per IP')
@@ -525,7 +531,7 @@ function showAnonymousWarnings () {
 /**
  * Generate and display QR code
  */
-async function showQRCode (url, verbose) {
+async function showQRCode(url, verbose) {
   try {
     const terminalWidth = process.stdout.columns || 80
     const qr = await QRCode.toString(url, {
@@ -554,7 +560,7 @@ async function showQRCode (url, verbose) {
 /**
  * Handle upload errors with appropriate messages
  */
-function handleUploadError (err, verbose) {
+function handleUploadError(err, verbose) {
   if (
     handleCommonError(err, {
       error: (msg) => errorWithSuggestions(msg, [], { verbose }),
@@ -613,7 +619,7 @@ function handleUploadError (err, verbose) {
 /**
  * Get context-specific suggestions for errors
  */
-function getErrorSuggestions (err) {
+function getErrorSuggestions(err) {
   const message = err.message || ''
 
   if (message.includes('fetch failed') || message.includes('ENOTFOUND')) {
@@ -655,75 +661,124 @@ function getErrorSuggestions (err) {
 // ============================================================================
 
 /**
- * Deploy a local folder to StaticLaunch
- * @param {string} folder - Path to folder to deploy
+ * Deploy a local folder or remote URL to StaticLaunch
+ * @param {string} source - Path to folder, GitHub repo URL, or Gist URL
  * @param {object} options - Command options
  * @param {string} options.name - Custom subdomain
  * @param {string} options.expires - Expiration time (e.g., "30m", "2h", "1d")
  * @param {boolean} options.verbose - Show verbose error details
+ * @param {string} options.branch - Git branch (for repo URLs)
+ * @param {string} options.dir - Subdirectory within repo to deploy
  */
-export async function deploy (folder, options) {
-  const folderPath = resolve(folder)
+export async function deploy(source, options) {
   const verbose = options.verbose || false
+  let folderPath
+  let tempDir = null
 
-  // Parse and validate
-  const expiresAt = parseExpiration(options.expires, verbose)
-  validateOptions(options, folderPath, verbose)
+  // Detect remote URL vs local folder
+  if (isRemoteUrl(source)) {
+    const fetchSpinner = spinner('Fetching remote source...')
+    try {
+      const parsed = parseRemoteUrl(source)
+      const sourceLabel = parsed.type === 'gist'
+        ? `Gist (${parsed.gistId})`
+        : `${parsed.owner}/${parsed.repo}`
+      fetchSpinner.update(`Downloading from ${sourceLabel}...`)
 
-  // Scan and validate folder
-  const fileCount = await scanFolder(folderPath, verbose)
-  await validateStaticFiles(folderPath, options, verbose)
-
-  // Resolve subdomain
-  const creds = await getCredentials()
-  const { subdomain, configSubdomain } = await resolveSubdomain(
-    options,
-    folderPath,
-    creds,
-    verbose
-  )
-  const url = `https://${subdomain}.launchpd.cloud`
-
-  // Check subdomain availability
-  await checkSubdomainOwnership(subdomain)
-
-  // Auto-init prompt
-  await promptAutoInit(options, configSubdomain, subdomain, folderPath)
-
-  // Calculate size and check quota
-  const sizeSpinner = spinner('Calculating folder size...')
-  const estimatedBytes = await calculateFolderSize(folderPath)
-  sizeSpinner.succeed(`Size: ${formatBytes(estimatedBytes)}`)
-
-  await checkDeploymentQuota(
-    subdomain,
-    estimatedBytes,
-    configSubdomain,
-    options
-  )
-
-  // Show deployment info
-  if (creds?.email) {
-    info(`Deploying as: ${creds.email}`)
+      const result = await fetchRemoteSource(parsed, {
+        branch: options.branch,
+        dir: options.dir
+      })
+      tempDir = result.tempDir
+      folderPath = result.folderPath
+      fetchSpinner.succeed(`Downloaded from ${parsed.type}: ${sourceLabel}`)
+    } catch (err) {
+      fetchSpinner.fail('Failed to fetch remote source')
+      errorWithSuggestions(
+        `Remote fetch failed: ${err.message}`,
+        [
+          'Check that the URL is correct and the resource is public',
+          'For repos, verify the branch exists with --branch',
+          'For gists, make sure the gist ID is correct',
+          'Check your internet connection'
+        ],
+        { verbose, cause: err }
+      )
+      process.exit(1)
+      return // Unreachable in production, satisfies test mocks
+    }
   } else {
-    info('Deploying as: anonymous (run "launchpd login" for more quota)')
+    folderPath = resolve(source)
   }
-  info(`Deploying ${fileCount} file(s) from ${folderPath}`)
-  info(`Target: ${url}`)
 
-  // Perform upload
   try {
-    const { version } = await performUpload(
+    // Parse and validate
+    const expiresAt = parseExpiration(options.expires, verbose)
+    validateOptions(options, folderPath, verbose)
+
+    // Scan and validate folder
+    const fileCount = await scanFolder(folderPath, verbose)
+    await validateStaticFiles(folderPath, options, verbose)
+
+    // Resolve subdomain
+    const creds = await getCredentials()
+    const { subdomain, configSubdomain } = await resolveSubdomain(
+      options,
       folderPath,
+      creds,
+      verbose
+    )
+    const url = `https://${subdomain}.launchpd.cloud`
+
+    // Check subdomain availability
+    await checkSubdomainOwnership(subdomain)
+
+    // Auto-init prompt (skip for remote URLs — no local project to init)
+    if (!tempDir) {
+      await promptAutoInit(options, configSubdomain, subdomain, folderPath)
+    }
+
+    // Calculate size and check quota
+    const sizeSpinner = spinner('Calculating folder size...')
+    const estimatedBytes = await calculateFolderSize(folderPath)
+    sizeSpinner.succeed(`Size: ${formatBytes(estimatedBytes)}`)
+
+    await checkDeploymentQuota(
       subdomain,
-      fileCount,
-      expiresAt,
+      estimatedBytes,
+      configSubdomain,
       options
     )
-    success(`Deployed successfully! (v${version})`)
-    log(`\n${url}`)
-    await showPostDeploymentInfo(url, options, expiresAt, creds, verbose)
-  } catch (err) {
-    handleUploadError(err, verbose)
+
+    // Show deployment info
+    if (creds?.email) {
+      info(`Deploying as: ${creds.email}`)
+    } else {
+      info('Deploying as: anonymous (run "launchpd login" for more quota)')
+    }
+    const sourceLabel = tempDir ? source : folderPath
+    info(`Deploying ${fileCount} file(s) from ${sourceLabel}`)
+    info(`Target: ${url}`)
+
+    // Perform upload
+    try {
+      const { version } = await performUpload(
+        folderPath,
+        subdomain,
+        fileCount,
+        expiresAt,
+        options
+      )
+      success(`Deployed successfully! (v${version})`)
+      log(`\n${url}`)
+      await showPostDeploymentInfo(url, options, expiresAt, creds, verbose)
+    } catch (err) {
+      handleUploadError(err, verbose)
+    }
+  } finally {
+    // Clean up temp directory if we fetched from a remote source
+    if (tempDir) {
+      await cleanupTempDir(tempDir)
+    }
   }
 }
