@@ -453,7 +453,8 @@ async function fetchGist(gistId) {
         // SSRF protection: validate raw_url domain before fetching
         validateRawUrl(fileData.raw_url)
 
-        const { signal: rawSignal, clear: rawClear } = createFetchTimeout(FETCH_TIMEOUT_MS)
+        const { signal: rawSignal, clear: rawClear } =
+          createFetchTimeout(FETCH_TIMEOUT_MS)
         let rawResponse = null
         try {
           rawResponse = await fetch(fileData.raw_url, {
@@ -473,6 +474,19 @@ async function fetchGist(gistId) {
 
         if (!rawResponse.ok) {
           throw new Error(`Failed to download file "${filename}" from Gist.`)
+        }
+
+        // Content-Length pre-check for truncated gist files (optimization)
+        const rawContentLength = parseInt(
+          rawResponse.headers.get('Content-Length') || '0'
+        )
+        if (
+          rawContentLength > 0 &&
+          totalBytes + rawContentLength > MAX_DOWNLOAD_BYTES
+        ) {
+          throw new Error(
+            `Gist exceeds maximum size limit of ${Math.round(MAX_DOWNLOAD_BYTES / 1024 / 1024)}MB. Aborting.`
+          )
         }
 
         const content = await rawResponse.text()
@@ -614,7 +628,15 @@ async function dispatchFetch(parsed, options) {
  * @returns {Promise<{ tempDir: string, folderPath: string }>}
  */
 export async function fetchRemoteSource(parsed, options = {}) {
-  const tempDir = await dispatchFetch(parsed, options)
+  let tempDir
+
+  if (parsed.type === 'gist') {
+    tempDir = await fetchGist(parsed.gistId)
+  } else if (parsed.type === 'repo') {
+    tempDir = await fetchRepo(parsed.owner, parsed.repo, options.branch)
+  } else {
+    throw new Error(`Unknown remote source type: "${parsed.type}"`)
+  }
 
   // Resolve subdirectory if --dir was specified (with path traversal check)
   const folderPath = options.dir ? validateDirPath(tempDir, options.dir) : tempDir
