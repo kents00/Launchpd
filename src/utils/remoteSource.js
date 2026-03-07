@@ -447,13 +447,17 @@ async function fetchGist(gistId) {
   for (let i = 0; i < truncatedFiles.length; i += GIST_PARALLEL_LIMIT) {
     const batch = truncatedFiles.slice(i, i + GIST_PARALLEL_LIMIT)
 
+    // Snapshot totalBytes before the batch so parallel callbacks close over an
+    // immutable value, avoiding unsafe shared-variable references (JS-0073).
+    const bytesAtBatchStart = totalBytes
+
     const results = await Promise.all(
       batch.map(async ([filename, fileData]) => {
         // SSRF protection: validate raw_url domain before fetching
         validateRawUrl(fileData.raw_url)
 
         const { signal: rawSignal, clear: rawClear } = createFetchTimeout(FETCH_TIMEOUT_MS)
-        let rawResponse
+        let rawResponse = null
         try {
           rawResponse = await fetch(fileData.raw_url, {
             headers: { 'User-Agent': USER_AGENT },
@@ -474,9 +478,10 @@ async function fetchGist(gistId) {
           throw new Error(`Failed to download file "${filename}" from Gist.`)
         }
 
-        // Content-Length pre-check for truncated gist files (optimization)
+        // Content-Length pre-check: use the immutable snapshot to avoid
+        // referencing the shared mutable totalBytes inside a parallel callback.
         const rawContentLength = parseInt(rawResponse.headers.get('Content-Length') || '0')
-        if (rawContentLength > 0 && totalBytes + rawContentLength > MAX_DOWNLOAD_BYTES) {
+        if (rawContentLength > 0 && bytesAtBatchStart + rawContentLength > MAX_DOWNLOAD_BYTES) {
           throw new Error(
             `Gist exceeds maximum size limit of ${Math.round(MAX_DOWNLOAD_BYTES / 1024 / 1024)}MB. Aborting.`
           )
@@ -604,7 +609,7 @@ async function fetchRepo(owner, repo, branch) {
  * @returns {Promise<{ tempDir: string, folderPath: string }>}
  */
 export async function fetchRemoteSource(parsed, options = {}) {
-  let tempDir
+  let tempDir = null
 
   if (parsed.type === 'gist') {
     tempDir = await fetchGist(parsed.gistId)
