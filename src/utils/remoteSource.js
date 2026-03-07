@@ -442,56 +442,68 @@ async function fetchGist(gistId) {
   }
 
   // Download truncated files in parallel batches.
-  // Callbacks return { filename, content, size } so that totalBytes is never
-  // referenced inside a parallel closure — accumulation happens serially after
-  // each batch (resolves JS-0073).
+  // The per-file download logic is extracted into a named function declared
+  // outside the loop so that no closure is created inside the loop (JS-0073).
+  // totalBytes is passed as a parameter instead of captured from the outer scope.
+
+  /**
+   * Download a single truncated gist file.
+   * @param {string} filename
+   * @param {{ raw_url: string }} fileData
+   * @param {number} currentTotalBytes - snapshot of totalBytes at call time
+   * @returns {Promise<{ filename: string, content: string, size: number }>}
+   */
+  async function downloadTruncatedFile(filename, fileData, currentTotalBytes) {
+    // SSRF protection: validate raw_url domain before fetching
+    validateRawUrl(fileData.raw_url)
+
+    const { signal: rawSignal, clear: rawClear } =
+      createFetchTimeout(FETCH_TIMEOUT_MS)
+    let rawResponse = null
+    try {
+      rawResponse = await fetch(fileData.raw_url, {
+        headers: { 'User-Agent': USER_AGENT },
+        signal: rawSignal
+      })
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        throw new Error(
+          `Request timed out while downloading file "${filename}" from Gist. The server did not respond within ${FETCH_TIMEOUT_MS / 1000}s.`
+        )
+      }
+      throw err
+    } finally {
+      rawClear()
+    }
+
+    if (!rawResponse.ok) {
+      throw new Error(`Failed to download file "${filename}" from Gist.`)
+    }
+
+    // Content-Length pre-check for truncated gist files (optimization)
+    const rawContentLength = parseInt(
+      rawResponse.headers.get('Content-Length') || '0'
+    )
+    if (
+      rawContentLength > 0 &&
+      currentTotalBytes + rawContentLength > MAX_DOWNLOAD_BYTES
+    ) {
+      throw new Error(
+        `Gist exceeds maximum size limit of ${Math.round(MAX_DOWNLOAD_BYTES / 1024 / 1024)}MB. Aborting.`
+      )
+    }
+
+    const content = await rawResponse.text()
+    return { filename, content, size: Buffer.byteLength(content) }
+  }
+
   for (let i = 0; i < truncatedFiles.length; i += GIST_PARALLEL_LIMIT) {
     const batch = truncatedFiles.slice(i, i + GIST_PARALLEL_LIMIT)
 
     const results = await Promise.all(
-      batch.map(async ([filename, fileData]) => {
-        // SSRF protection: validate raw_url domain before fetching
-        validateRawUrl(fileData.raw_url)
-
-        const { signal: rawSignal, clear: rawClear } =
-          createFetchTimeout(FETCH_TIMEOUT_MS)
-        let rawResponse = null
-        try {
-          rawResponse = await fetch(fileData.raw_url, {
-            headers: { 'User-Agent': USER_AGENT },
-            signal: rawSignal
-          })
-        } catch (err) {
-          if (err.name === 'AbortError') {
-            throw new Error(
-              `Request timed out while downloading file "${filename}" from Gist. The server did not respond within ${FETCH_TIMEOUT_MS / 1000}s.`
-            )
-          }
-          throw err
-        } finally {
-          rawClear()
-        }
-
-        if (!rawResponse.ok) {
-          throw new Error(`Failed to download file "${filename}" from Gist.`)
-        }
-
-        // Content-Length pre-check for truncated gist files (optimization)
-        const rawContentLength = parseInt(
-          rawResponse.headers.get('Content-Length') || '0'
-        )
-        if (
-          rawContentLength > 0 &&
-          totalBytes + rawContentLength > MAX_DOWNLOAD_BYTES
-        ) {
-          throw new Error(
-            `Gist exceeds maximum size limit of ${Math.round(MAX_DOWNLOAD_BYTES / 1024 / 1024)}MB. Aborting.`
-          )
-        }
-
-        const content = await rawResponse.text()
-        return { filename, content, size: Buffer.byteLength(content) }
-      })
+      batch.map(([filename, fileData]) =>
+        downloadTruncatedFile(filename, fileData, totalBytes)
+      )
     )
 
     // Accumulate sizes and write files serially — size limit enforced here.
@@ -605,30 +617,13 @@ async function fetchRepo(owner, repo, branch) {
 // ============================================================================
 
 /**
- * Resolve the temp directory for a remote source (Gist or Repo).
- * Extracted so that fetchRemoteSource can declare tempDir as a const.
- * @param {{ type: 'gist'|'repo', owner: string, repo?: string, gistId?: string }} parsed
- * @param {{ branch?: string }} options
- * @returns {Promise<string>} Path to the temp directory
- */
-async function dispatchFetch(parsed, options) {
-  if (parsed.type === 'gist') {
-    return fetchGist(parsed.gistId)
-  }
-  if (parsed.type === 'repo') {
-    return fetchRepo(parsed.owner, parsed.repo, options.branch)
-  }
-  throw new Error(`Unknown remote source type: "${parsed.type}"`)
-}
-
-/**
  * Fetch remote source (Gist or Repo) and return the path to deploy from
  * @param {{ type: 'gist'|'repo', owner: string, repo?: string, gistId?: string }} parsed
  * @param {{ branch?: string, dir?: string }} options
  * @returns {Promise<{ tempDir: string, folderPath: string }>}
  */
 export async function fetchRemoteSource(parsed, options = {}) {
-  let tempDir
+  let tempDir = null
 
   if (parsed.type === 'gist') {
     tempDir = await fetchGist(parsed.gistId)
