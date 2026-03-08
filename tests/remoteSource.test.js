@@ -29,9 +29,9 @@ describe('isRemoteUrl', () => {
         expect(isRemoteUrl('https://gist.github.com/user/abc123')).toBe(true)
     })
 
-    it('should return true for HTTP (non-HTTPS) GitHub URLs', () => {
-        expect(isRemoteUrl('http://github.com/user/repo')).toBe(true)
-        expect(isRemoteUrl('http://gist.github.com/user/abc123')).toBe(true)
+    it('should return false for HTTP (non-HTTPS) GitHub URLs', () => {
+        expect(isRemoteUrl('http://github.com/user/repo')).toBe(false)
+        expect(isRemoteUrl('http://gist.github.com/user/abc123')).toBe(false)
     })
 
     it('should return false for local paths', () => {
@@ -136,6 +136,15 @@ describe('parseRemoteUrl', () => {
         it('should throw on unsupported host', () => {
             expect(() => parseRemoteUrl('https://gitlab.com/user/repo')).toThrow(
                 'Unsupported URL host'
+            )
+        })
+
+        it('should throw on insecure http:// URLs', () => {
+            expect(() => parseRemoteUrl('http://github.com/user/repo')).toThrow(
+                'Insecure URL'
+            )
+            expect(() => parseRemoteUrl('http://gist.github.com/user/abc123')).toThrow(
+                'Insecure URL'
             )
         })
     })
