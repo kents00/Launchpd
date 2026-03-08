@@ -499,10 +499,11 @@ async function fetchGist(gistId) {
 
   for (let i = 0; i < truncatedFiles.length; i += GIST_PARALLEL_LIMIT) {
     const batch = truncatedFiles.slice(i, i + GIST_PARALLEL_LIMIT)
+    const snapshotBytes = totalBytes
 
     const results = await Promise.all(
       batch.map(([filename, fileData]) =>
-        downloadTruncatedFile(filename, fileData, totalBytes)
+        downloadTruncatedFile(filename, fileData, snapshotBytes)
       )
     )
 
