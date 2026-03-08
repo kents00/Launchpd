@@ -106,9 +106,7 @@ export function isRemoteUrl (input) {
   if (!input || typeof input !== 'string') return false
   return (
     input.startsWith('https://github.com/') ||
-    input.startsWith('https://gist.github.com/') ||
-    input.startsWith('http://github.com/') ||
-    input.startsWith('http://gist.github.com/')
+    input.startsWith('https://gist.github.com/')
   )
 }
 
@@ -128,6 +126,13 @@ export function parseRemoteUrl (url) {
     parsed = new URL(url)
   } catch {
     throw new Error(`Invalid URL: "${url}". Expected a GitHub or Gist URL.`)
+  }
+
+  // Reject insecure http:// — require https://
+  if (parsed.protocol === 'http:') {
+    throw new Error(
+      `Insecure URL: "${url}". Please use https:// instead of http://.`
+    )
   }
 
   // Strip trailing slashes (non-regex to avoid ReDoS static-analysis warnings)
