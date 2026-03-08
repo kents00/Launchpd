@@ -29,7 +29,7 @@ import { tmpdir } from 'node:os'
 import { createGunzip } from 'node:zlib'
 import { Readable, Transform } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
-import tar from 'tar'
+import * as tar from 'tar'
 import { isIgnored } from './ignore.js'
 
 // ============================================================================
@@ -287,7 +287,7 @@ function validateRawUrl (rawUrl) {
  * @param {number} maxBytes - Maximum allowed bytes
  * @returns {Transform} A transform stream that throws if limit is exceeded
  */
-function createSizeLimitStream (maxBytes) {
+export function createSizeLimitStream (maxBytes) {
   let bytesReceived = 0
   return new Transform({
     transform (chunk, _encoding, callback) {
@@ -310,7 +310,7 @@ function createSizeLimitStream (maxBytes) {
  * Prevents: symlinks, excessive file count, deep nesting, ignored files
  * @returns {{ filter: Function, getStats: Function }}
  */
-function createTarFilter () {
+export function createTarFilter () {
   let fileCount = 0
 
   const filter = (path, entry) => {

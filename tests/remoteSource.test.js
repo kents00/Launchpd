@@ -5,6 +5,8 @@ import {
     fetchRemoteSource,
     cleanupTempDir,
     validateGistFilename,
+    createSizeLimitStream,
+    createTarFilter,
     MAX_DOWNLOAD_BYTES,
     MAX_FILE_COUNT,
     MAX_EXTRACT_DEPTH,
@@ -415,6 +417,20 @@ describe('Security', () => {
             await expect(
                 fetchRemoteSource({ type: 'gist', gistId: 'abc123' }, {})
             ).rejects.toThrow('Rate limit resets at')
+        })
+
+        it('should throw rate limit error without reset timestamp', async () => {
+            globalThis.fetch = vi.fn().mockResolvedValue({
+                ok: false,
+                status: 403,
+                headers: new Headers({
+                    'X-RateLimit-Remaining': '0'
+                })
+            })
+
+            const err = fetchRemoteSource({ type: 'gist', gistId: 'no-reset' }, {})
+            await expect(err).rejects.toThrow('rate limit exceeded')
+            await expect(err).rejects.not.toThrow('Rate limit resets at')
         })
     })
 
@@ -849,6 +865,33 @@ describe('fetchRemoteSource', () => {
             expect(files.length).toBe(7)
         })
 
+        it('should handle gist files with null content (not truncated)', async () => {
+            globalThis.fetch = vi.fn().mockResolvedValue({
+                ok: true,
+                json: async () => ({
+                    files: {
+                        'empty.txt': {
+                            content: null,
+                            truncated: false
+                        }
+                    }
+                }),
+                headers: new Headers()
+            })
+
+            const result = await fetchRemoteSource(
+                { type: 'gist', gistId: 'null-content' },
+                {}
+            )
+            tempDirs.push(result.tempDir)
+
+            const content = await readFile(
+                join(result.tempDir, 'empty.txt'),
+                'utf8'
+            )
+            expect(content).toBe('')
+        })
+
         it('should throw on 404 gist', async () => {
             globalThis.fetch = vi.fn().mockResolvedValue({
                 ok: false,
@@ -915,6 +958,84 @@ describe('fetchRemoteSource', () => {
                 fetchRemoteSource({ type: 'gist', gistId: 'fail-raw' }, {})
             ).rejects.toThrow('Failed to download file')
         })
+
+        it('should rethrow non-abort network errors from gist API fetch', async () => {
+            const networkError = new Error('getaddrinfo ENOTFOUND api.github.com')
+            networkError.name = 'Error'
+
+            globalThis.fetch = vi.fn().mockRejectedValue(networkError)
+
+            await expect(
+                fetchRemoteSource({ type: 'gist', gistId: 'net-err' }, {})
+            ).rejects.toThrow('getaddrinfo ENOTFOUND')
+        })
+
+        it('should rethrow non-abort network errors from truncated file download', async () => {
+            const networkError = new Error('socket hang up')
+            networkError.name = 'Error'
+
+            globalThis.fetch = vi.fn().mockImplementation((url) => {
+                if (url.includes('/gists/')) {
+                    return Promise.resolve({
+                        ok: true,
+                        json: async () => ({
+                            files: {
+                                'file.html': {
+                                    content: null,
+                                    truncated: true,
+                                    raw_url: 'https://gist.githubusercontent.com/raw/file.html'
+                                }
+                            }
+                        }),
+                        headers: new Headers()
+                    })
+                }
+                return Promise.reject(networkError)
+            })
+
+            await expect(
+                fetchRemoteSource({ type: 'gist', gistId: 'raw-net-err' }, {})
+            ).rejects.toThrow('socket hang up')
+        })
+
+        it('should reject when cumulative truncated file downloads exceed size limit', async () => {
+            // Each file is just under the limit, but combined they exceed it
+            const halfLimit = Math.floor(MAX_DOWNLOAD_BYTES / 2) + 1
+            const bigContent = 'x'.repeat(halfLimit)
+
+            globalThis.fetch = vi.fn().mockImplementation((url) => {
+                if (url.includes('/gists/')) {
+                    return Promise.resolve({
+                        ok: true,
+                        json: async () => ({
+                            files: {
+                                'big1.html': {
+                                    content: null,
+                                    truncated: true,
+                                    raw_url: 'https://gist.githubusercontent.com/raw/big1.html'
+                                },
+                                'big2.html': {
+                                    content: null,
+                                    truncated: true,
+                                    raw_url: 'https://gist.githubusercontent.com/raw/big2.html'
+                                }
+                            }
+                        }),
+                        headers: new Headers()
+                    })
+                }
+                // Return big content for each raw file (no Content-Length to skip pre-check)
+                return Promise.resolve({
+                    ok: true,
+                    text: async () => bigContent,
+                    headers: new Headers()
+                })
+            })
+
+            await expect(
+                fetchRemoteSource({ type: 'gist', gistId: 'cumulative-big' }, {})
+            ).rejects.toThrow('exceeds maximum size limit')
+        })
     })
 
     describe('Repo fetching', () => {
@@ -979,6 +1100,278 @@ describe('fetchRemoteSource', () => {
                     {}
                 )
             ).rejects.toThrow('exceeds maximum size limit')
+        })
+
+        it('should rethrow non-abort network errors from repo tarball fetch', async () => {
+            const networkError = new Error('connect ETIMEDOUT')
+            networkError.name = 'Error'
+
+            globalThis.fetch = vi.fn().mockRejectedValue(networkError)
+
+            await expect(
+                fetchRemoteSource(
+                    { type: 'repo', owner: 'user', repo: 'repo' },
+                    {}
+                )
+            ).rejects.toThrow('connect ETIMEDOUT')
+        })
+
+        it('should allow repo tarball response without Content-Type header', async () => {
+            // A response with no Content-Type should still proceed (L582 fallback)
+            const tarballBuffer = await buildTarballBuffer(async (srcDir, topDir) => {
+                await writeFile(join(srcDir, topDir, 'readme.txt'), 'no-ct')
+            })
+
+            // No Content-Type header at all
+            globalThis.fetch = vi.fn().mockResolvedValue({
+                ok: true,
+                headers: new Headers({
+                    'Content-Length': String(tarballBuffer.length)
+                }),
+                body: new ReadableStream({
+                    start (controller) {
+                        controller.enqueue(new Uint8Array(tarballBuffer))
+                        controller.close()
+                    }
+                })
+            })
+
+            const result = await fetchRemoteSource(
+                { type: 'repo', owner: 'user', repo: 'no-content-type' },
+                {}
+            )
+            tempDirs.push(result.tempDir)
+
+            const files = await readdir(result.tempDir)
+            expect(files).toContain('readme.txt')
+        })
+
+        it('should successfully extract a valid repo tarball', async () => {
+            // Build a real gzip tarball in-memory using the tar module
+            const tarModule = await import('tar')
+            const { PassThrough } = await import('node:stream')
+            const { pipeline: pipelineAsync } = await import('node:stream/promises')
+
+            // Create a temp directory with files, then pack it into a tarball buffer
+            const srcDir = await mkdtemp(join(tmpdir(), 'launchpd-tartest-src-'))
+            const { mkdir } = await import('node:fs/promises')
+            await mkdir(join(srcDir, 'user-repo-abc123'), { recursive: true })
+            await writeFile(join(srcDir, 'user-repo-abc123', 'index.html'), '<h1>Hello</h1>')
+            await writeFile(join(srcDir, 'user-repo-abc123', 'style.css'), 'body {}')
+
+            // Pack to buffer
+            const chunks = []
+            const passThrough = new PassThrough()
+            passThrough.on('data', (chunk) => chunks.push(chunk))
+
+            await pipelineAsync(
+                tarModule.create({ cwd: srcDir, gzip: true }, ['user-repo-abc123']),
+                passThrough
+            )
+
+            const tarballBuffer = Buffer.concat(chunks)
+
+            // Clean up source
+            await rm(srcDir, { recursive: true, force: true })
+
+            // Mock fetch to return the real tarball as a web-compatible ReadableStream
+            globalThis.fetch = vi.fn().mockResolvedValue({
+                ok: true,
+                headers: new Headers({
+                    'Content-Type': 'application/x-gzip',
+                    'Content-Length': String(tarballBuffer.length)
+                }),
+                body: new ReadableStream({
+                    start (controller) {
+                        controller.enqueue(new Uint8Array(tarballBuffer))
+                        controller.close()
+                    }
+                })
+            })
+
+            const result = await fetchRemoteSource(
+                { type: 'repo', owner: 'user', repo: 'repo' },
+                {}
+            )
+            tempDirs.push(result.tempDir)
+
+            // Verify files were extracted (strip: 1 removes top-level dir)
+            const files = await readdir(result.tempDir)
+            expect(files).toContain('index.html')
+            expect(files).toContain('style.css')
+
+            const htmlContent = await readFile(
+                join(result.tempDir, 'index.html'),
+                'utf8'
+            )
+            expect(htmlContent).toBe('<h1>Hello</h1>')
+        })
+
+        // Helper to build a gzip tarball buffer from a temp directory
+        async function buildTarballBuffer (setupFn) {
+            const tarModule = await import('tar')
+            const { PassThrough } = await import('node:stream')
+            const { pipeline: pipelineAsync } = await import('node:stream/promises')
+            const { mkdir, symlink } = await import('node:fs/promises')
+
+            const srcDir = await mkdtemp(join(tmpdir(), 'launchpd-tartest-'))
+            const topDir = 'user-repo-abc123'
+            await mkdir(join(srcDir, topDir), { recursive: true })
+            await setupFn(srcDir, topDir, { mkdir, symlink, writeFile })
+
+            const chunks = []
+            const passThrough = new PassThrough()
+            passThrough.on('data', (chunk) => chunks.push(chunk))
+
+            await pipelineAsync(
+                tarModule.create({ cwd: srcDir, gzip: true }, [topDir]),
+                passThrough
+            )
+
+            await rm(srcDir, { recursive: true, force: true })
+            return Buffer.concat(chunks)
+        }
+
+        function mockFetchWithTarball (tarballBuffer) {
+            globalThis.fetch = vi.fn().mockResolvedValue({
+                ok: true,
+                headers: new Headers({
+                    'Content-Type': 'application/x-gzip',
+                    'Content-Length': String(tarballBuffer.length)
+                }),
+                body: new ReadableStream({
+                    start (controller) {
+                        controller.enqueue(new Uint8Array(tarballBuffer))
+                        controller.close()
+                    }
+                })
+            })
+        }
+
+        it('should reject tarball whose streamed body exceeds size limit', async () => {
+            // Build a tarball with a file larger than MAX_DOWNLOAD_BYTES
+            // Instead of building a real huge file, we mock the response body
+            // to stream more data than the limit
+            const tarballBuffer = await buildTarballBuffer(async (srcDir, topDir) => {
+                await writeFile(join(srcDir, topDir, 'small.txt'), 'ok')
+            })
+
+            // Mock fetch to return the tarball buffer repeated enough times to exceed limit
+            const overSizedChunk = Buffer.alloc(MAX_DOWNLOAD_BYTES + 1, 0x41)
+            globalThis.fetch = vi.fn().mockResolvedValue({
+                ok: true,
+                headers: new Headers({
+                    'Content-Type': 'application/x-gzip'
+                }),
+                body: new ReadableStream({
+                    start (controller) {
+                        controller.enqueue(new Uint8Array(overSizedChunk))
+                        controller.close()
+                    }
+                })
+            })
+
+            await expect(
+                fetchRemoteSource(
+                    { type: 'repo', owner: 'user', repo: 'huge-stream' },
+                    {}
+                )
+            ).rejects.toThrow('exceeds maximum size limit')
+        })
+
+    })
+
+    describe('createSizeLimitStream', () => {
+        it('should pass through data under the limit', async () => {
+            const { pipeline } = await import('node:stream/promises')
+            const { PassThrough } = await import('node:stream')
+
+            const stream = createSizeLimitStream(100)
+            const chunks = []
+            const output = new PassThrough()
+            output.on('data', (chunk) => chunks.push(chunk))
+
+            await pipeline(
+                PassThrough.from([Buffer.from('hello')]),
+                stream,
+                output
+            )
+
+            expect(Buffer.concat(chunks).toString()).toBe('hello')
+        })
+
+        it('should throw when data exceeds the byte limit', async () => {
+            const { pipeline } = await import('node:stream/promises')
+            const { PassThrough } = await import('node:stream')
+
+            const stream = createSizeLimitStream(10)
+            const output = new PassThrough()
+
+            await expect(
+                pipeline(
+                    PassThrough.from([Buffer.alloc(20, 0x41)]),
+                    stream,
+                    output
+                )
+            ).rejects.toThrow('exceeds maximum size limit')
+        })
+    })
+
+    describe('createTarFilter', () => {
+        it('should allow regular file entries', () => {
+            const { filter } = createTarFilter()
+            const result = filter('repo/index.html', { type: 'File' })
+            expect(result).toBe(true)
+        })
+
+        it('should block SymbolicLink entries', () => {
+            const { filter } = createTarFilter()
+            const result = filter('repo/link', { type: 'SymbolicLink' })
+            expect(result).toBe(false)
+        })
+
+        it('should block Link (hard link) entries', () => {
+            const { filter } = createTarFilter()
+            const result = filter('repo/hardlink', { type: 'Link' })
+            expect(result).toBe(false)
+        })
+
+        it('should throw when file count exceeds MAX_FILE_COUNT', () => {
+            const { filter } = createTarFilter()
+            // Call filter for MAX_FILE_COUNT normal entries
+            for (let i = 0; i < MAX_FILE_COUNT; i++) {
+                filter(`repo/file${i}.txt`, { type: 'File' })
+            }
+            // The next call should throw
+            expect(() => {
+                filter('repo/one-too-many.txt', { type: 'File' })
+            }).toThrow('maximum file count')
+        })
+
+        it('should throw when path depth exceeds MAX_EXTRACT_DEPTH', () => {
+            const { filter } = createTarFilter()
+            // Build a path with MAX_EXTRACT_DEPTH + 1 segments
+            const segments = []
+            for (let i = 0; i <= MAX_EXTRACT_DEPTH; i++) {
+                segments.push(`d${i}`)
+            }
+            const deepPath = segments.join('/') + '/deep.txt'
+            expect(() => {
+                filter(deepPath, { type: 'File' })
+            }).toThrow('maximum directory depth')
+        })
+
+        it('should filter out ignored files like node_modules', () => {
+            const { filter } = createTarFilter()
+            const result = filter('repo/node_modules', { type: 'Directory' })
+            expect(result).toBe(false)
+        })
+
+        it('should track file count via getStats', () => {
+            const { filter, getStats } = createTarFilter()
+            filter('repo/a.txt', { type: 'File' })
+            filter('repo/b.txt', { type: 'File' })
+            expect(getStats().fileCount).toBe(2)
         })
     })
 
