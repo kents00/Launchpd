@@ -130,7 +130,9 @@ export function parseRemoteUrl (url) {
     throw new Error(`Invalid URL: "${url}". Expected a GitHub or Gist URL.`)
   }
 
-  const pathname = parsed.pathname.replace(/\/+$/, '') // strip trailing slashes
+  // Strip trailing slashes (non-regex to avoid ReDoS static-analysis warnings)
+  let pathname = parsed.pathname
+  while (pathname.endsWith('/')) pathname = pathname.slice(0, -1)
   const segments = pathname.split('/').filter(Boolean)
 
   // Gist URL: https://gist.github.com/{user}/{gist_id}
