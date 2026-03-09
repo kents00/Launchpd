@@ -143,10 +143,19 @@ describe('parseRemoteUrl', () => {
 
         it('should throw on insecure http:// URLs', () => {
             expect(() => parseRemoteUrl('http://github.com/user/repo')).toThrow(
-                'Insecure URL'
+                'Only https:// URLs are supported'
             )
             expect(() => parseRemoteUrl('http://gist.github.com/user/abc123')).toThrow(
-                'Insecure URL'
+                'Only https:// URLs are supported'
+            )
+        })
+
+        it('should throw on non-https schemes (ftp, file, etc.)', () => {
+            expect(() => parseRemoteUrl('ftp://github.com/user/repo')).toThrow(
+                'Only https:// URLs are supported'
+            )
+            expect(() => parseRemoteUrl('file:///github.com/user/repo')).toThrow(
+                'Only https:// URLs are supported'
             )
         })
     })
@@ -464,7 +473,7 @@ describe('Security', () => {
                         'evil.html': {
                             content: null,
                             truncated: true,
-                            raw_url: 'http://169.254.169.254/latest/meta-data/'
+                            raw_url: 'https://169.254.169.254/latest/meta-data/'
                         }
                     }
                 }),
@@ -493,7 +502,27 @@ describe('Security', () => {
 
             await expect(
                 fetchRemoteSource({ type: 'gist', gistId: 'ssrf-local' }, {})
-            ).rejects.toThrow('Untrusted raw_url host')
+            ).rejects.toThrow('Insecure raw_url protocol')
+        })
+
+        it('should reject raw_url with non-https protocol even if host is trusted', async () => {
+            globalThis.fetch = vi.fn().mockResolvedValue({
+                ok: true,
+                json: async () => ({
+                    files: {
+                        'file.html': {
+                            content: null,
+                            truncated: true,
+                            raw_url: 'http://gist.githubusercontent.com/user/abc/raw/file.html'
+                        }
+                    }
+                }),
+                headers: new Headers()
+            })
+
+            await expect(
+                fetchRemoteSource({ type: 'gist', gistId: 'ssrf-http-trusted' }, {})
+            ).rejects.toThrow('Insecure raw_url protocol')
         })
 
         it('should reject raw_url pointing to an arbitrary external domain', async () => {
@@ -598,6 +627,42 @@ describe('Security', () => {
             await expect(
                 fetchRemoteSource({ type: 'gist', gistId: 'bad-url' }, {})
             ).rejects.toThrow('Invalid raw_url')
+        })
+    })
+
+    describe('fetchGist temp dir cleanup on error', () => {
+        it('should clean up the temp directory when filename validation fails', async () => {
+            globalThis.fetch = vi.fn().mockResolvedValue({
+                ok: true,
+                json: async () => ({
+                    files: {
+                        '../evil.html': {
+                            content: 'bad',
+                            truncated: false
+                        }
+                    }
+                }),
+                headers: new Headers()
+            })
+
+            // Capture temp dirs created before the call
+            const tmpBase = tmpdir()
+            const dirsBefore = await (async () => {
+                const { readdir: rd } = await import('node:fs/promises')
+                try { return await rd(tmpBase) } catch { return [] }
+            })()
+
+            await expect(
+                fetchRemoteSource({ type: 'gist', gistId: 'bad-filename' }, {})
+            ).rejects.toThrow('Unsafe gist filename')
+
+            // No launchpd-gist temp dir should remain
+            const { readdir: rd } = await import('node:fs/promises')
+            const dirsAfter = await rd(tmpBase)
+            const leaked = dirsAfter.filter(
+                d => d.startsWith('launchpd-gist-') && !dirsBefore.includes(d)
+            )
+            expect(leaked).toHaveLength(0)
         })
     })
 
