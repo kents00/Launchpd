@@ -128,10 +128,10 @@ export function parseRemoteUrl (url) {
     throw new Error(`Invalid URL: "${url}". Expected a GitHub or Gist URL.`)
   }
 
-  // Reject insecure http:// — require https://
-  if (parsed.protocol === 'http:') {
+  // Require HTTPS: reject any non-https protocol (e.g. http, ftp, file)
+  if (parsed.protocol !== 'https:') {
     throw new Error(
-      `Insecure URL: "${url}". Please use https:// instead of http://.`
+      `Invalid URL protocol for "${url}". Only https:// URLs are supported.`
     )
   }
 
@@ -272,6 +272,12 @@ function validateRawUrl (rawUrl) {
   } catch {
     throw new Error(
       `Invalid raw_url in Gist response: "${rawUrl}". Cannot fetch from this location.`
+    )
+  }
+
+  if (parsed.protocol !== 'https:') {
+    throw new Error(
+      `Insecure raw_url protocol: "${parsed.protocol}". Only https:// raw URLs are allowed.`
     )
   }
 
@@ -416,107 +422,31 @@ async function fetchGist (gistId) {
   // Create temp directory
   const tempDir = await mkdtemp(join(tmpdir(), 'launchpd-gist-'))
 
-  // Validate all filenames first
-  for (const filename of Object.keys(files)) {
-    validateGistFilename(filename)
-  }
-
-  // Track total size
-  let totalBytes = 0
-
-  // Separate files into inline and truncated (need download)
-  const inlineFiles = []
-  const truncatedFiles = []
-
-  for (const [filename, fileData] of Object.entries(files)) {
-    if (fileData.truncated && fileData.raw_url) {
-      truncatedFiles.push([filename, fileData])
-    } else {
-      inlineFiles.push([filename, fileData])
+  try {
+    // Validate all filenames first
+    for (const filename of Object.keys(files)) {
+      validateGistFilename(filename)
     }
-  }
 
-  // Write inline files immediately
-  for (const [filename, fileData] of inlineFiles) {
-    const content = fileData.content || ''
-    totalBytes += Buffer.byteLength(content)
-    if (totalBytes > MAX_DOWNLOAD_BYTES) {
-      throw new Error(
-        `Gist exceeds maximum size limit of ${Math.round(MAX_DOWNLOAD_BYTES / 1024 / 1024)}MB. Aborting.`
-      )
-    }
-    await writeFile(join(tempDir, filename), content)
-  }
+    // Track total size
+    let totalBytes = 0
 
-  // Download truncated files in parallel batches.
-  // The per-file download logic is extracted into a named function declared
-  // outside the loop so that no closure is created inside the loop (JS-0073).
-  // totalBytes is passed as a parameter instead of captured from the outer scope.
+    // Separate files into inline and truncated (need download)
+    const inlineFiles = []
+    const truncatedFiles = []
 
-  /**
-   * Download a single truncated gist file.
-   * @param {string} filename
-   * @param {{ raw_url: string }} fileData
-   * @param {number} currentTotalBytes - snapshot of totalBytes at call time
-   * @returns {Promise<{ filename: string, content: string, size: number }>}
-   */
-  async function downloadTruncatedFile (filename, fileData, currentTotalBytes) {
-    // SSRF protection: validate raw_url domain before fetching
-    validateRawUrl(fileData.raw_url)
-
-    const { signal: rawSignal, clear: rawClear } =
-      createFetchTimeout(FETCH_TIMEOUT_MS)
-    let rawResponse = null
-    try {
-      rawResponse = await fetch(fileData.raw_url, {
-        headers: { 'User-Agent': USER_AGENT },
-        signal: rawSignal
-      })
-    } catch (err) {
-      if (err.name === 'AbortError') {
-        throw new Error(
-          `Request timed out while downloading file "${filename}" from Gist. The server did not respond within ${FETCH_TIMEOUT_MS / 1000}s.`
-        )
+    for (const [filename, fileData] of Object.entries(files)) {
+      if (fileData.truncated && fileData.raw_url) {
+        truncatedFiles.push([filename, fileData])
+      } else {
+        inlineFiles.push([filename, fileData])
       }
-      throw err
-    } finally {
-      rawClear()
     }
 
-    if (!rawResponse.ok) {
-      throw new Error(`Failed to download file "${filename}" from Gist.`)
-    }
-
-    // Content-Length pre-check for truncated gist files (optimization)
-    const rawContentLength = parseInt(
-      rawResponse.headers.get('Content-Length') || '0'
-    )
-    if (
-      rawContentLength > 0 &&
-      currentTotalBytes + rawContentLength > MAX_DOWNLOAD_BYTES
-    ) {
-      throw new Error(
-        `Gist exceeds maximum size limit of ${Math.round(MAX_DOWNLOAD_BYTES / 1024 / 1024)}MB. Aborting.`
-      )
-    }
-
-    const content = await rawResponse.text()
-    return { filename, content, size: Buffer.byteLength(content) }
-  }
-
-  for (let i = 0; i < truncatedFiles.length; i += GIST_PARALLEL_LIMIT) {
-    const batch = truncatedFiles.slice(i, i + GIST_PARALLEL_LIMIT)
-    const snapshotBytes = totalBytes
-
-    const results = await Promise.all(
-      batch.map(([filename, fileData]) =>
-        downloadTruncatedFile(filename, fileData, snapshotBytes)
-      )
-    )
-
-    // Accumulate sizes and write files serially — size limit enforced here.
-    for (const { filename, content, size } of results) {
-      totalBytes += size
+    // Write inline files immediately
+    for (const [filename, fileData] of inlineFiles) {
+      const content = fileData.content || ''
+      totalBytes += Buffer.byteLength(content)
       if (totalBytes > MAX_DOWNLOAD_BYTES) {
         throw new Error(
           `Gist exceeds maximum size limit of ${Math.round(MAX_DOWNLOAD_BYTES / 1024 / 1024)}MB. Aborting.`
@@ -524,9 +454,95 @@ async function fetchGist (gistId) {
       }
       await writeFile(join(tempDir, filename), content)
     }
-  }
 
-  return tempDir
+    // Download truncated files in parallel batches.
+    // The per-file download logic is extracted into a named function declared
+    // outside the loop so that no closure is created inside the loop (JS-0073).
+    // totalBytes is passed as a parameter instead of captured from the outer scope.
+
+    /**
+     * Download a single truncated gist file.
+     * @param {string} filename
+     * @param {{ raw_url: string }} fileData
+     * @param {number} currentTotalBytes - snapshot of totalBytes at call time
+     * @returns {Promise<{ filename: string, content: string, size: number }>}
+     */
+    async function downloadTruncatedFile (filename, fileData, currentTotalBytes) {
+      // SSRF protection: validate raw_url domain before fetching
+      validateRawUrl(fileData.raw_url)
+
+      const { signal: rawSignal, clear: rawClear } =
+        createFetchTimeout(FETCH_TIMEOUT_MS)
+      let rawResponse = null
+      try {
+        rawResponse = await fetch(fileData.raw_url, {
+          headers: { 'User-Agent': USER_AGENT },
+          signal: rawSignal
+        })
+      } catch (err) {
+        if (err.name === 'AbortError') {
+          throw new Error(
+            `Request timed out while downloading file "${filename}" from Gist. The server did not respond within ${FETCH_TIMEOUT_MS / 1000}s.`
+          )
+        }
+        throw err
+      } finally {
+        rawClear()
+      }
+
+      if (!rawResponse.ok) {
+        throw new Error(`Failed to download file "${filename}" from Gist.`)
+      }
+
+      // Content-Length pre-check for truncated gist files (optimization)
+      const rawContentLength = parseInt(
+        rawResponse.headers.get('Content-Length') || '0'
+      )
+      if (
+        rawContentLength > 0 &&
+        currentTotalBytes + rawContentLength > MAX_DOWNLOAD_BYTES
+      ) {
+        throw new Error(
+          `Gist exceeds maximum size limit of ${Math.round(MAX_DOWNLOAD_BYTES / 1024 / 1024)}MB. Aborting.`
+        )
+      }
+
+      const content = await rawResponse.text()
+      return { filename, content, size: Buffer.byteLength(content) }
+    }
+
+    for (let i = 0; i < truncatedFiles.length; i += GIST_PARALLEL_LIMIT) {
+      const batch = truncatedFiles.slice(i, i + GIST_PARALLEL_LIMIT)
+      const snapshotBytes = totalBytes
+
+      const results = await Promise.all(
+        batch.map(([filename, fileData]) =>
+          downloadTruncatedFile(filename, fileData, snapshotBytes)
+        )
+      )
+
+      // Accumulate sizes and write files serially — size limit enforced here.
+      for (const { filename, content, size } of results) {
+        totalBytes += size
+        if (totalBytes > MAX_DOWNLOAD_BYTES) {
+          throw new Error(
+            `Gist exceeds maximum size limit of ${Math.round(MAX_DOWNLOAD_BYTES / 1024 / 1024)}MB. Aborting.`
+          )
+        }
+        await writeFile(join(tempDir, filename), content)
+      }
+    }
+
+    return tempDir
+  } catch (err) {
+    // Best-effort cleanup of temp directory on error
+    try {
+      await rm(tempDir, { recursive: true, force: true })
+    } catch {
+      // Ignore cleanup errors to preserve the original failure
+    }
+    throw err
+  }
 }
 
 /**
