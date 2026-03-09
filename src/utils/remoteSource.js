@@ -467,7 +467,11 @@ async function fetchGist (gistId) {
      * @param {number} currentTotalBytes - snapshot of totalBytes at call time
      * @returns {Promise<{ filename: string, content: string, size: number }>}
      */
-    async function downloadTruncatedFile (filename, fileData, currentTotalBytes) {
+    async function downloadTruncatedFile (
+      filename,
+      fileData,
+      currentTotalBytes
+    ) {
       // SSRF protection: validate raw_url domain before fetching
       validateRawUrl(fileData.raw_url)
 
