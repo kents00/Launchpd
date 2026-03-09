@@ -633,20 +633,28 @@ async function fetchRepo (owner, repo, branch) {
 export async function fetchRemoteSource (parsed, options = {}) {
   let tempDir = null
 
-  if (parsed.type === 'gist') {
-    tempDir = await fetchGist(parsed.gistId)
-  } else if (parsed.type === 'repo') {
-    tempDir = await fetchRepo(parsed.owner, parsed.repo, options.branch)
-  } else {
-    throw new Error(`Unknown remote source type: "${parsed.type}"`)
+  try {
+    if (parsed.type === 'gist') {
+      tempDir = await fetchGist(parsed.gistId)
+    } else if (parsed.type === 'repo') {
+      tempDir = await fetchRepo(parsed.owner, parsed.repo, options.branch)
+    } else {
+      throw new Error(`Unknown remote source type: "${parsed.type}"`)
+    }
+
+    // Resolve subdirectory if --dir was specified (with path traversal check)
+    const folderPath = options.dir
+      ? validateDirPath(tempDir, options.dir)
+      : tempDir
+
+    return { tempDir, folderPath }
+  } catch (err) {
+    // Best-effort cleanup if tempDir was created but an error occurred afterward
+    if (tempDir) {
+      await cleanupTempDir(tempDir)
+    }
+    throw err
   }
-
-  // Resolve subdirectory if --dir was specified (with path traversal check)
-  const folderPath = options.dir
-    ? validateDirPath(tempDir, options.dir)
-    : tempDir
-
-  return { tempDir, folderPath }
 }
 
 /**
