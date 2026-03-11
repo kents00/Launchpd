@@ -56,26 +56,14 @@ async function validateApiKey (apiKey) {
     return null
   }
 
+  const { signal, clear } = createFetchTimeout(API_TIMEOUT_MS)
   try {
-    const { signal, clear } = createFetchTimeout(API_TIMEOUT_MS)
-    let response = null
-    try {
-      response = await fetch(`${API_BASE_URL}/api/quota`, {
-        headers: {
-          'X-API-Key': apiKey
-        },
-        signal
-      })
-    } catch (err) {
-      if (err.name === 'AbortError') {
-        throw new Error(
-          `Request timed out after ${API_TIMEOUT_MS / 1000}s. The server did not respond in time.`
-        )
-      }
-      throw err
-    } finally {
-      clear()
-    }
+    const response = await fetch(`${API_BASE_URL}/api/quota`, {
+      headers: {
+        'X-API-Key': apiKey
+      },
+      signal
+    })
 
     if (response.status === 401) {
       const data = await response.json().catch(() => ({}))
@@ -94,8 +82,13 @@ async function validateApiKey (apiKey) {
       return data
     }
     return null
-  } catch {
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      return { timeout: true }
+    }
     return null
+  } finally {
+    clear()
   }
 }
 
@@ -141,6 +134,16 @@ async function loginWithApiKey () {
       `Get your API key at: https://portal.${config.domain}/api-keys`,
       'Make sure you copied the full key',
       'API keys start with "lpd_"'
+    ])
+    return null
+  }
+
+  if (result.timeout) {
+    validateSpinner.fail('Request timed out')
+    errorWithSuggestions('The server did not respond in time.', [
+      'Check your internet connection',
+      'Try again later',
+      'If the problem persists, check https://status.launchpd.cloud'
     ])
     return null
   }

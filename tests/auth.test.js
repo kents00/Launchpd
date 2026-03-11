@@ -202,7 +202,7 @@ describe('auth commands', () => {
       fetch.mockRejectedValue(abortErr)
 
       await expect(login()).rejects.toThrow('Process.exit(1)')
-      expect(spinner().fail).toHaveBeenCalledWith('Invalid API key')
+      expect(spinner().fail).toHaveBeenCalledWith('Request timed out')
     })
 
     it('should fail if no API key is provided at prompt', async () => {
