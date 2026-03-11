@@ -14,7 +14,7 @@ const API_BASE_URL = config.apiUrl
  * @param {string} windowsPath
  * @returns {string}
  */
-function toPosixPath(windowsPath) {
+function toPosixPath (windowsPath) {
   return windowsPath.split(sep).join(posix.sep)
 }
 
@@ -26,7 +26,7 @@ function toPosixPath(windowsPath) {
  * @param {string} filePath - Relative file path
  * @param {string} contentType - MIME type
  */
-async function uploadFile(content, subdomain, version, filePath, contentType) {
+async function uploadFile (content, subdomain, version, filePath, contentType) {
   const apiKey = await getApiKey()
   const apiSecret = await getApiSecret()
   const headers = {
@@ -95,7 +95,7 @@ async function uploadFile(content, subdomain, version, filePath, contentType) {
  * @param {string} folderName - Original folder name
  * @param {string|null} expiresAt - ISO expiration timestamp
  */
-async function completeUpload(
+async function completeUpload (
   subdomain,
   version,
   fileCount,
@@ -179,7 +179,7 @@ async function completeUpload(
  * @param {number} version - Version number for this deployment
  * @param {function} onProgress - Progress callback (uploaded, total, fileName)
  */
-export async function uploadFolder(
+export async function uploadFolder (
   localPath,
   subdomain,
   version = 1,
@@ -248,7 +248,7 @@ export async function uploadFolder(
  * @param {string} folderName - Folder name
  * @param {string|null} expiresAt - Expiration ISO timestamp
  */
-export async function finalizeUpload(
+export async function finalizeUpload (
   subdomain,
   version,
   fileCount,
