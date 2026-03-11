@@ -7,7 +7,7 @@
  * Base API Error class
  */
 export class APIError extends Error {
-  constructor (message, statusCode = 500, data = {}) {
+  constructor(message, statusCode = 500, data = {}) {
     super(message)
     this.name = 'APIError'
     this.statusCode = statusCode
@@ -20,7 +20,7 @@ export class APIError extends Error {
  * Maintenance mode error - thrown when backend is under maintenance
  */
 export class MaintenanceError extends APIError {
-  constructor (message = 'LaunchPd is under maintenance') {
+  constructor(message = 'LaunchPd is under maintenance') {
     super(message, 503)
     this.name = 'MaintenanceError'
     this.isMaintenanceError = true
@@ -31,7 +31,7 @@ export class MaintenanceError extends APIError {
  * Authentication error - thrown for 401 responses
  */
 export class AuthError extends APIError {
-  constructor (message = 'Authentication failed', data = {}) {
+  constructor(message = 'Authentication failed', data = {}) {
     super(message, 401, data)
     this.name = 'AuthError'
     this.isAuthError = true
@@ -44,7 +44,7 @@ export class AuthError extends APIError {
  * Quota error - thrown when user exceeds limits
  */
 export class QuotaError extends APIError {
-  constructor (message = 'Quota exceeded', data = {}) {
+  constructor(message = 'Quota exceeded', data = {}) {
     super(message, 429, data)
     this.name = 'QuotaError'
     this.isQuotaError = true
@@ -55,7 +55,7 @@ export class QuotaError extends APIError {
  * Network error - thrown for connection failures
  */
 export class NetworkError extends Error {
-  constructor (message = 'Unable to connect to LaunchPd servers') {
+  constructor(message = 'Unable to connect to LaunchPd servers') {
     super(message)
     this.name = 'NetworkError'
     this.isNetworkError = true
@@ -66,7 +66,7 @@ export class NetworkError extends Error {
  * Two-factor authentication required error
  */
 export class TwoFactorRequiredError extends APIError {
-  constructor (
+  constructor(
     twoFactorType = 'totp',
     message = 'Two-factor authentication required'
   ) {
@@ -83,7 +83,7 @@ export class TwoFactorRequiredError extends APIError {
  * @param {object} logger - Logger with error, info, warning functions
  * @returns {boolean} - True if error was handled, false otherwise
  */
-export function handleCommonError (err, logger) {
+export function handleCommonError(err, logger) {
   const { error, info } = logger
 
   if (err instanceof MaintenanceError || err.isMaintenanceError) {
@@ -103,6 +103,13 @@ export function handleCommonError (err, logger) {
     error('Unable to connect to LaunchPd')
     info('Check your internet connection')
     info('If the problem persists, check https://status.launchpd.cloud')
+    return true
+  }
+
+  if (err.name === 'AbortError') {
+    error('Request timed out')
+    info('The server did not respond in time')
+    info('Check your internet connection or try again later')
     return true
   }
 

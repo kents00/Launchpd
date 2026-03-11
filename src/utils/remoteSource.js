@@ -31,6 +31,7 @@ import { Readable, Transform } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 import * as tar from 'tar'
 import { isIgnored } from './ignore.js'
+import { createFetchTimeout } from './api.js'
 
 // ============================================================================
 // Constants & Limits
@@ -102,7 +103,7 @@ const WINDOWS_RESERVED_NAMES = new Set([
  * @param {string} input - The deploy source argument
  * @returns {boolean}
  */
-export function isRemoteUrl (input) {
+export function isRemoteUrl(input) {
   if (!input || typeof input !== 'string') return false
   return (
     input.startsWith('https://github.com/') ||
@@ -116,7 +117,7 @@ export function isRemoteUrl (input) {
  * @returns {{ type: 'gist'|'repo', owner: string, repo?: string, gistId?: string }}
  * @throws {Error} If the URL format is not recognized
  */
-export function parseRemoteUrl (url) {
+export function parseRemoteUrl(url) {
   if (!url || typeof url !== 'string') {
     throw new Error('URL is required')
   }
@@ -182,13 +183,13 @@ export function parseRemoteUrl (url) {
  * @param {Response} response - The fetch response
  * @throws {Error} If rate limit is exhausted
  */
-function checkRateLimit (response) {
+function checkRateLimit(response) {
   const remaining = response.headers.get('X-RateLimit-Remaining')
   const resetTimestamp = response.headers.get('X-RateLimit-Reset')
 
   if (response.status === 403 && remaining === '0') {
     const resetDate = resetTimestamp
-      ? new Date(parseInt(resetTimestamp) * 1000)
+      ? new Date(Number.parseInt(resetTimestamp) * 1000)
       : null
     const resetMsg = resetDate
       ? ` Rate limit resets at ${resetDate.toLocaleTimeString()}.`
@@ -210,7 +211,7 @@ function checkRateLimit (response) {
  * @param {string} filename - The filename from the gist
  * @throws {Error} If filename contains dangerous characters or reserved names
  */
-export function validateGistFilename (filename) {
+export function validateGistFilename(filename) {
   if (
     filename.includes('..') ||
     filename.includes(sep) ||
@@ -245,7 +246,7 @@ export function validateGistFilename (filename) {
  * @returns {string} The resolved safe path
  * @throws {Error} If the path escapes the temp directory
  */
-function validateDirPath (tempDir, dir) {
+function validateDirPath(tempDir, dir) {
   const resolvedDir = resolve(tempDir, dir)
   const normalizedTempDir = resolve(tempDir)
 
@@ -265,7 +266,7 @@ function validateDirPath (tempDir, dir) {
  * @param {string} rawUrl - The raw_url from the Gist API
  * @throws {Error} If the URL points to an untrusted host
  */
-function validateRawUrl (rawUrl) {
+function validateRawUrl(rawUrl) {
   let parsed = null
   try {
     parsed = new URL(rawUrl)
@@ -293,10 +294,10 @@ function validateRawUrl (rawUrl) {
  * @param {number} maxBytes - Maximum allowed bytes
  * @returns {Transform} A transform stream that throws if limit is exceeded
  */
-export function createSizeLimitStream (maxBytes) {
+export function createSizeLimitStream(maxBytes) {
   let bytesReceived = 0
   return new Transform({
-    transform (chunk, _encoding, callback) {
+    transform(chunk, _encoding, callback) {
       bytesReceived += chunk.length
       if (bytesReceived > maxBytes) {
         callback(
@@ -316,7 +317,7 @@ export function createSizeLimitStream (maxBytes) {
  * Prevents: symlinks, excessive file count, deep nesting, ignored files
  * @returns {{ filter: Function, getStats: Function }}
  */
-export function createTarFilter () {
+export function createTarFilter() {
   let fileCount = 0
 
   const filter = (path, entry) => {
@@ -352,20 +353,6 @@ export function createTarFilter () {
   return { filter, getStats }
 }
 
-/**
- * Create an AbortController with a timeout.
- * @param {number} ms - Timeout in milliseconds
- * @returns {{ signal: AbortSignal, clear: () => void }}
- */
-function createFetchTimeout (ms) {
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), ms)
-  return {
-    signal: controller.signal,
-    clear: () => clearTimeout(timer)
-  }
-}
-
 // ============================================================================
 // Fetchers
 // ============================================================================
@@ -376,7 +363,7 @@ function createFetchTimeout (ms) {
  * @param {string} gistId - The Gist ID
  * @returns {Promise<string>} Path to the directory containing gist files
  */
-async function fetchGist (gistId) {
+async function fetchGist(gistId) {
   const { signal, clear } = createFetchTimeout(FETCH_TIMEOUT_MS)
   let response = null
   try {
@@ -467,7 +454,7 @@ async function fetchGist (gistId) {
      * @param {number} currentTotalBytes - snapshot of totalBytes at call time
      * @returns {Promise<{ filename: string, content: string, size: number }>}
      */
-    async function downloadTruncatedFile (
+    async function downloadTruncatedFile(
       filename,
       fileData,
       currentTotalBytes
@@ -499,7 +486,7 @@ async function fetchGist (gistId) {
       }
 
       // Content-Length pre-check for truncated gist files (optimization)
-      const rawContentLength = parseInt(
+      const rawContentLength = Number.parseInt(
         rawResponse.headers.get('Content-Length') || '0'
       )
       if (
@@ -557,7 +544,7 @@ async function fetchGist (gistId) {
  * @param {string} [branch] - Branch/tag/ref (defaults to repo default branch)
  * @returns {Promise<string>} Path to the extracted repo root
  */
-async function fetchRepo (owner, repo, branch) {
+async function fetchRepo(owner, repo, branch) {
   const ref = branch || ''
   const tarballUrl = `${GITHUB_API}/repos/${owner}/${repo}/tarball/${ref}`
 
@@ -610,7 +597,7 @@ async function fetchRepo (owner, repo, branch) {
   }
 
   // Check Content-Length header for early size rejection
-  const contentLength = parseInt(response.headers.get('Content-Length') || '0')
+  const contentLength = Number.parseInt(response.headers.get('Content-Length') || '0')
   if (contentLength > MAX_DOWNLOAD_BYTES) {
     throw new Error(
       `Repository tarball (${Math.round(contentLength / 1024 / 1024)}MB) exceeds maximum size limit of ${Math.round(MAX_DOWNLOAD_BYTES / 1024 / 1024)}MB.`
@@ -650,7 +637,7 @@ async function fetchRepo (owner, repo, branch) {
  * @param {{ branch?: string, dir?: string }} options
  * @returns {Promise<{ tempDir: string, folderPath: string }>}
  */
-export async function fetchRemoteSource (parsed, options = {}) {
+export async function fetchRemoteSource(parsed, options = {}) {
   let tempDir = null
 
   try {
@@ -681,7 +668,7 @@ export async function fetchRemoteSource (parsed, options = {}) {
  * Clean up a temporary directory created by fetchRemoteSource
  * @param {string} tempDir - Path to the temp directory
  */
-export async function cleanupTempDir (tempDir) {
+export async function cleanupTempDir(tempDir) {
   if (!tempDir) return
   try {
     await rm(tempDir, { recursive: true, force: true })

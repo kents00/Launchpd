@@ -23,7 +23,7 @@ import {
 } from '../utils/logger.js'
 import { formatBytes } from '../utils/quota.js'
 import { handleCommonError } from '../utils/errors.js'
-import { resendVerification } from '../utils/api.js'
+import { resendVerification, createFetchTimeout, API_TIMEOUT_MS } from '../utils/api.js'
 import chalk from 'chalk'
 
 const API_BASE_URL = config.apiUrl
@@ -53,11 +53,25 @@ async function validateApiKey(apiKey) {
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}/api/quota`, {
-      headers: {
-        'X-API-Key': apiKey
+    const { signal, clear } = createFetchTimeout(API_TIMEOUT_MS)
+    let response
+    try {
+      response = await fetch(`${API_BASE_URL}/api/quota`, {
+        headers: {
+          'X-API-Key': apiKey
+        },
+        signal
+      })
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        throw new Error(
+          `Request timed out after ${API_TIMEOUT_MS / 1000}s. The server did not respond in time.`
+        )
       }
-    })
+      throw err
+    } finally {
+      clear()
+    }
 
     if (response.status === 401) {
       const data = await response.json().catch(() => ({}))
