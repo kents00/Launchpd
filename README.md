@@ -46,13 +46,13 @@ _Requires **Node.js 20** or higher._
 
 ### Deployment
 
-| Command                          | Description                                                        |
-| :------------------------------- | :----------------------------------------------------------------- | ------------------------------------------------- |
-| `launchpd init`                  | Link current folder to a subdomain (persisted in `.launchpd.json`) |
-| `launchpd deploy <folder         | url>`                                                              | Deploy a local folder or remote URL (GitHub/Gist) |
-| `launchpd deploy . --name site`  | Deploy with a custom subdomain explicitly                          |
-| `launchpd deploy . --expires 2h` | Set auto-deletion (e.g., `30m`, `1d`, `7d`)                        |
-| `launchpd deploy . --open`       | Deploy and immediately open the site in your browser               |
+| Command                               | Description                                                        |
+| :------------------------------------ | :----------------------------------------------------------------- |
+| `launchpd init`                       | Link current folder to a subdomain (persisted in `.launchpd.json`) |
+| `launchpd deploy <folder\|url>`       | Deploy a local folder or remote URL (GitHub/Gist)                  |
+| `launchpd deploy . --name <site>`     | Deploy with a custom subdomain explicitly                          |
+| `launchpd deploy . --expires <time>`  | Set auto-deletion (e.g., `30m`, `1d`, `7d`)                        |
+| `launchpd deploy . --open`            | Deploy and immediately open the site in your browser               |
 
 ### Remote Deployments (GitHub & Gist)
 
