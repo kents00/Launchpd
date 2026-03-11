@@ -6,7 +6,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![GitHub stars](https://img.shields.io/github/stars/kents00/launchpd.svg?style=social)](https://github.com/kents00/launchpd)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=kents00_Launchpd&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=kents00_Launchpd)
-[![DeepSource](https://app.deepsource.com/gh/kents00/Launchpd.svg/?label=resolved+issues&show_trend=true&token=UIl3aQ-ZhB-iXYsoVgn0-spU)](https://app.deepsource.com/gh/kents00/Launchpd/)
+[![DeepSource](https://app.deepsource.com/gh/kents00/Launchpd.svg/?label=active+issues&show_trend=true&token=UIl3aQ-ZhB-iXYsoVgn0-spU)](https://app.deepsource.com/gh/kents00/Launchpd/)
 
 ---
 
@@ -46,13 +46,13 @@ _Requires **Node.js 20** or higher._
 
 ### Deployment
 
-| Command                          | Description                                                        |
-| :------------------------------- | :----------------------------------------------------------------- | ------------------------------------------------- |
-| `launchpd init`                  | Link current folder to a subdomain (persisted in `.launchpd.json`) |
-| `launchpd deploy <folder         | url>`                                                              | Deploy a local folder or remote URL (GitHub/Gist) |
-| `launchpd deploy . --name site`  | Deploy with a custom subdomain explicitly                          |
-| `launchpd deploy . --expires 2h` | Set auto-deletion (e.g., `30m`, `1d`, `7d`)                        |
-| `launchpd deploy . --open`       | Deploy and immediately open the site in your browser               |
+| Command                               | Description                                                        |
+| :------------------------------------ | :----------------------------------------------------------------- |
+| `launchpd init`                       | Link current folder to a subdomain (persisted in `.launchpd.json`) |
+| `launchpd deploy <folder\|url>`       | Deploy a local folder or remote URL (GitHub/Gist)                  |
+| `launchpd deploy . --name <site>`     | Deploy with a custom subdomain explicitly                          |
+| `launchpd deploy . --expires <time>`  | Set auto-deletion (e.g., `30m`, `1d`, `7d`)                        |
+| `launchpd deploy . --open`            | Deploy and immediately open the site in your browser               |
 
 ### Remote Deployments (GitHub & Gist)
 
