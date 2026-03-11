@@ -15,6 +15,7 @@ export default [
         __filename: 'readonly',
         global: 'readonly',
         fetch: 'readonly', // Node.js 18+ built-in
+        AbortController: 'readonly', // Node.js 15+ built-in
         URL: 'readonly',
         setTimeout: 'readonly',
         setInterval: 'readonly',
