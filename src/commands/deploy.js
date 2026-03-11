@@ -44,6 +44,12 @@ import { validateStaticOnly } from '../utils/validator.js'
 import { isIgnored } from '../utils/ignore.js'
 import { prompt } from '../utils/prompt.js'
 import { handleCommonError } from '../utils/errors.js'
+import {
+  isRemoteUrl,
+  parseRemoteUrl,
+  fetchRemoteSource,
+  cleanupTempDir
+} from '../utils/remoteSource.js'
 import QRCode from 'qrcode'
 
 // ============================================================================
@@ -655,75 +661,125 @@ function getErrorSuggestions (err) {
 // ============================================================================
 
 /**
- * Deploy a local folder to StaticLaunch
- * @param {string} folder - Path to folder to deploy
+ * Deploy a local folder or remote URL to StaticLaunch
+ * @param {string} source - Path to folder, GitHub repo URL, or Gist URL
  * @param {object} options - Command options
  * @param {string} options.name - Custom subdomain
  * @param {string} options.expires - Expiration time (e.g., "30m", "2h", "1d")
  * @param {boolean} options.verbose - Show verbose error details
+ * @param {string} options.branch - Git branch (for repo URLs)
+ * @param {string} options.dir - Subdirectory within repo to deploy
  */
-export async function deploy (folder, options) {
-  const folderPath = resolve(folder)
+export async function deploy (source, options) {
   const verbose = options.verbose || false
+  let folderPath = null
+  let tempDir = null
 
-  // Parse and validate
-  const expiresAt = parseExpiration(options.expires, verbose)
-  validateOptions(options, folderPath, verbose)
+  // Detect remote URL vs local folder
+  if (isRemoteUrl(source)) {
+    const fetchSpinner = spinner('Fetching remote source...')
+    try {
+      const parsed = parseRemoteUrl(source)
+      const sourceLabel =
+        parsed.type === 'gist'
+          ? `Gist (${parsed.gistId})`
+          : `${parsed.owner}/${parsed.repo}`
+      fetchSpinner.update(`Downloading from ${sourceLabel}...`)
 
-  // Scan and validate folder
-  const fileCount = await scanFolder(folderPath, verbose)
-  await validateStaticFiles(folderPath, options, verbose)
-
-  // Resolve subdomain
-  const creds = await getCredentials()
-  const { subdomain, configSubdomain } = await resolveSubdomain(
-    options,
-    folderPath,
-    creds,
-    verbose
-  )
-  const url = `https://${subdomain}.launchpd.cloud`
-
-  // Check subdomain availability
-  await checkSubdomainOwnership(subdomain)
-
-  // Auto-init prompt
-  await promptAutoInit(options, configSubdomain, subdomain, folderPath)
-
-  // Calculate size and check quota
-  const sizeSpinner = spinner('Calculating folder size...')
-  const estimatedBytes = await calculateFolderSize(folderPath)
-  sizeSpinner.succeed(`Size: ${formatBytes(estimatedBytes)}`)
-
-  await checkDeploymentQuota(
-    subdomain,
-    estimatedBytes,
-    configSubdomain,
-    options
-  )
-
-  // Show deployment info
-  if (creds?.email) {
-    info(`Deploying as: ${creds.email}`)
+      const result = await fetchRemoteSource(parsed, {
+        branch: options.branch,
+        dir: options.dir
+      })
+      tempDir = result.tempDir
+      folderPath = result.folderPath
+      fetchSpinner.succeed(`Downloaded from ${parsed.type}: ${sourceLabel}`)
+    } catch (err) {
+      fetchSpinner.fail('Failed to fetch remote source')
+      errorWithSuggestions(
+        `Remote fetch failed: ${err.message}`,
+        [
+          'Check that the URL is correct and the resource is public',
+          'For repos, verify the branch exists with --branch',
+          'For gists, make sure the gist ID is correct',
+          'Check your internet connection'
+        ],
+        { verbose, cause: err }
+      )
+      process.exit(1)
+      return // Unreachable in production, satisfies test mocks
+    }
   } else {
-    info('Deploying as: anonymous (run "launchpd login" for more quota)')
+    folderPath = resolve(source)
   }
-  info(`Deploying ${fileCount} file(s) from ${folderPath}`)
-  info(`Target: ${url}`)
 
-  // Perform upload
   try {
-    const { version } = await performUpload(
+    // Parse and validate
+    const expiresAt = parseExpiration(options.expires, verbose)
+    validateOptions(options, folderPath, verbose)
+
+    // Scan and validate folder
+    const fileCount = await scanFolder(folderPath, verbose)
+    await validateStaticFiles(folderPath, options, verbose)
+
+    // Resolve subdomain
+    const creds = await getCredentials()
+    const { subdomain, configSubdomain } = await resolveSubdomain(
+      options,
       folderPath,
+      creds,
+      verbose
+    )
+    const url = `https://${subdomain}.launchpd.cloud`
+
+    // Check subdomain availability
+    await checkSubdomainOwnership(subdomain)
+
+    // Auto-init prompt (skip for remote URLs — no local project to init)
+    if (!tempDir) {
+      await promptAutoInit(options, configSubdomain, subdomain, folderPath)
+    }
+
+    // Calculate size and check quota
+    const sizeSpinner = spinner('Calculating folder size...')
+    const estimatedBytes = await calculateFolderSize(folderPath)
+    sizeSpinner.succeed(`Size: ${formatBytes(estimatedBytes)}`)
+
+    await checkDeploymentQuota(
       subdomain,
-      fileCount,
-      expiresAt,
+      estimatedBytes,
+      configSubdomain,
       options
     )
-    success(`Deployed successfully! (v${version})`)
-    log(`\n${url}`)
-    await showPostDeploymentInfo(url, options, expiresAt, creds, verbose)
-  } catch (err) {
-    handleUploadError(err, verbose)
+
+    // Show deployment info
+    if (creds?.email) {
+      info(`Deploying as: ${creds.email}`)
+    } else {
+      info('Deploying as: anonymous (run "launchpd login" for more quota)')
+    }
+    const sourceLabel = tempDir ? source : folderPath
+    info(`Deploying ${fileCount} file(s) from ${sourceLabel}`)
+    info(`Target: ${url}`)
+
+    // Perform upload
+    try {
+      const { version } = await performUpload(
+        folderPath,
+        subdomain,
+        fileCount,
+        expiresAt,
+        options
+      )
+      success(`Deployed successfully! (v${version})`)
+      log(`\n${url}`)
+      await showPostDeploymentInfo(url, options, expiresAt, creds, verbose)
+    } catch (err) {
+      handleUploadError(err, verbose)
+    }
+  } finally {
+    // Clean up temp directory if we fetched from a remote source
+    if (tempDir) {
+      await cleanupTempDir(tempDir)
+    }
   }
 }

@@ -3,3 +3,9 @@ node_modules/
 quota_debug_trace.txt
 docs/
 .patch
+
+# Environment files
+.env
+.env.*
+.env.local
+.env.production

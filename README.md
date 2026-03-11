@@ -46,14 +46,28 @@ _Requires **Node.js 20** or higher._
 
 ### Deployment
 
-| Command                             | Description                                                        |
-| :---------------------------------- | :----------------------------------------------------------------- |
-| `launchpd init`                     | Link current folder to a subdomain (persisted in `.launchpd.json`) |
-| `launchpd deploy <folder>`          | Deploy a local folder (uses linked subdomain if available)         |
-| `launchpd deploy . -m "Fix layout"` | Deploy with a message (like a git commit)                          |
-| `launchpd deploy . --name site`     | Deploy with a custom subdomain explicitly                          |
-| `launchpd deploy . --expires 2h`    | Set auto-deletion (e.g., `30m`, `1d`, `7d`)                        |
-| `launchpd deploy . --open`          | Deploy and immediately open the site in your browser               |
+| Command                          | Description                                                        |
+| :------------------------------- | :----------------------------------------------------------------- | ------------------------------------------------- |
+| `launchpd init`                  | Link current folder to a subdomain (persisted in `.launchpd.json`) |
+| `launchpd deploy <folder         | url>`                                                              | Deploy a local folder or remote URL (GitHub/Gist) |
+| `launchpd deploy . --name site`  | Deploy with a custom subdomain explicitly                          |
+| `launchpd deploy . --expires 2h` | Set auto-deletion (e.g., `30m`, `1d`, `7d`)                        |
+| `launchpd deploy . --open`       | Deploy and immediately open the site in your browser               |
+
+### Remote Deployments (GitHub & Gist)
+
+Deploy directly from a public GitHub repository or Gist without cloning it locally:
+
+```bash
+# Deploy from a GitHub repo
+launchpd deploy https://github.com/user/repo
+
+# Deploy from a specific branch and subdirectory
+launchpd deploy https://github.com/user/repo --branch main --dir dist
+
+# Deploy from a GitHub Gist
+launchpd deploy https://gist.github.com/user/@username
+```
 
 ### Management
 

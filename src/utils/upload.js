@@ -5,6 +5,7 @@ import { config } from '../config.js'
 import { getApiKey, getApiSecret } from './credentials.js'
 import { createHmac } from 'node:crypto'
 import { isIgnored } from './ignore.js'
+import { createFetchTimeout, API_TIMEOUT_MS } from './api.js'
 
 const API_BASE_URL = config.apiUrl
 
@@ -50,11 +51,25 @@ async function uploadFile (content, subdomain, version, filePath, contentType) {
     headers['X-Signature'] = hmac.digest('hex')
   }
 
-  const response = await fetch(`${API_BASE_URL}/api/upload/file`, {
-    method: 'POST',
-    headers,
-    body: content
-  })
+  const { signal, clear } = createFetchTimeout(API_TIMEOUT_MS)
+  let response = null
+  try {
+    response = await fetch(`${API_BASE_URL}/api/upload/file`, {
+      method: 'POST',
+      headers,
+      body: content,
+      signal
+    })
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      throw new Error(
+        `Upload timed out after ${API_TIMEOUT_MS / 1000}s. The server did not respond in time.`
+      )
+    }
+    throw err
+  } finally {
+    clear()
+  }
 
   if (!response.ok) {
     const text = await response.text().catch(() => '')
@@ -120,11 +135,25 @@ async function completeUpload (
     headers['X-Signature'] = hmac.digest('hex')
   }
 
-  const response = await fetch(`${API_BASE_URL}/api/upload/complete`, {
-    method: 'POST',
-    headers,
-    body
-  })
+  const { signal, clear } = createFetchTimeout(API_TIMEOUT_MS)
+  let response = null
+  try {
+    response = await fetch(`${API_BASE_URL}/api/upload/complete`, {
+      method: 'POST',
+      headers,
+      body,
+      signal
+    })
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      throw new Error(
+        `Upload completion timed out after ${API_TIMEOUT_MS / 1000}s. The server did not respond in time.`
+      )
+    }
+    throw err
+  } finally {
+    clear()
+  }
 
   if (!response.ok) {
     let errorMsg = 'Complete upload failed'

@@ -106,6 +106,13 @@ export function handleCommonError (err, logger) {
     return true
   }
 
+  if (err.name === 'AbortError') {
+    error('Request timed out')
+    info('The server did not respond in time')
+    info('Check your internet connection or try again later')
+    return true
+  }
+
   if (err instanceof QuotaError || err.isQuotaError) {
     error('Quota limit reached')
     info('Upgrade your plan or delete old deployments')

@@ -32,14 +32,16 @@ program
 
 program
   .command('deploy')
-  .description('Deploy a folder to a live URL')
-  .argument('[folder]', 'Path to the folder to deploy', '.')
+  .description('Deploy a folder or remote URL to a live URL')
+  .argument('[source]', 'Path to folder, GitHub repo URL, or Gist URL', '.')
   .option('--name <subdomain>', 'Use a custom subdomain (optional)')
   .option('-m, --message <text>', 'Deployment message (optional)')
   .option(
     '--expires <time>',
     'Auto-delete after time (e.g., 30m, 2h, 1d). Minimum: 30m'
   )
+  .option('--branch <branch>', 'Git branch to deploy from (for repo URLs)')
+  .option('--dir <path>', 'Subdirectory within the repo to deploy')
   .option('-y, --yes', 'Auto-confirm all prompts')
   .option('--force', 'Force deployment even with warnings')
   .option(
@@ -48,8 +50,8 @@ program
   )
   .option('--verbose', 'Show detailed error information')
   .option('--qr', 'Show QR code for deployment')
-  .action(async (folder, options) => {
-    await deploy(folder || '.', options)
+  .action(async (source, options) => {
+    await deploy(source || '.', options)
   })
 
 program

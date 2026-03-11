@@ -6,6 +6,7 @@
 import { config } from '../config.js'
 import { getCredentials, getClientToken } from './credentials.js'
 import { warning, error, info, log, raw } from './logger.js'
+import { createFetchTimeout, API_TIMEOUT_MS } from './api.js'
 
 const API_BASE_URL = `https://api.${config.domain}`
 
@@ -36,6 +37,7 @@ export async function checkQuota (subdomain, estimatedBytes = 0, options = {}) {
    * Check quota for authenticated user
    */
   async function checkAuthenticatedQuota (apiKey, isUpdate = false) {
+    const { signal, clear } = createFetchTimeout(API_TIMEOUT_MS)
     try {
       const url = new URL(`${API_BASE_URL}/api/quota`)
       if (isUpdate) {
@@ -45,7 +47,8 @@ export async function checkQuota (subdomain, estimatedBytes = 0, options = {}) {
       const response = await fetch(url.toString(), {
         headers: {
           'X-API-Key': apiKey
-        }
+        },
+        signal
       })
 
       if (!response.ok) {
@@ -69,29 +72,22 @@ export async function checkQuota (subdomain, estimatedBytes = 0, options = {}) {
         if (err.cause) raw(err.cause, 'error')
       }
       return null
+    } finally {
+      clear()
     }
   }
   // ... skipped ...
 
   if (!quotaData) {
-    // API unavailable, allow deployment (fail-open for MVP)
+    // API unavailable, deny deployment (fail-closed)
     return {
-      allowed: true,
+      allowed: false,
       isNewSite: true,
       quota: null,
-      warnings: ['Could not verify quota (API unavailable)']
+      warnings: [
+        'Could not verify quota (API unavailable). Please try again later.'
+      ]
     }
-  }
-
-  // DEBUG: Write input options to file
-  try {
-    const { appendFileSync } = await import('node:fs')
-    appendFileSync(
-      'quota_debug_trace.txt',
-      `\n[${new Date().toISOString()}] Check: ${subdomain}, isUpdate: ${options.isUpdate}, type: ${typeof options.isUpdate}`
-    )
-  } catch {
-    // Ignore trace errors
   }
 
   // Check if this is an existing site the user owns
@@ -205,6 +201,7 @@ export async function checkQuota (subdomain, estimatedBytes = 0, options = {}) {
  * Check quota for anonymous user
  */
 async function checkAnonymousQuota () {
+  const { signal, clear } = createFetchTimeout(API_TIMEOUT_MS)
   try {
     const clientToken = await getClientToken()
 
@@ -225,7 +222,8 @@ async function checkAnonymousQuota () {
       },
       body: JSON.stringify({
         clientToken
-      })
+      }),
+      signal
     })
 
     if (!response.ok) {
@@ -235,6 +233,8 @@ async function checkAnonymousQuota () {
     return await response.json()
   } catch {
     return null
+  } finally {
+    clear()
   }
 }
 
@@ -247,11 +247,13 @@ async function userOwnsSite (apiKey, subdomain) {
     return false
   }
 
+  const { signal, clear } = createFetchTimeout(API_TIMEOUT_MS)
   try {
     const response = await fetch(`${API_BASE_URL}/api/subdomains`, {
       headers: {
         'X-API-Key': apiKey
-      }
+      },
+      signal
     })
 
     if (!response.ok) {
@@ -273,6 +275,8 @@ async function userOwnsSite (apiKey, subdomain) {
   } catch (err) {
     log(`Error checking ownership: ${err.message}`)
     return false
+  } finally {
+    clear()
   }
 }
 

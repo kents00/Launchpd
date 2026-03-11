@@ -23,7 +23,11 @@ import {
 } from '../utils/logger.js'
 import { formatBytes } from '../utils/quota.js'
 import { handleCommonError } from '../utils/errors.js'
-import { resendVerification } from '../utils/api.js'
+import {
+  resendVerification,
+  createFetchTimeout,
+  API_TIMEOUT_MS
+} from '../utils/api.js'
 import chalk from 'chalk'
 
 const API_BASE_URL = config.apiUrl
@@ -52,11 +56,13 @@ async function validateApiKey (apiKey) {
     return null
   }
 
+  const { signal, clear } = createFetchTimeout(API_TIMEOUT_MS)
   try {
     const response = await fetch(`${API_BASE_URL}/api/quota`, {
       headers: {
         'X-API-Key': apiKey
-      }
+      },
+      signal
     })
 
     if (response.status === 401) {
@@ -76,8 +82,13 @@ async function validateApiKey (apiKey) {
       return data
     }
     return null
-  } catch {
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      return { timeout: true }
+    }
     return null
+  } finally {
+    clear()
   }
 }
 
@@ -123,6 +134,16 @@ async function loginWithApiKey () {
       `Get your API key at: https://portal.${config.domain}/api-keys`,
       'Make sure you copied the full key',
       'API keys start with "lpd_"'
+    ])
+    return null
+  }
+
+  if (result.timeout) {
+    validateSpinner.fail('Request timed out')
+    errorWithSuggestions('The server did not respond in time.', [
+      'Check your internet connection',
+      'Try again later',
+      'If the problem persists, check https://status.launchpd.cloud'
     ])
     return null
   }

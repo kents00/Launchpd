@@ -18,6 +18,9 @@ import {
 
 const API_BASE_URL = config.apiUrl
 
+/** Fetch timeout for LaunchPd API requests in milliseconds (30 seconds) */
+export const API_TIMEOUT_MS = 30_000
+
 // Re-export error classes for convenience
 export {
   APIError,
@@ -26,6 +29,20 @@ export {
   NetworkError,
   TwoFactorRequiredError
 } from './errors.js'
+
+/**
+ * Create an AbortController with a timeout.
+ * @param {number} ms - Timeout in milliseconds
+ * @returns {{ signal: AbortSignal, clear: () => void }}
+ */
+export function createFetchTimeout (ms) {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), ms)
+  return {
+    signal: controller.signal,
+    clear: () => clearTimeout(timer)
+  }
+}
 
 /**
  * Make an authenticated API request
@@ -66,10 +83,12 @@ export async function apiRequest (endpoint, options = {}) {
     headers['X-Signature'] = signature
   }
 
+  const { signal, clear } = createFetchTimeout(API_TIMEOUT_MS)
   try {
     const response = await fetch(url, {
       ...options,
-      headers
+      headers,
+      signal
     })
 
     // Handle maintenance mode (503 with maintenance_mode flag)
@@ -115,6 +134,12 @@ export async function apiRequest (endpoint, options = {}) {
     if (err instanceof APIError || err instanceof NetworkError) {
       throw err
     }
+    // Handle fetch timeout
+    if (err.name === 'AbortError') {
+      throw new NetworkError(
+        `Request timed out after ${API_TIMEOUT_MS / 1000}s. The server did not respond in time.`
+      )
+    }
     // If API is unavailable, throw NetworkError for consistent handling
     if (
       err.message.includes('fetch failed') ||
@@ -124,6 +149,8 @@ export async function apiRequest (endpoint, options = {}) {
       throw new NetworkError('Unable to connect to LaunchPd servers')
     }
     throw err
+  } finally {
+    clear()
   }
 }
 

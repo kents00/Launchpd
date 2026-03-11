@@ -219,6 +219,15 @@ describe('api.js', () => {
       mockFetch.mockRejectedValue(new Error('Internal Logic Error'))
       await expect(apiRequest('/test')).rejects.toThrow('Internal Logic Error')
     })
+
+    it('should wrap AbortError in NetworkError with timeout message', async () => {
+      const abortErr = new Error('The operation was aborted')
+      abortErr.name = 'AbortError'
+      mockFetch.mockRejectedValue(abortErr)
+      await expect(apiRequest('/test')).rejects.toThrow(
+        /Request timed out after.*The server did not respond/
+      )
+    })
   })
 
   describe('Helper Functions', () => {

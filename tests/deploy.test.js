@@ -20,6 +20,7 @@ import { resolve } from 'node:path'
 import * as prompt from '../src/utils/prompt.js'
 import * as ignore from '../src/utils/ignore.js'
 import * as expiration from '../src/utils/expiration.js'
+import * as remoteSource from '../src/utils/remoteSource.js'
 
 // Mock everything
 vi.mock('node:child_process')
@@ -67,6 +68,12 @@ vi.mock('../src/utils/credentials.js', () => ({
 }))
 vi.mock('../src/utils/ignore.js')
 vi.mock('../src/utils/expiration.js')
+vi.mock('../src/utils/remoteSource.js', () => ({
+  isRemoteUrl: vi.fn().mockReturnValue(false),
+  parseRemoteUrl: vi.fn(),
+  fetchRemoteSource: vi.fn(),
+  cleanupTempDir: vi.fn().mockResolvedValue(undefined)
+}))
 
 describe('deploy command', () => {
   let exitMock
@@ -784,6 +791,162 @@ describe('deploy command', () => {
         expect.arrayContaining([expect.stringContaining('launchpd login')]),
         expect.anything()
       )
+    })
+  })
+
+  describe('Remote URL Deploy', () => {
+    it('should detect and fetch from a GitHub repo URL', async () => {
+      vi.mocked(remoteSource.isRemoteUrl).mockReturnValue(true)
+      vi.mocked(remoteSource.parseRemoteUrl).mockReturnValue({
+        type: 'repo',
+        owner: 'user',
+        repo: 'my-repo'
+      })
+      vi.mocked(remoteSource.fetchRemoteSource).mockResolvedValue({
+        tempDir: '/tmp/launchpd-repo-test',
+        folderPath: '/tmp/launchpd-repo-test'
+      })
+
+      await deploy('https://github.com/user/my-repo', {
+        message: 'from repo'
+      })
+
+      expect(remoteSource.isRemoteUrl).toHaveBeenCalledWith(
+        'https://github.com/user/my-repo'
+      )
+      expect(remoteSource.fetchRemoteSource).toHaveBeenCalledWith(
+        { type: 'repo', owner: 'user', repo: 'my-repo' },
+        { branch: undefined, dir: undefined }
+      )
+      expect(upload.uploadFolder).toHaveBeenCalled()
+      expect(remoteSource.cleanupTempDir).toHaveBeenCalledWith(
+        '/tmp/launchpd-repo-test'
+      )
+    })
+
+    it('should pass --branch and --dir to fetchRemoteSource', async () => {
+      vi.mocked(remoteSource.isRemoteUrl).mockReturnValue(true)
+      vi.mocked(remoteSource.parseRemoteUrl).mockReturnValue({
+        type: 'repo',
+        owner: 'user',
+        repo: 'my-repo'
+      })
+      vi.mocked(remoteSource.fetchRemoteSource).mockResolvedValue({
+        tempDir: '/tmp/launchpd-repo-test',
+        folderPath: '/tmp/launchpd-repo-test/dist'
+      })
+
+      await deploy('https://github.com/user/my-repo', {
+        message: 'from repo subdir',
+        branch: 'main',
+        dir: 'dist'
+      })
+
+      expect(remoteSource.fetchRemoteSource).toHaveBeenCalledWith(
+        expect.anything(),
+        { branch: 'main', dir: 'dist' }
+      )
+    })
+
+    it('should detect and fetch from a Gist URL', async () => {
+      vi.mocked(remoteSource.isRemoteUrl).mockReturnValue(true)
+      vi.mocked(remoteSource.parseRemoteUrl).mockReturnValue({
+        type: 'gist',
+        owner: 'user',
+        gistId: 'abc123'
+      })
+      vi.mocked(remoteSource.fetchRemoteSource).mockResolvedValue({
+        tempDir: '/tmp/launchpd-gist-test',
+        folderPath: '/tmp/launchpd-gist-test'
+      })
+
+      await deploy('https://gist.github.com/user/abc123', {
+        message: 'from gist'
+      })
+
+      expect(remoteSource.fetchRemoteSource).toHaveBeenCalledWith(
+        { type: 'gist', owner: 'user', gistId: 'abc123' },
+        { branch: undefined, dir: undefined }
+      )
+      expect(upload.uploadFolder).toHaveBeenCalled()
+    })
+
+    it('should clean up temp dir even if deploy fails', async () => {
+      vi.mocked(remoteSource.isRemoteUrl).mockReturnValue(true)
+      vi.mocked(remoteSource.parseRemoteUrl).mockReturnValue({
+        type: 'gist',
+        owner: 'user',
+        gistId: 'abc123'
+      })
+      vi.mocked(remoteSource.fetchRemoteSource).mockResolvedValue({
+        tempDir: '/tmp/launchpd-gist-fail',
+        folderPath: '/tmp/launchpd-gist-fail'
+      })
+      vi.mocked(upload.uploadFolder).mockRejectedValue(new Error('Upload failed'))
+
+      await deploy('https://gist.github.com/user/abc123', {
+        message: 'fail test'
+      })
+
+      expect(remoteSource.cleanupTempDir).toHaveBeenCalledWith(
+        '/tmp/launchpd-gist-fail'
+      )
+    })
+
+    it('should exit with error if remote fetch fails', async () => {
+      vi.mocked(remoteSource.isRemoteUrl).mockReturnValue(true)
+      vi.mocked(remoteSource.parseRemoteUrl).mockReturnValue({
+        type: 'repo',
+        owner: 'user',
+        repo: 'missing'
+      })
+      vi.mocked(remoteSource.fetchRemoteSource).mockRejectedValue(
+        new Error('Repository not found')
+      )
+
+      await deploy('https://github.com/user/missing', {
+        message: 'not found'
+      })
+
+      expect(logger.errorWithSuggestions).toHaveBeenCalledWith(
+        expect.stringContaining('Remote fetch failed'),
+        expect.arrayContaining([
+          expect.stringContaining('URL is correct')
+        ]),
+        expect.anything()
+      )
+      expect(exitMock).toHaveBeenCalledWith(1)
+    })
+
+    it('should skip auto-init prompt for remote URL deploys', async () => {
+      vi.mocked(remoteSource.isRemoteUrl).mockReturnValue(true)
+      vi.mocked(remoteSource.parseRemoteUrl).mockReturnValue({
+        type: 'repo',
+        owner: 'user',
+        repo: 'repo'
+      })
+      vi.mocked(remoteSource.fetchRemoteSource).mockResolvedValue({
+        tempDir: '/tmp/launchpd-repo-test',
+        folderPath: '/tmp/launchpd-repo-test'
+      })
+
+      await deploy('https://github.com/user/repo', {
+        name: 'my-site',
+        message: 'remote deploy'
+      })
+
+      // Should NOT prompt for init since it's a remote deploy
+      expect(initProjectConfig).not.toHaveBeenCalled()
+    })
+
+    it('should not call remote functions for local paths', async () => {
+      vi.mocked(remoteSource.isRemoteUrl).mockReturnValue(false)
+
+      await deploy('./test-folder', { message: 'local deploy', name: 'site' })
+
+      expect(remoteSource.parseRemoteUrl).not.toHaveBeenCalled()
+      expect(remoteSource.fetchRemoteSource).not.toHaveBeenCalled()
+      expect(remoteSource.cleanupTempDir).not.toHaveBeenCalled()
     })
   })
 })

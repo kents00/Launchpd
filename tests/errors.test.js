@@ -87,6 +87,17 @@ describe('Errors', () => {
       )
     })
 
+    it('should handle AbortError', () => {
+      const err = new Error('The operation was aborted')
+      err.name = 'AbortError'
+      const handled = handleCommonError(err, logger)
+      expect(handled).toBe(true)
+      expect(logger.error).toHaveBeenCalledWith('Request timed out')
+      expect(logger.info).toHaveBeenCalledWith(
+        'The server did not respond in time'
+      )
+    })
+
     it('should return false for unknown errors', () => {
       const err = new Error('Random')
       const handled = handleCommonError(err, logger)

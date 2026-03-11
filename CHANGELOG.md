@@ -5,6 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-03-09
+
+### Added
+
+- **Deploy from GitHub URL**: Deploy directly from GitHub repos and Gists without cloning first.
+  ```bash
+  launchpd deploy https://gist.github.com/user/abc123 -m "From gist"
+  launchpd deploy https://github.com/user/repo --branch main --dir dist -m "From repo"
+  ```
+- **`--branch` option**: Specify a Git branch to deploy from for repo URLs.
+- **`--dir` option**: Deploy a specific subdirectory within a repo.
+- **Parallel Gist Downloads**: Truncated gist files download in batches of 5 concurrently for faster fetches.
+- **Skip Ignored During Extraction**: Files like `node_modules` and `.git` are skipped during tarball extraction, reducing disk I/O.
+- **New dependency**: Added `tar` (^7.4.0) for tarball extraction.
+- **Exported constants**: `GIST_PARALLEL_LIMIT` and `FETCH_TIMEOUT_MS` are now part of the public API.
+
+### Security
+
+- **Path Traversal Prevention**: `--dir` values are validated to prevent directory escape (e.g., `../../etc`).
+- **Download Size Limit**: Remote downloads are capped at 100MB via streaming byte counter and `Content-Length` pre-check.
+- **Symlink Stripping**: Symbolic links and hard links in tarballs are rejected during extraction.
+- **Tarball Bomb Protection**: Extraction enforces a maximum of 10,000 files and 50 levels of directory nesting.
+- **Rate Limit Handling**: GitHub API 403 responses with `X-RateLimit-Remaining: 0` produce clear error messages with reset time.
+- **Gist Filename Sanitization**: Filenames containing `..`, path separators, or null bytes are rejected.
+- **Fetch Timeout**: All remote `fetch()` calls are protected by a 30-second `AbortController` timeout, preventing CLI hangs on slow or unresponsive servers.
+- **SSRF Protection on `raw_url`**: Truncated gist file download URLs are validated against a trusted-domain allowlist (`gist.githubusercontent.com`, `raw.githubusercontent.com`) before fetching. Internal IPs, `localhost`, and arbitrary external domains are rejected.
+- **Content-Type Validation on Tarballs**: Repo tarball responses with `text/html` or `application/json` Content-Type (e.g. GitHub login redirects) are rejected before extraction begins.
+- **Enhanced Gist Filename Sanitization**: Expanded to also reject Windows reserved device names (`CON`, `NUL`, `AUX`, `PRN`, `COM1`–`COM9`, `LPT1`–`LPT9`) and filenames consisting only of dots (`.`, `...`).
+- **Content-Length Pre-check for Raw Gist Files**: Truncated gist file downloads are aborted immediately if the reported `Content-Length` would push the total over the 100MB limit.
+
+### Tests
+
+- Added `remoteSource.test.js` (78 tests) covering URL parsing, gist/repo fetching, all security protections, SSRF, fetch timeouts, Content-Type validation, and Windows reserved filename checks — up from 37 tests.
+- Added 8 remote URL deploy integration tests to `deploy.test.js`.
+- Total test count: **420 tests across 26 files** (all passing).
+
 ## [1.0.5] - 2026-02-07
 
 ### Added

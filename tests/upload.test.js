@@ -212,6 +212,52 @@ describe('Upload Utility', () => {
   })
 
   describe('Error Parsing', () => {
+    it('should throw timeout error when uploadFile fetch is aborted', async () => {
+      readdir.mockResolvedValue([
+        { isFile: () => true, name: 'index.html', path: '/test' }
+      ])
+      readFile.mockResolvedValue(Buffer.from('content'))
+
+      const abortErr = new Error('The operation was aborted')
+      abortErr.name = 'AbortError'
+      fetch.mockRejectedValue(abortErr)
+
+      await expect(uploadFolder('/test', 'mysite', 1)).rejects.toThrow(
+        /Upload timed out/
+      )
+    })
+
+    it('should re-throw non-AbortError from uploadFile fetch', async () => {
+      readdir.mockResolvedValue([
+        { isFile: () => true, name: 'index.html', path: '/test' }
+      ])
+      readFile.mockResolvedValue(Buffer.from('content'))
+
+      fetch.mockRejectedValue(new Error('Connection refused'))
+
+      await expect(uploadFolder('/test', 'mysite', 1)).rejects.toThrow(
+        'Connection refused'
+      )
+    })
+
+    it('should throw timeout error when completeUpload fetch is aborted', async () => {
+      const abortErr = new Error('The operation was aborted')
+      abortErr.name = 'AbortError'
+      fetch.mockRejectedValue(abortErr)
+
+      await expect(finalizeUpload('mysite', 1, 1, 100, 'test')).rejects.toThrow(
+        /Upload completion timed out/
+      )
+    })
+
+    it('should re-throw non-AbortError from completeUpload fetch', async () => {
+      fetch.mockRejectedValue(new Error('Socket hang up'))
+
+      await expect(finalizeUpload('mysite', 1, 1, 100, 'test')).rejects.toThrow(
+        'Socket hang up'
+      )
+    })
+
     it('should parse JSON error response', async () => {
       readdir.mockResolvedValue([
         { isFile: () => true, name: 'index.html', path: '/test' }

@@ -4,7 +4,7 @@
  */
 
 import { existsSync } from 'node:fs'
-import { readFile, writeFile, mkdir, unlink } from 'node:fs/promises'
+import { readFile, writeFile, mkdir, unlink, chmod } from 'node:fs/promises'
 import { join } from 'node:path'
 import { homedir } from 'node:os'
 import { randomBytes } from 'node:crypto'
@@ -108,6 +108,13 @@ export async function saveCredentials (credentials) {
   }
 
   await writeFile(getCredentialsPath(), JSON.stringify(data, null, 2), 'utf-8')
+
+  // Restrict file permissions to owner only (0o600 = rw-------)
+  try {
+    await chmod(getCredentialsPath(), 0o600)
+  } catch {
+    // chmod may not be fully supported on Windows, ignore gracefully
+  }
 }
 
 /**

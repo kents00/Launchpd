@@ -27,11 +27,6 @@ vi.mock('../src/utils/logger.js', () => ({
   success: vi.fn()
 }))
 
-// Mock fs to satisfy the dynamic import and trace logic
-vi.mock('node:fs', () => ({
-  appendFileSync: vi.fn()
-}))
-
 describe('quota.js', () => {
   // Mock global fetch
   const mockFetch = vi.fn()
@@ -48,14 +43,14 @@ describe('quota.js', () => {
   })
 
   describe('checkQuota', () => {
-    it('should handle API unavailability (fail-open)', async () => {
+    it('should handle API unavailability (fail-closed)', async () => {
       mockFetch.mockRejectedValue(new Error('Network error'))
 
       const result = await checkQuota('new-site', 0)
 
-      expect(result.allowed).toBe(true)
+      expect(result.allowed).toBe(false)
       expect(result.warnings).toContain(
-        'Could not verify quota (API unavailable)'
+        'Could not verify quota (API unavailable). Please try again later.'
       )
     })
 
@@ -293,8 +288,8 @@ describe('quota.js', () => {
 
       const result = await checkQuota('site', 0, { verbose: false })
 
-      // checkQuota returns safe default on null
-      expect(result.allowed).toBe(true)
+      // checkQuota now denies deployment when quota API unavailable (fail-closed)
+      expect(result.allowed).toBe(false)
       expect(logger.raw).not.toHaveBeenCalled()
     })
 
@@ -384,9 +379,9 @@ describe('quota.js', () => {
     it('should handle invalid client token', async () => {
       vi.mocked(credentials.getClientToken).mockResolvedValue('bad-token')
       const result = await checkQuota('site', 0)
-      expect(result.allowed).toBe(true)
+      expect(result.allowed).toBe(false)
       expect(result.warnings).toContain(
-        'Could not verify quota (API unavailable)'
+        'Could not verify quota (API unavailable). Please try again later.'
       )
     })
 
@@ -410,16 +405,16 @@ describe('quota.js', () => {
     it('should return null on anonymous quota network error', async () => {
       mockFetch.mockRejectedValueOnce(new Error('fail'))
       const result = await checkQuota('site', 0)
-      // checkQuota returns safe default on null
-      expect(result.allowed).toBe(true)
+      // checkQuota now denies deployment when quota API unavailable (fail-closed)
+      expect(result.allowed).toBe(false)
     })
     it('should return null on anonymous quota fetch error (non-ok response)', async () => {
       mockFetch.mockResolvedValueOnce({ ok: false, status: 500 })
       const result = await checkQuota('site', 0)
-      // checkQuota returns safe default on null
-      expect(result.allowed).toBe(true)
+      // checkQuota now denies deployment when quota API unavailable (fail-closed)
+      expect(result.allowed).toBe(false)
       expect(result.warnings).toContain(
-        'Could not verify quota (API unavailable)'
+        'Could not verify quota (API unavailable). Please try again later.'
       )
     })
   })
