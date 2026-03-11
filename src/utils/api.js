@@ -35,7 +35,7 @@ export {
  * @param {number} ms - Timeout in milliseconds
  * @returns {{ signal: AbortSignal, clear: () => void }}
  */
-export function createFetchTimeout(ms) {
+export function createFetchTimeout (ms) {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), ms)
   return {
@@ -47,7 +47,7 @@ export function createFetchTimeout(ms) {
 /**
  * Make an authenticated API request
  */
-export async function apiRequest(endpoint, options = {}) {
+export async function apiRequest (endpoint, options = {}) {
   validateEndpoint(endpoint)
   const url = `${API_BASE_URL}${endpoint}`
 
@@ -157,7 +157,7 @@ export async function apiRequest(endpoint, options = {}) {
 /**
  * Get the next version number for a subdomain
  */
-export async function getNextVersionFromAPI(subdomain) {
+export async function getNextVersionFromAPI (subdomain) {
   const result = await apiRequest(`/api/versions/${subdomain}`)
   if (!result?.versions?.length) return 1
   const maxVersion = Math.max(...result.versions.map((v) => v.version))
@@ -167,7 +167,7 @@ export async function getNextVersionFromAPI(subdomain) {
 /**
  * Record a new deployment in the API
  */
-export function recordDeployment(deploymentData) {
+export function recordDeployment (deploymentData) {
   const {
     subdomain,
     folderName,
@@ -196,28 +196,28 @@ export function recordDeployment(deploymentData) {
 /**
  * Get list of user's deployments
  */
-export function listDeployments(limit = 50, offset = 0) {
+export function listDeployments (limit = 50, offset = 0) {
   return apiRequest(`/api/deployments?limit=${limit}&offset=${offset}`)
 }
 
 /**
  * Get deployment details for a subdomain
  */
-export function getDeployment(subdomain) {
+export function getDeployment (subdomain) {
   return apiRequest(`/api/deployments/${subdomain}`)
 }
 
 /**
  * Get version history for a subdomain
  */
-export function getVersions(subdomain) {
+export function getVersions (subdomain) {
   return apiRequest(`/api/versions/${subdomain}`)
 }
 
 /**
  * Rollback to a specific version
  */
-export function rollbackVersion(subdomain, version) {
+export function rollbackVersion (subdomain, version) {
   return apiRequest(`/api/versions/${subdomain}/rollback`, {
     method: 'PUT',
     body: JSON.stringify({ version })
@@ -227,7 +227,7 @@ export function rollbackVersion(subdomain, version) {
 /**
  * Check if a subdomain is available
  */
-export async function checkSubdomainAvailable(subdomain) {
+export async function checkSubdomainAvailable (subdomain) {
   const result = await apiRequest(`/api/public/check/${subdomain}`)
   return result?.available ?? true
 }
@@ -235,7 +235,7 @@ export async function checkSubdomainAvailable(subdomain) {
 /**
  * Reserve a subdomain
  */
-export function reserveSubdomain(subdomain) {
+export function reserveSubdomain (subdomain) {
   return apiRequest('/api/subdomains/reserve', {
     method: 'POST',
     body: JSON.stringify({ subdomain })
@@ -245,7 +245,7 @@ export function reserveSubdomain(subdomain) {
 /**
  * Unreserve a subdomain
  */
-export function unreserveSubdomain(subdomain) {
+export function unreserveSubdomain (subdomain) {
   // Note: Admin only, but good to have in client client lib
   return apiRequest(`/api/admin/reserve-subdomain/${subdomain}`, {
     method: 'DELETE'
@@ -255,28 +255,28 @@ export function unreserveSubdomain(subdomain) {
 /**
  * Get user's subdomains
  */
-export function listSubdomains() {
+export function listSubdomains () {
   return apiRequest('/api/subdomains')
 }
 
 /**
  * Get current user info
  */
-export function getCurrentUser() {
+export function getCurrentUser () {
   return apiRequest('/api/users/me')
 }
 
 /**
  * Health check
  */
-export function healthCheck() {
+export function healthCheck () {
   return apiRequest('/api/health')
 }
 
 /**
  * Resend email verification
  */
-export function resendVerification() {
+export function resendVerification () {
   return apiRequest('/api/auth/resend-verification', {
     method: 'POST'
   })
@@ -285,7 +285,7 @@ export function resendVerification() {
 /**
  * Regenerate API key
  */
-export function regenerateApiKey() {
+export function regenerateApiKey () {
   return apiRequest('/api/api-key/regenerate', {
     method: 'POST',
     body: JSON.stringify({ confirm: 'yes' })
