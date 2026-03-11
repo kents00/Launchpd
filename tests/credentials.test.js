@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs'
-import { readFile, writeFile, mkdir, unlink } from 'node:fs/promises'
+import { readFile, writeFile, mkdir, unlink, chmod } from 'node:fs/promises'
 import { join } from 'node:path'
 import { homedir } from 'node:os'
 
@@ -100,6 +100,35 @@ describe('credentials utils', () => {
       expect(data.userId).toBeNull()
       expect(data.email).toBeNull()
       expect(data.tier).toBe('free')
+    })
+
+    it('should call chmod with 0o600 after writing credentials', async () => {
+      existsSync.mockReturnValue(true)
+      await saveCredentials({ apiKey: 'new-key' })
+
+      expect(chmod).toHaveBeenCalledWith(
+        expect.stringContaining('credentials.json'),
+        0o600
+      )
+    })
+
+    it('should call chmod after writeFile (correct order)', async () => {
+      existsSync.mockReturnValue(true)
+      const callOrder = []
+      writeFile.mockImplementation(() => { callOrder.push('writeFile'); return Promise.resolve() })
+      chmod.mockImplementation(() => { callOrder.push('chmod'); return Promise.resolve() })
+
+      await saveCredentials({ apiKey: 'key' })
+      expect(callOrder).toEqual(['writeFile', 'chmod'])
+    })
+
+    it('should handle chmod failure gracefully without throwing', async () => {
+      existsSync.mockReturnValue(true)
+      chmod.mockRejectedValue(new Error('ENOTSUP: operation not supported'))
+
+      await expect(saveCredentials({ apiKey: 'key' })).resolves.toBeUndefined()
+      expect(writeFile).toHaveBeenCalled()
+      expect(chmod).toHaveBeenCalled()
     })
   })
 
