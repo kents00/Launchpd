@@ -16,7 +16,13 @@ import { handleCommonError } from '../src/utils/errors.js'
 vi.mock('../src/utils/credentials.js')
 vi.mock('../src/utils/prompt.js')
 vi.mock('../src/utils/logger.js')
-vi.mock('../src/utils/api.js')
+vi.mock('../src/utils/api.js', async (importOriginal) => {
+  const actual = await importOriginal()
+  return {
+    ...actual,
+    resendVerification: vi.fn()
+  }
+})
 vi.mock('../src/utils/errors.js')
 vi.mock('node:child_process', () => ({
   execFile: vi.fn((cmd, args, cb) => cb(null))
@@ -182,6 +188,18 @@ describe('auth commands', () => {
       vi.mocked(promptSecret).mockResolvedValue('lpd_1234567890123456')
 
       fetch.mockRejectedValue(new Error('Network error'))
+
+      await expect(login()).rejects.toThrow('Process.exit(1)')
+      expect(spinner().fail).toHaveBeenCalledWith('Invalid API key')
+    })
+
+    it('should fail with timeout during API key validation', async () => {
+      vi.mocked(credentials.isLoggedIn).mockResolvedValue(false)
+      vi.mocked(promptSecret).mockResolvedValue('lpd_1234567890123456')
+
+      const abortErr = new Error('The operation was aborted')
+      abortErr.name = 'AbortError'
+      fetch.mockRejectedValue(abortErr)
 
       await expect(login()).rejects.toThrow('Process.exit(1)')
       expect(spinner().fail).toHaveBeenCalledWith('Invalid API key')
