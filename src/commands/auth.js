@@ -58,7 +58,7 @@ async function validateApiKey (apiKey) {
 
   try {
     const { signal, clear } = createFetchTimeout(API_TIMEOUT_MS)
-    let response
+    let response = null
     try {
       response = await fetch(`${API_BASE_URL}/api/quota`, {
         headers: {

@@ -52,7 +52,7 @@ async function uploadFile (content, subdomain, version, filePath, contentType) {
   }
 
   const { signal, clear } = createFetchTimeout(API_TIMEOUT_MS)
-  let response
+  let response = null
   try {
     response = await fetch(`${API_BASE_URL}/api/upload/file`, {
       method: 'POST',
@@ -136,7 +136,7 @@ async function completeUpload (
   }
 
   const { signal, clear } = createFetchTimeout(API_TIMEOUT_MS)
-  let response
+  let response = null
   try {
     response = await fetch(`${API_BASE_URL}/api/upload/complete`, {
       method: 'POST',
