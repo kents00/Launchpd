@@ -6,7 +6,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![GitHub stars](https://img.shields.io/github/stars/kents00/launchpd.svg?style=social)](https://github.com/kents00/launchpd)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=kents00_Launchpd&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=kents00_Launchpd)
-[![DeepSource](https://app.deepsource.com/gh/kents00/Launchpd.svg/?label=resolved+issues&show_trend=true&token=UIl3aQ-ZhB-iXYsoVgn0-spU)](https://app.deepsource.com/gh/kents00/Launchpd/)
+[![DeepSource](https://app.deepsource.com/gh/kents00/Launchpd.svg/?label=active+issues&show_trend=true&token=UIl3aQ-ZhB-iXYsoVgn0-spU)](https://app.deepsource.com/gh/kents00/Launchpd/)
 
 ---
 
